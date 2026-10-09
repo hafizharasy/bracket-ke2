@@ -34,7 +34,10 @@ export function isFinalStage(match: Match) {
   return match.round >= PLAYOFF_ROUND;
 }
 
-export function sortMatches(a: Match, b: Match) {
+type MatchOrder = Pick<Match, "round" | "matchNumber">;
+type MatchLink = MatchOrder & Pick<Match, "id" | "nextMatchId">;
+
+export function sortMatches(a: MatchOrder, b: MatchOrder) {
   return a.round - b.round || a.matchNumber - b.matchNumber;
 }
 
@@ -54,8 +57,8 @@ export type SlotLabel = { text: string; live: boolean };
 export type SlotLabels = { a: SlotLabel; b: SlotLabel };
 
 /** Laga asal per laga tujuan (`nextMatchId`), terurut nomor laga. */
-function groupFeeders(matches: Match[]) {
-  const feeders = new Map<string, Match[]>();
+function groupFeeders<T extends MatchLink>(matches: T[]) {
+  const feeders = new Map<string, T[]>();
   for (const m of matches) {
     if (!m.nextMatchId) continue;
     const list = feeders.get(m.nextMatchId) ?? [];
@@ -71,7 +74,7 @@ function groupFeeders(matches: Match[]) {
  * dengan `buildSlotLabels`: dua laga asal → nomor kecil ke A, besar ke B;
  * satu laga asal → ke B.
  */
-export function buildAdvanceMap(matches: Match[]) {
+export function buildAdvanceMap(matches: MatchLink[]) {
   const advance = new Map<string, { matchId: string; side: "A" | "B" }>();
   for (const [matchId, sources] of groupFeeders(matches)) {
     sources.forEach((source, i) => {
