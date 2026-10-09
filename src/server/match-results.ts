@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { matches, matchResults } from "@/db/schema";
 import { assertRoomAccess, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
+import { bumpBracketVersion } from "@/server/live";
 import { advanceWinner } from "@/server/propagation";
 
 export const matchResultInput = z.object({
@@ -66,6 +67,7 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
       })
       .run();
 
+    bumpBracketVersion(tx);
     return { match: updated, nextMatch: next };
   });
 }

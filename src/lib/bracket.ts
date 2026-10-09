@@ -92,14 +92,25 @@ export function buildAdvanceMap(matches: MatchLink[]) {
  * nomor kecil → slot A, nomor besar → slot B. Satu laga asal (babak dengan
  * unggulan bye): laga asal mengisi slot B, slot A milik unggulan.
  */
-export function buildSlotLabels(matches: Match[]) {
+export function buildSlotLabels(
+  matches: Match[],
+  names?: { sessions: Map<string, { name: string }>; rooms: Map<string, { name: string }> },
+) {
   const feeders = groupFeeders(matches);
 
-  // Label babak tanpa akhiran "Ruangan" supaya muat di kartu.
-  const fromMatch = (m: Match): SlotLabel => ({
-    text: `Pemenang ${roundLabel(m.round).replace(/ Ruangan$/, "")} #${m.matchNumber}`,
-    live: m.status === "ongoing",
-  });
+  const fromMatch = (m: Match): SlotLabel => {
+    // Juara ruangan yang masuk babak final disebut asalnya, mis. "Juara S1 · Ruangan 2".
+    if (m.round === LAST_ROOM_ROUND && names) {
+      const session = names.sessions.get(m.sessionId)?.name.replace(/^Sesi /, "S") ?? "";
+      const room = names.rooms.get(m.roomId)?.name ?? "";
+      return { text: `Juara ${session} · ${room}`, live: m.status === "ongoing" };
+    }
+    // Label babak tanpa akhiran "Ruangan" supaya muat di kartu.
+    return {
+      text: `Pemenang ${roundLabel(m.round).replace(/ Ruangan$/, "")} #${m.matchNumber}`,
+      live: m.status === "ongoing",
+    };
+  };
   const labels = new Map<string, SlotLabels>();
   for (const m of matches) {
     const sources = feeders.get(m.id) ?? [];

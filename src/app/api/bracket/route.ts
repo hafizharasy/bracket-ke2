@@ -25,8 +25,7 @@ export async function GET(request: Request) {
   if (filter.roomId && !data.rooms.some((r) => r.id === filter.roomId)) {
     return Response.json({ error: `Ruangan "${filter.roomId}" tidak ditemukan.` }, { status: 400 });
   }
-  // updatedAt tidak ikut di-hash: ia jatuh ke "sekarang" bila belum ada hasil.
-  const body = JSON.stringify({ ...data, updatedAt: undefined });
+  const body = JSON.stringify(data);
   const etag = `"${createHash("sha1").update(body).digest("base64url")}"`;
 
   const headers = {

@@ -46,7 +46,10 @@ export function MatchDetails({ data, children }: { data: BracketData; children: 
       participants: new Map(data.participants.map((p) => [p.id, p])),
       rooms: new Map(data.rooms.map((r) => [r.id, r])),
       sessions: new Map(data.sessions.map((s) => [s.id, s])),
-      slotLabels: buildSlotLabels(data.matches),
+      slotLabels: buildSlotLabels(data.matches, {
+        sessions: new Map(data.sessions.map((s) => [s.id, s])),
+        rooms: new Map(data.rooms.map((r) => [r.id, r])),
+      }),
     }),
     [data],
   );

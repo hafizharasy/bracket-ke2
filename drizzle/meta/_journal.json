@@ -8,6 +8,13 @@
       "when": 1791569045075,
       "tag": "0000_init_skema_turnamen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791569682798,
+      "tag": "0001_bracket_state",
+      "breakpoints": true
     }
   ]
 }

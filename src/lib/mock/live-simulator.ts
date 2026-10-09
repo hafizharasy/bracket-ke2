@@ -72,12 +72,19 @@ function step() {
   }
 }
 
+/** Versi simulasi saat ini (ikut memajukan simulasi bila waktunya tiba). */
+export function getLiveMockVersion() {
+  const { version, updatedAt } = getLiveMockBracket();
+  return { version, updatedAt };
+}
+
 export function getLiveMockBracket(): BracketData {
   const now = Date.now();
   const ticks = Math.min(Math.floor((now - state.lastTick) / TICK_MS), MAX_CATCH_UP);
   if (ticks > 0) {
     for (let i = 0; i < ticks; i++) step();
     state.lastTick = ticks === MAX_CATCH_UP ? now : state.lastTick + ticks * TICK_MS;
+    state.data.version += ticks;
     state.data.updatedAt = new Date(now).toISOString();
   }
   // Salinan dangkal baru supaya React melihat perubahan di setiap render.

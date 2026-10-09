@@ -45,5 +45,7 @@ export type BracketData = {
   rooms: Room[];
   participants: Participant[];
   matches: Match[];
+  /** Naik setiap ada perubahan hasil; klien live membandingkan angka ini. */
+  version: number;
   updatedAt: string;
 };

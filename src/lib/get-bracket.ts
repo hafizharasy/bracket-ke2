@@ -1,15 +1,19 @@
 import { connection } from "next/server";
 
+import { getBracketFromDb } from "@/db/queries/bracket";
 import type { BracketData } from "@/lib/types";
+import { bracketSource } from "@/server/live";
 
 /**
- * Sumber data bracket. Sementara memakai data tiruan yang disimulasikan
- * berjalan live; nanti diganti dengan GET /bracket ke backend dengan bentuk
- * data yang sama.
+ * Sumber data bagan untuk halaman: database (default), atau simulasi live di
+ * atas data tiruan bila env BRACKET_DATA_SOURCE=mock (untuk demo tanpa data).
  */
 export async function getBracket(): Promise<BracketData> {
   // Data live → selalu dibaca saat request, bukan saat prerender.
   await connection();
-  const { getLiveMockBracket } = await import("@/lib/mock/live-simulator");
-  return getLiveMockBracket();
+  if (bracketSource() === "mock") {
+    const { getLiveMockBracket } = await import("@/lib/mock/live-simulator");
+    return getLiveMockBracket();
+  }
+  return getBracketFromDb();
 }

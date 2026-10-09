@@ -257,5 +257,6 @@ export const mockBracket: BracketData = {
   rooms,
   participants,
   matches: [...matchMap.values()],
+  version: 0,
   updatedAt: "2026-10-17T14:05:00+07:00",
 };

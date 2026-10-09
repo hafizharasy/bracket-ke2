@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { requireUser } from "@/server/auth";
 import { ApiError, errorResponse } from "@/server/errors";
+import { notifyBracketChanged } from "@/server/live";
 import { matchResultInput, recordMatchResult } from "@/server/match-results";
 
 /**
@@ -26,7 +27,9 @@ export async function PUT(request: Request, ctx: RouteContext<"/api/matches/[id]
       );
     }
 
-    return Response.json(recordMatchResult(id, parsed.data, user));
+    const saved = recordMatchResult(id, parsed.data, user);
+    notifyBracketChanged();
+    return Response.json(saved);
   } catch (error) {
     return errorResponse(error);
   }

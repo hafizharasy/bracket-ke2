@@ -64,7 +64,7 @@ export default function BracketPage({ searchParams }: PageProps<"/">) {
 async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const query = await searchParams;
   const data = await getBracket();
-  const { sessions, rooms, participants, matches, updatedAt } = data;
+  const { sessions, rooms, participants, matches, version, updatedAt } = data;
 
   // Filter dari URL; nilai yang tidak dikenal diabaikan.
   const sesi = pickParam(query.sesi);
@@ -83,7 +83,10 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
 
   const participantMap = new Map(participants.map((p) => [p.id, p]));
   const roomMap = new Map(rooms.map((r) => [r.id, r]));
-  const slotLabels = buildSlotLabels(matches);
+  const slotLabels = buildSlotLabels(matches, {
+    sessions: new Map(sessions.map((s) => [s.id, s])),
+    rooms: roomMap,
+  });
 
   const roomMatches = matches.filter((m) => !isFinalStage(m));
   const finalMatches = matches.filter(isFinalStage);
@@ -107,7 +110,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
           <p>
             {participants.length} peserta · {sessions.length} sesi · {rooms.length} ruangan
           </p>
-          <LiveUpdater updatedAt={updatedAt} />
+          <LiveUpdater version={version} updatedAt={updatedAt} />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map((s) => (

@@ -173,6 +173,22 @@ export const violations = sqliteTable(
   ],
 );
 
+/**
+ * Versi data bagan (satu baris, id = 1). Dinaikkan dalam transaksi yang sama
+ * dengan setiap perubahan hasil, supaya klien live cukup memantau angka ini.
+ */
+export const bracketState = sqliteTable(
+  "bracket_state",
+  {
+    id: integer("id").primaryKey(),
+    version: integer("version").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [check("bracket_state_single_row", sql`${t.id} = 1`)],
+);
+
 // Relasi untuk query API Drizzle (db.query.*).
 
 export const sessionsRelations = relations(sessions, ({ many }) => ({
