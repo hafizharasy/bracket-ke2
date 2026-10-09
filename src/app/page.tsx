@@ -2,6 +2,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { BracketFilter } from "@/components/bracket/bracket-filter";
+import { BracketScroller } from "@/components/bracket/bracket-scroller";
 import { BracketTree } from "@/components/bracket/bracket-tree";
 import { LiveUpdater } from "@/components/bracket/live-updater";
 import { MatchCard } from "@/components/bracket/match-card";
@@ -167,7 +168,12 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                               <span className="text-xs text-muted-foreground">{room.location}</span>
                             )}
                           </div>
-                          <BracketTree matches={list} participants={participantMap} slotLabels={slotLabels} />
+                          <BracketTree
+                              matches={list}
+                              participants={participantMap}
+                              slotLabels={slotLabels}
+                              label={`Bagan ${session.name} ${room.name}`}
+                            />
                         </div>
                       );
                     })}
@@ -216,17 +222,20 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
 
                   <div className="flex flex-col gap-2">
                     <h3 className="text-sm font-semibold">Play-off</h3>
-                    <div className="flex gap-3 overflow-x-auto pb-2">
-                      {playoffMatches.map((match) => (
-                        <MatchCard
-                          key={match.id}
-                          match={match}
-                          participants={participantMap}
-                          roomName={roomMap.get(match.roomId)?.name}
-                          slotLabels={slotLabels.get(match.id)}
-                        />
-                      ))}
-                    </div>
+                    <BracketScroller label="Laga play-off" tone="background">
+                      <div className="flex w-max gap-3">
+                        {playoffMatches.map((match) => (
+                          <div key={match.id} data-round-col className="snap-start">
+                            <MatchCard
+                              match={match}
+                              participants={participantMap}
+                              roomName={roomMap.get(match.roomId)?.name}
+                              slotLabels={slotLabels.get(match.id)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </BracketScroller>
                   </div>
 
                   <BracketTree
@@ -234,6 +243,8 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                     participants={participantMap}
                     rooms={roomMap}
                     slotLabels={slotLabels}
+                    label="Bagan babak final"
+                    tone="background"
                   />
                 </>
               )}

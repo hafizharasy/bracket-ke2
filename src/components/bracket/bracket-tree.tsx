@@ -1,3 +1,4 @@
+import { BracketScroller } from "@/components/bracket/bracket-scroller";
 import { MatchCard } from "@/components/bracket/match-card";
 import { groupByRound, roundLabel, type SlotLabels } from "@/lib/bracket";
 import type { Match, Participant, Room } from "@/lib/types";
@@ -9,6 +10,9 @@ type BracketTreeProps = {
   /** Kalau diisi, nama ruangan ditampilkan di tiap kartu. */
   rooms?: Map<string, Room>;
   slotLabels?: Map<string, SlotLabels>;
+  /** Nama area gulir untuk pembaca layar, mis. "Bagan Sesi 1 Ruangan 3". */
+  label: string;
+  tone?: "card" | "background";
 };
 
 // Setengah jarak antarkolom (gap-8 = 2rem): garis penghubung bertemu di tengahnya.
@@ -23,18 +27,25 @@ const HALF_GAP = "1rem";
  *          ├─ kartu babak berikutnya
  *   kartu ─┘
  */
-export function BracketTree({ matches, participants, rooms, slotLabels }: BracketTreeProps) {
+export function BracketTree({
+  matches,
+  participants,
+  rooms,
+  slotLabels,
+  label,
+  tone,
+}: BracketTreeProps) {
   const rounds = [...groupByRound(matches)];
 
   return (
-    <div className="overflow-x-auto pb-2">
+    <BracketScroller label={label} tone={tone}>
       <div className="flex w-max gap-8" style={{ ["--half-gap" as string]: HALF_GAP }}>
         {rounds.map(([round, roundMatches], i) => {
           const isFirst = i === 0;
           const isLast = i === rounds.length - 1;
           const pairs = isLast ? [roundMatches] : chunk(roundMatches, 2);
           return (
-            <div key={round} className="flex flex-col">
+            <div key={round} data-round-col className="flex snap-start flex-col">
               <div className="mb-2 text-xs font-medium text-muted-foreground">
                 {roundLabel(round)}
                 <span className="ml-1 font-normal">· {roundMatches.length} laga</span>
@@ -74,7 +85,7 @@ export function BracketTree({ matches, participants, rooms, slotLabels }: Bracke
           );
         })}
       </div>
-    </div>
+    </BracketScroller>
   );
 }
 
