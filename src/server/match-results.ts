@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { matches, matchResults } from "@/db/schema";
-import { buildAdvanceMap } from "@/lib/bracket";
 import { assertRoomAccess, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
+import { advanceWinner } from "@/server/propagation";
 
 export const matchResultInput = z.object({
   scoreA: z.int().min(0).max(999),
@@ -17,15 +17,10 @@ export const matchResultInput = z.object({
 });
 export type MatchResultInput = z.infer<typeof matchResultInput>;
 
-type Match = typeof matches.$inferSelect;
-
 /**
  * Simpan hasil laga oleh pengawas ruangan (atau admin), dalam satu transaksi:
  * skor + pemenang + status selesai, catatan bukti (match_results), lalu
- * pemenang otomatis ditempatkan di slot laga berikutnya.
- *
- * Koreksi hasil diizinkan selama laga berikutnya belum dimulai; pemenang
- * lama di slot berikutnya diganti.
+ * pemenang dimajukan ke laga berikutnya (lihat `advanceWinner`).
  */
 export function recordMatchResult(matchId: string, input: MatchResultInput, user: SessionUser) {
   return db.transaction((tx) => {
@@ -46,34 +41,15 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
       throw new ApiError(422, "Pemenang tidak sesuai dengan skor.");
     }
 
-    // Tempatkan pemenang di laga berikutnya.
-    let next: Match | undefined;
-    if (match.nextMatchId) {
-      next = tx.select().from(matches).where(eq(matches.id, match.nextMatchId)).get();
-      if (next) {
-        if (next.status !== "scheduled" && match.winnerId !== winnerId) {
-          throw new ApiError(409, "Laga berikutnya sudah dimulai; pemenang tidak bisa diubah lagi.");
-        }
-        const feeders = tx.select().from(matches).where(eq(matches.nextMatchId, next.id)).all();
-        const side = buildAdvanceMap(feeders).get(match.id)?.side ?? "B";
-        const slot = side === "A" ? "participantAId" : "participantBId";
-        const other = side === "A" ? next.participantBId : next.participantAId;
-        if (other === winnerId) throw new ApiError(409, "Peserta ini sudah ada di laga berikutnya.");
-        next = tx
-          .update(matches)
-          .set({ [slot]: winnerId })
-          .where(eq(matches.id, next.id))
-          .returning()
-          .get();
-      }
-    }
-
     const updated = tx
       .update(matches)
       .set({ scoreA: input.scoreA, scoreB: input.scoreB, winnerId, status: "done" })
       .where(eq(matches.id, match.id))
       .returning()
       .get();
+
+    // Rollback otomatis bila propagasi ditolak (mis. laga berikutnya sudah dimulai).
+    const next = advanceWinner(tx, updated, match.winnerId);
 
     const now = new Date();
     tx.insert(matchResults)
@@ -90,6 +66,6 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
       })
       .run();
 
-    return { match: updated, nextMatch: next ?? null };
+    return { match: updated, nextMatch: next };
   });
 }

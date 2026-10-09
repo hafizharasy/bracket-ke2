@@ -56,7 +56,7 @@ export function groupByRound(matches: Match[]) {
 export type SlotLabel = { text: string; live: boolean };
 export type SlotLabels = { a: SlotLabel; b: SlotLabel };
 
-/** Laga asal per laga tujuan (`nextMatchId`), terurut nomor laga. */
+/** Laga asal per laga tujuan (`nextMatchId`), terurut babak lalu nomor laga. */
 function groupFeeders<T extends MatchLink>(matches: T[]) {
   const feeders = new Map<string, T[]>();
   for (const m of matches) {
@@ -65,14 +65,15 @@ function groupFeeders<T extends MatchLink>(matches: T[]) {
     list.push(m);
     feeders.set(m.nextMatchId, list);
   }
-  for (const list of feeders.values()) list.sort(sortMatches);
+  // Tie-break ID: beberapa final ruangan (semua laga #1) bisa mengisi satu laga final.
+  for (const list of feeders.values()) list.sort((a, b) => sortMatches(a, b) || a.id.localeCompare(b.id));
   return feeders;
 }
 
 /**
  * Slot tujuan pemenang tiap laga (auto-advance), memakai aturan yang sama
- * dengan `buildSlotLabels`: dua laga asal → nomor kecil ke A, besar ke B;
- * satu laga asal → ke B.
+ * dengan `buildSlotLabels`: dua laga asal → yang lebih awal (babak, lalu
+ * nomor laga) ke A, berikutnya ke B; satu laga asal → ke B (A milik unggulan).
  */
 export function buildAdvanceMap(matches: MatchLink[]) {
   const advance = new Map<string, { matchId: string; side: "A" | "B" }>();
