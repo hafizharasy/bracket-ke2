@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { BracketFilter } from "@/components/bracket/bracket-filter";
 import { BracketTree } from "@/components/bracket/bracket-tree";
+import { LiveUpdater } from "@/components/bracket/live-updater";
 import { MatchCard } from "@/components/bracket/match-card";
 import { MatchDetails } from "@/components/bracket/match-details";
 import { PathHighlight } from "@/components/bracket/path-highlight";
@@ -10,11 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   buildSlotLabels,
-  getBracket,
   isFinalStage,
   PLAYOFF_ROUND,
   roundLabel,
 } from "@/lib/bracket";
+import { getBracket } from "@/lib/get-bracket";
 import type { Match, MatchStatus } from "@/lib/types";
 
 const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
@@ -60,7 +61,8 @@ export default function BracketPage({ searchParams }: PageProps<"/">) {
 }
 
 async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
-  const [data, query] = await Promise.all([getBracket(), searchParams]);
+  const query = await searchParams;
+  const data = await getBracket();
   const { sessions, rooms, participants, matches, updatedAt } = data;
 
   // Filter dari URL; nilai yang tidak dikenal diabaikan.
@@ -104,7 +106,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
           <p>
             {participants.length} peserta · {sessions.length} sesi · {rooms.length} ruangan
           </p>
-          <p className="text-xs">Diperbarui {dateTimeFormat.format(new Date(updatedAt))} WIB</p>
+          <LiveUpdater updatedAt={updatedAt} />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map((s) => (

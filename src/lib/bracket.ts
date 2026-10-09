@@ -1,4 +1,4 @@
-import type { BracketData, Match } from "@/lib/types";
+import type { Match } from "@/lib/types";
 
 /**
  * Struktur turnamen:
@@ -53,13 +53,8 @@ export function groupByRound(matches: Match[]) {
 export type SlotLabel = { text: string; live: boolean };
 export type SlotLabels = { a: SlotLabel; b: SlotLabel };
 
-/**
- * Label untuk slot peserta yang masih kosong, berdasarkan laga asal
- * (laga lain yang `nextMatchId`-nya menunjuk ke laga ini). Dua laga asal:
- * nomor kecil → slot A, nomor besar → slot B. Satu laga asal (babak dengan
- * unggulan bye): laga asal mengisi slot B, slot A milik unggulan.
- */
-export function buildSlotLabels(matches: Match[]) {
+/** Laga asal per laga tujuan (`nextMatchId`), terurut nomor laga. */
+function groupFeeders(matches: Match[]) {
   const feeders = new Map<string, Match[]>();
   for (const m of matches) {
     if (!m.nextMatchId) continue;
@@ -67,6 +62,34 @@ export function buildSlotLabels(matches: Match[]) {
     list.push(m);
     feeders.set(m.nextMatchId, list);
   }
+  for (const list of feeders.values()) list.sort(sortMatches);
+  return feeders;
+}
+
+/**
+ * Slot tujuan pemenang tiap laga (auto-advance), memakai aturan yang sama
+ * dengan `buildSlotLabels`: dua laga asal → nomor kecil ke A, besar ke B;
+ * satu laga asal → ke B.
+ */
+export function buildAdvanceMap(matches: Match[]) {
+  const advance = new Map<string, { matchId: string; side: "A" | "B" }>();
+  for (const [matchId, sources] of groupFeeders(matches)) {
+    sources.forEach((source, i) => {
+      const side = sources.length === 2 && i === 0 ? "A" : "B";
+      advance.set(source.id, { matchId, side });
+    });
+  }
+  return advance;
+}
+
+/**
+ * Label untuk slot peserta yang masih kosong, berdasarkan laga asal
+ * (laga lain yang `nextMatchId`-nya menunjuk ke laga ini). Dua laga asal:
+ * nomor kecil → slot A, nomor besar → slot B. Satu laga asal (babak dengan
+ * unggulan bye): laga asal mengisi slot B, slot A milik unggulan.
+ */
+export function buildSlotLabels(matches: Match[]) {
+  const feeders = groupFeeders(matches);
 
   // Label babak tanpa akhiran "Ruangan" supaya muat di kartu.
   const fromMatch = (m: Match): SlotLabel => ({
@@ -75,7 +98,7 @@ export function buildSlotLabels(matches: Match[]) {
   });
   const labels = new Map<string, SlotLabels>();
   for (const m of matches) {
-    const sources = (feeders.get(m.id) ?? []).sort(sortMatches);
+    const sources = feeders.get(m.id) ?? [];
     // Play-off dan 32 besar diisi langsung oleh juara ruangan.
     const seedLabel: SlotLabel = {
       text:
@@ -90,13 +113,4 @@ export function buildSlotLabels(matches: Match[]) {
     });
   }
   return labels;
-}
-
-/**
- * Sumber data bracket. Sementara memakai data tiruan; nanti diganti
- * dengan pemanggilan GET /bracket ke backend dengan bentuk data yang sama.
- */
-export async function getBracket(): Promise<BracketData> {
-  const { mockBracket } = await import("@/lib/mock/bracket-data");
-  return mockBracket;
 }

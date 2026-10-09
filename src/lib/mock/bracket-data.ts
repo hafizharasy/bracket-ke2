@@ -245,6 +245,13 @@ for (const [slot, sourceId] of finalSlotSource) {
   else match.participantBId = champion;
 }
 
+/** Laga final ruangan → slot babak final yang diisi juaranya (dipakai simulasi live). */
+export const championSlots = new Map<string, { matchId: string; side: "A" | "B" }>();
+for (const [slot, sourceId] of finalSlotSource) {
+  const [matchId, side] = slot.split(":");
+  championSlots.set(sourceId, { matchId, side: side as "A" | "B" });
+}
+
 export const mockBracket: BracketData = {
   sessions,
   rooms,
