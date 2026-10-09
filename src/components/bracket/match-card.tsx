@@ -52,11 +52,14 @@ export function MatchCard({
   return (
     <div
       id={match.id}
+      data-match-id={match.id}
       data-status={match.status}
-      role="group"
-      aria-label={summary}
+      role="button"
+      tabIndex={0}
+      aria-haspopup="dialog"
+      aria-label={`${summary}. Lihat detail.`}
       className={cn(
-        "relative w-52 shrink-0 rounded-lg border bg-card text-xs shadow-xs",
+        "relative w-52 shrink-0 cursor-pointer rounded-lg border bg-card text-xs shadow-xs transition-shadow outline-none hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring",
         isLive && "border-red-500/60 ring-1 ring-red-500/30",
         connectOut &&
           "after:absolute after:top-1/2 after:-right-(--half-gap) after:h-px after:w-(--half-gap)",
