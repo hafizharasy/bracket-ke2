@@ -49,7 +49,9 @@ export function groupByRound(matches: Match[]) {
   return rounds;
 }
 
-export type SlotLabels = { a: string; b: string };
+/** Penanda slot kosong: dari laga mana pesertanya akan datang. */
+export type SlotLabel = { text: string; live: boolean };
+export type SlotLabels = { a: SlotLabel; b: SlotLabel };
 
 /**
  * Label untuk slot peserta yang masih kosong, berdasarkan laga asal
@@ -67,16 +69,21 @@ export function buildSlotLabels(matches: Match[]) {
   }
 
   // Label babak tanpa akhiran "Ruangan" supaya muat di kartu.
-  const fromMatch = (m: Match) =>
-    `Pemenang ${roundLabel(m.round).replace(/ Ruangan$/, "")} #${m.matchNumber}`;
+  const fromMatch = (m: Match): SlotLabel => ({
+    text: `Pemenang ${roundLabel(m.round).replace(/ Ruangan$/, "")} #${m.matchNumber}`,
+    live: m.status === "ongoing",
+  });
   const labels = new Map<string, SlotLabels>();
   for (const m of matches) {
     const sources = (feeders.get(m.id) ?? []).sort(sortMatches);
     // Play-off dan 32 besar diisi langsung oleh juara ruangan.
-    const seedLabel =
-      m.round === PLAYOFF_ROUND || m.round === PLAYOFF_ROUND + 1
-        ? "Juara ruangan"
-        : "Menunggu pemenang";
+    const seedLabel: SlotLabel = {
+      text:
+        m.round === PLAYOFF_ROUND || m.round === PLAYOFF_ROUND + 1
+          ? "Menunggu juara ruangan"
+          : "Menunggu pemenang",
+      live: false,
+    };
     labels.set(m.id, {
       a: sources.length === 2 ? fromMatch(sources[0]) : seedLabel,
       b: sources.length >= 1 ? fromMatch(sources[sources.length - 1]) : seedLabel,

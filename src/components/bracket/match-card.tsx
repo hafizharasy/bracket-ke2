@@ -1,6 +1,6 @@
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, HourglassIcon } from "lucide-react";
 
-import type { SlotLabels } from "@/lib/bracket";
+import type { SlotLabel, SlotLabels } from "@/lib/bracket";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -71,18 +71,36 @@ export function MatchCard({ match, participants, roomName, slotLabels, connector
 function ParticipantRow({
   participant,
   score,
-  placeholder = "Menunggu pemenang",
+  placeholder = { text: "Menunggu pemenang", live: false },
   isWinner,
   isLoser,
   className,
 }: {
   participant?: Participant;
   score: number | null;
-  placeholder?: string;
+  placeholder?: SlotLabel;
   isWinner: boolean;
   isLoser: boolean;
   className?: string;
 }) {
+  if (!participant) {
+    return (
+      <div
+        title={placeholder.live ? `${placeholder.text} (sedang bertanding)` : placeholder.text}
+        className={cn(
+          "flex h-6 items-center gap-1.5 bg-muted/40 px-2 text-muted-foreground",
+          className,
+        )}
+      >
+        <HourglassIcon className="size-3 shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 truncate italic">{placeholder.text}</span>
+        {placeholder.live && (
+          <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-red-500" aria-label="sedang bertanding" />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -93,10 +111,10 @@ function ParticipantRow({
       )}
     >
       <span
-        title={participant ? [participant.name, participant.teamOrClub].filter(Boolean).join(" · ") : placeholder}
-        className={cn("min-w-0 flex-1 truncate", !participant && "italic text-muted-foreground")}
+        title={[participant.name, participant.teamOrClub].filter(Boolean).join(" · ")}
+        className="min-w-0 flex-1 truncate"
       >
-        {participant?.name ?? placeholder}
+        {participant.name}
       </span>
       {isWinner && <CheckIcon className="size-3 text-emerald-600 dark:text-emerald-400" />}
       <span className="w-4 text-right tabular-nums">{score ?? "–"}</span>
