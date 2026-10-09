@@ -2,6 +2,7 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { BracketTree } from "@/components/bracket/bracket-tree";
 import { MatchCard } from "@/components/bracket/match-card";
+import { PathHighlight } from "@/components/bracket/path-highlight";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildSlotLabels, getBracket, isFinalStage, PLAYOFF_ROUND } from "@/lib/bracket";
@@ -73,91 +74,94 @@ export default async function BracketPage() {
         </div>
       </header>
 
-      <section className="flex flex-col gap-3">
-        <div>
-          <h2 className="font-heading text-lg font-semibold">Babak Ruangan</h2>
-          <p className="text-sm text-muted-foreground">
-            Tiap ruangan di tiap sesi berisi 16 peserta. Juara ruangan maju ke babak final.
-          </p>
-        </div>
-        {sessions.map((session) => {
-          const sessionMatches = roomMatches.filter((m) => m.sessionId === session.id);
-          const status = overallStatus(sessionMatches);
-          const badge = STATUS_BADGE[status];
-          return (
-            <details
-              key={session.id}
-              open={status === "ongoing"}
-              className="group rounded-xl border bg-card"
-            >
-              <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-                <ChevronDownIcon className="size-4 -rotate-90 transition-transform group-open:rotate-0" />
-                <span className="font-medium">{session.name}</span>
-                {session.startTime && (
-                  <span className="text-xs text-muted-foreground">
-                    {dateTimeFormat.format(new Date(session.startTime))} WIB
-                  </span>
-                )}
-                <Badge variant={badge.variant} className="ml-auto">
-                  {badge.label}
-                </Badge>
-              </summary>
-              <div className="flex flex-col gap-6 border-t px-4 py-4">
-                {rooms.map((room) => {
-                  const list = sessionMatches.filter((m) => m.roomId === room.id);
-                  if (list.length === 0) return null;
-                  return (
-                    <div key={room.id} className="flex flex-col gap-2">
-                      <div className="flex items-baseline gap-2">
-                        <h3 className="text-sm font-semibold">{room.name}</h3>
-                        {room.location && (
-                          <span className="text-xs text-muted-foreground">{room.location}</span>
-                        )}
-                      </div>
-                      <BracketTree matches={list} participants={participantMap} slotLabels={slotLabels} />
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
-          );
-        })}
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="font-heading text-lg font-semibold">Babak Final</h2>
-          <Badge variant={STATUS_BADGE[overallStatus(finalMatches)].variant}>
-            {STATUS_BADGE[overallStatus(finalMatches)].label}
-          </Badge>
-        </div>
-        <p className="-mt-2 text-sm text-muted-foreground">
-          40 juara ruangan: 24 unggulan langsung ke 32 besar, 16 lainnya bertanding di play-off
-          untuk memperebutkan 8 tempat tersisa.
-        </p>
-
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">Play-off</h3>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {playoffMatches.map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                participants={participantMap}
-                roomName={roomMap.get(match.roomId)?.name}
-                slotLabels={slotLabels.get(match.id)}
-              />
-            ))}
+      <PathHighlight>
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="font-heading text-lg font-semibold">Babak Ruangan</h2>
+            <p className="text-sm text-muted-foreground">
+              Tiap ruangan di tiap sesi berisi 16 peserta. Juara ruangan maju ke babak final.
+              Arahkan kursor atau ketuk nama peserta untuk menyorot jalurnya.
+            </p>
           </div>
-        </div>
+          {sessions.map((session) => {
+            const sessionMatches = roomMatches.filter((m) => m.sessionId === session.id);
+            const status = overallStatus(sessionMatches);
+            const badge = STATUS_BADGE[status];
+            return (
+              <details
+                key={session.id}
+                open={status === "ongoing"}
+                className="group rounded-xl border bg-card"
+              >
+                <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                  <ChevronDownIcon className="size-4 -rotate-90 transition-transform group-open:rotate-0" />
+                  <span className="font-medium">{session.name}</span>
+                  {session.startTime && (
+                    <span className="text-xs text-muted-foreground">
+                      {dateTimeFormat.format(new Date(session.startTime))} WIB
+                    </span>
+                  )}
+                  <Badge variant={badge.variant} className="ml-auto">
+                    {badge.label}
+                  </Badge>
+                </summary>
+                <div className="flex flex-col gap-6 border-t px-4 py-4">
+                  {rooms.map((room) => {
+                    const list = sessionMatches.filter((m) => m.roomId === room.id);
+                    if (list.length === 0) return null;
+                    return (
+                      <div key={room.id} className="flex flex-col gap-2">
+                        <div className="flex items-baseline gap-2">
+                          <h3 className="text-sm font-semibold">{room.name}</h3>
+                          {room.location && (
+                            <span className="text-xs text-muted-foreground">{room.location}</span>
+                          )}
+                        </div>
+                        <BracketTree matches={list} participants={participantMap} slotLabels={slotLabels} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })}
+        </section>
 
-        <BracketTree
-          matches={mainFinalMatches}
-          participants={participantMap}
-          rooms={roomMap}
-          slotLabels={slotLabels}
-        />
-      </section>
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-heading text-lg font-semibold">Babak Final</h2>
+            <Badge variant={STATUS_BADGE[overallStatus(finalMatches)].variant}>
+              {STATUS_BADGE[overallStatus(finalMatches)].label}
+            </Badge>
+          </div>
+          <p className="-mt-2 text-sm text-muted-foreground">
+            40 juara ruangan: 24 unggulan langsung ke 32 besar, 16 lainnya bertanding di play-off
+            untuk memperebutkan 8 tempat tersisa.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">Play-off</h3>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {playoffMatches.map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  participants={participantMap}
+                  roomName={roomMap.get(match.roomId)?.name}
+                  slotLabels={slotLabels.get(match.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <BracketTree
+            matches={mainFinalMatches}
+            participants={participantMap}
+            rooms={roomMap}
+            slotLabels={slotLabels}
+          />
+        </section>
+      </PathHighlight>
     </main>
   );
 }

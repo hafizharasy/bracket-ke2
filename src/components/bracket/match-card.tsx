@@ -10,8 +10,10 @@ type MatchCardProps = {
   roomName?: string;
   /** Teks untuk slot yang belum terisi peserta. */
   slotLabels?: SlotLabels;
-  /** Tampilkan garis penghubung ke babak berikutnya. */
-  connector?: boolean;
+  /** Garis keluar ke laga babak berikutnya (hijau setelah pemenang ditentukan). */
+  connectOut?: boolean;
+  /** Garis masuk dari pasangan laga babak sebelumnya. */
+  connectIn?: boolean;
 };
 
 const timeFormat = new Intl.DateTimeFormat("id-ID", {
@@ -20,7 +22,14 @@ const timeFormat = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
-export function MatchCard({ match, participants, roomName, slotLabels, connector }: MatchCardProps) {
+export function MatchCard({
+  match,
+  participants,
+  roomName,
+  slotLabels,
+  connectOut,
+  connectIn,
+}: MatchCardProps) {
   const isLive = match.status === "ongoing";
   const a = match.participantAId ? participants.get(match.participantAId) : undefined;
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
@@ -49,8 +58,11 @@ export function MatchCard({ match, participants, roomName, slotLabels, connector
       className={cn(
         "relative w-52 shrink-0 rounded-lg border bg-card text-xs shadow-xs",
         isLive && "border-red-500/60 ring-1 ring-red-500/30",
-        connector &&
-          "after:absolute after:top-1/2 after:-right-4 after:h-px after:w-4 after:bg-border",
+        connectOut &&
+          "after:absolute after:top-1/2 after:-right-(--half-gap) after:h-px after:w-(--half-gap)",
+        connectOut && (winner ? "after:bg-emerald-500/60" : "after:bg-border"),
+        connectIn &&
+          "before:absolute before:top-1/2 before:-left-(--half-gap) before:h-px before:w-(--half-gap) before:bg-border",
       )}
     >
       <div className="flex items-center justify-between gap-2 border-b px-2 py-1 text-[10px] text-muted-foreground">
@@ -127,8 +139,9 @@ function ParticipantRow({
 
   return (
     <div
+      data-pid={participant.id}
       className={cn(
-        "flex h-6 items-center gap-1.5 px-2",
+        "flex h-6 items-center gap-1.5 px-2 transition-colors",
         isWinner && "bg-emerald-500/10 font-semibold shadow-[inset_2px_0_0] shadow-emerald-500",
         isLoser && "text-muted-foreground",
         className,
