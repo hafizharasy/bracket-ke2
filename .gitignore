@@ -43,3 +43,6 @@ next-env.d.ts
 # ngodingpakeai (lokal)
 .ngodingpakeai/pending.json
 .ngodingpakeai/summaries.json
+
+# database lokal
+/data/
