@@ -4,7 +4,7 @@ import { BracketTree } from "@/components/bracket/bracket-tree";
 import { MatchCard } from "@/components/bracket/match-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getBracket, isFinalStage, PLAYOFF_ROUND } from "@/lib/bracket";
+import { buildSlotLabels, getBracket, isFinalStage, PLAYOFF_ROUND } from "@/lib/bracket";
 import type { Match, MatchStatus } from "@/lib/types";
 
 const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
@@ -30,6 +30,7 @@ export default async function BracketPage() {
 
   const participantMap = new Map(participants.map((p) => [p.id, p]));
   const roomMap = new Map(rooms.map((r) => [r.id, r]));
+  const slotLabels = buildSlotLabels(matches);
 
   const roomMatches = matches.filter((m) => !isFinalStage(m));
   const finalMatches = matches.filter(isFinalStage);
@@ -113,7 +114,7 @@ export default async function BracketPage() {
                           <span className="text-xs text-muted-foreground">{room.location}</span>
                         )}
                       </div>
-                      <BracketTree matches={list} participants={participantMap} />
+                      <BracketTree matches={list} participants={participantMap} slotLabels={slotLabels} />
                     </div>
                   );
                 })}
@@ -144,12 +145,18 @@ export default async function BracketPage() {
                 match={match}
                 participants={participantMap}
                 roomName={roomMap.get(match.roomId)?.name}
+                slotLabels={slotLabels.get(match.id)}
               />
             ))}
           </div>
         </div>
 
-        <BracketTree matches={mainFinalMatches} participants={participantMap} rooms={roomMap} />
+        <BracketTree
+          matches={mainFinalMatches}
+          participants={participantMap}
+          rooms={roomMap}
+          slotLabels={slotLabels}
+        />
       </section>
     </main>
   );

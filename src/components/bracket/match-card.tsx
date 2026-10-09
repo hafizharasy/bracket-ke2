@@ -1,5 +1,6 @@
 import { CheckIcon } from "lucide-react";
 
+import type { SlotLabels } from "@/lib/bracket";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -7,6 +8,8 @@ type MatchCardProps = {
   match: Match;
   participants: Map<string, Participant>;
   roomName?: string;
+  /** Teks untuk slot yang belum terisi peserta. */
+  slotLabels?: SlotLabels;
   /** Tampilkan garis penghubung ke babak berikutnya. */
   connector?: boolean;
 };
@@ -17,7 +20,7 @@ const timeFormat = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
-export function MatchCard({ match, participants, roomName, connector }: MatchCardProps) {
+export function MatchCard({ match, participants, roomName, slotLabels, connector }: MatchCardProps) {
   const isLive = match.status === "ongoing";
 
   return (
@@ -49,12 +52,14 @@ export function MatchCard({ match, participants, roomName, connector }: MatchCar
       <ParticipantRow
         participant={match.participantAId ? participants.get(match.participantAId) : undefined}
         score={match.scoreA}
+        placeholder={slotLabels?.a}
         isWinner={!!match.winnerId && match.winnerId === match.participantAId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantAId}
       />
       <ParticipantRow
         participant={match.participantBId ? participants.get(match.participantBId) : undefined}
         score={match.scoreB}
+        placeholder={slotLabels?.b}
         isWinner={!!match.winnerId && match.winnerId === match.participantBId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantBId}
         className="border-t"
@@ -66,12 +71,14 @@ export function MatchCard({ match, participants, roomName, connector }: MatchCar
 function ParticipantRow({
   participant,
   score,
+  placeholder = "Menunggu pemenang",
   isWinner,
   isLoser,
   className,
 }: {
   participant?: Participant;
   score: number | null;
+  placeholder?: string;
   isWinner: boolean;
   isLoser: boolean;
   className?: string;
@@ -85,8 +92,11 @@ function ParticipantRow({
         className,
       )}
     >
-      <span className={cn("min-w-0 flex-1 truncate", !participant && "italic text-muted-foreground")}>
-        {participant?.name ?? "Menunggu pemenang"}
+      <span
+        title={participant ? [participant.name, participant.teamOrClub].filter(Boolean).join(" · ") : placeholder}
+        className={cn("min-w-0 flex-1 truncate", !participant && "italic text-muted-foreground")}
+      >
+        {participant?.name ?? placeholder}
       </span>
       {isWinner && <CheckIcon className="size-3 text-emerald-600 dark:text-emerald-400" />}
       <span className="w-4 text-right tabular-nums">{score ?? "–"}</span>

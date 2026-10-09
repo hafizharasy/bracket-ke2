@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ngodingpakeai (lokal)
+.ngodingpakeai/pending.json
+.ngodingpakeai/summaries.json

@@ -49,6 +49,42 @@ export function groupByRound(matches: Match[]) {
   return rounds;
 }
 
+export type SlotLabels = { a: string; b: string };
+
+/**
+ * Label untuk slot peserta yang masih kosong, berdasarkan laga asal
+ * (laga lain yang `nextMatchId`-nya menunjuk ke laga ini). Dua laga asal:
+ * nomor kecil → slot A, nomor besar → slot B. Satu laga asal (babak dengan
+ * unggulan bye): laga asal mengisi slot B, slot A milik unggulan.
+ */
+export function buildSlotLabels(matches: Match[]) {
+  const feeders = new Map<string, Match[]>();
+  for (const m of matches) {
+    if (!m.nextMatchId) continue;
+    const list = feeders.get(m.nextMatchId) ?? [];
+    list.push(m);
+    feeders.set(m.nextMatchId, list);
+  }
+
+  // Label babak tanpa akhiran "Ruangan" supaya muat di kartu.
+  const fromMatch = (m: Match) =>
+    `Pemenang ${roundLabel(m.round).replace(/ Ruangan$/, "")} #${m.matchNumber}`;
+  const labels = new Map<string, SlotLabels>();
+  for (const m of matches) {
+    const sources = (feeders.get(m.id) ?? []).sort(sortMatches);
+    // Play-off dan 32 besar diisi langsung oleh juara ruangan.
+    const seedLabel =
+      m.round === PLAYOFF_ROUND || m.round === PLAYOFF_ROUND + 1
+        ? "Juara ruangan"
+        : "Menunggu pemenang";
+    labels.set(m.id, {
+      a: sources.length === 2 ? fromMatch(sources[0]) : seedLabel,
+      b: sources.length >= 1 ? fromMatch(sources[sources.length - 1]) : seedLabel,
+    });
+  }
+  return labels;
+}
+
 /**
  * Sumber data bracket. Sementara memakai data tiruan; nanti diganti
  * dengan pemanggilan GET /bracket ke backend dengan bentuk data yang sama.
