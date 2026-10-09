@@ -22,11 +22,30 @@ const timeFormat = new Intl.DateTimeFormat("id-ID", {
 
 export function MatchCard({ match, participants, roomName, slotLabels, connector }: MatchCardProps) {
   const isLive = match.status === "ongoing";
+  const a = match.participantAId ? participants.get(match.participantAId) : undefined;
+  const b = match.participantBId ? participants.get(match.participantBId) : undefined;
+  const winner = match.winnerId ? participants.get(match.winnerId) : undefined;
+  const hasScore = match.scoreA !== null && match.scoreB !== null;
+  const leader =
+    isLive && hasScore && match.scoreA !== match.scoreB
+      ? match.scoreA! > match.scoreB! ? "a" : "b"
+      : null;
+
+  const summary = [
+    `Laga #${match.matchNumber}`,
+    `${a?.name ?? slotLabels?.a.text ?? "TBD"} lawan ${b?.name ?? slotLabels?.b.text ?? "TBD"}`,
+    hasScore ? `skor ${match.scoreA}–${match.scoreB}` : null,
+    winner ? `pemenang ${winner.name}` : isLive ? "sedang berlangsung" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div
       id={match.id}
       data-status={match.status}
+      role="group"
+      aria-label={summary}
       className={cn(
         "relative w-52 shrink-0 rounded-lg border bg-card text-xs shadow-xs",
         isLive && "border-red-500/60 ring-1 ring-red-500/30",
@@ -50,16 +69,18 @@ export function MatchCard({ match, participants, roomName, slotLabels, connector
         ) : null}
       </div>
       <ParticipantRow
-        participant={match.participantAId ? participants.get(match.participantAId) : undefined}
+        participant={a}
         score={match.scoreA}
         placeholder={slotLabels?.a}
+        isLeading={leader === "a"}
         isWinner={!!match.winnerId && match.winnerId === match.participantAId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantAId}
       />
       <ParticipantRow
-        participant={match.participantBId ? participants.get(match.participantBId) : undefined}
+        participant={b}
         score={match.scoreB}
         placeholder={slotLabels?.b}
+        isLeading={leader === "b"}
         isWinner={!!match.winnerId && match.winnerId === match.participantBId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantBId}
         className="border-t"
@@ -74,6 +95,7 @@ function ParticipantRow({
   placeholder = { text: "Menunggu pemenang", live: false },
   isWinner,
   isLoser,
+  isLeading,
   className,
 }: {
   participant?: Participant;
@@ -81,6 +103,8 @@ function ParticipantRow({
   placeholder?: SlotLabel;
   isWinner: boolean;
   isLoser: boolean;
+  /** Unggul sementara di laga yang sedang berlangsung. */
+  isLeading: boolean;
   className?: string;
 }) {
   if (!participant) {
@@ -105,7 +129,7 @@ function ParticipantRow({
     <div
       className={cn(
         "flex h-6 items-center gap-1.5 px-2",
-        isWinner && "bg-emerald-500/10 font-semibold",
+        isWinner && "bg-emerald-500/10 font-semibold shadow-[inset_2px_0_0] shadow-emerald-500",
         isLoser && "text-muted-foreground",
         className,
       )}
@@ -116,8 +140,19 @@ function ParticipantRow({
       >
         {participant.name}
       </span>
-      {isWinner && <CheckIcon className="size-3 text-emerald-600 dark:text-emerald-400" />}
-      <span className="w-4 text-right tabular-nums">{score ?? "–"}</span>
+      {isWinner && (
+        <CheckIcon className="size-3 text-emerald-600 dark:text-emerald-400" aria-label="pemenang" />
+      )}
+      <span
+        className={cn(
+          "w-5 text-right tabular-nums",
+          score === null && "text-muted-foreground",
+          (isWinner || isLeading) && "font-bold",
+          isLeading && "text-red-600 dark:text-red-400",
+        )}
+      >
+        {score ?? "–"}
+      </span>
     </div>
   );
 }
