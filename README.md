@@ -51,9 +51,9 @@ npm test            # vitest (SQLite di memori)
 | `npm run db:seed` | Isi sesi, ruangan, peserta, dan struktur bagan yang belum ada (aman diulang) |
 | `npm run db:seed -- --dasar` | Hanya sesi, ruangan, & ruangan per sesi contoh (awal untuk data peserta asli; atur lagi di `/admin/ruangan`) |
 | `npm run db:buat-bagan [-- --cek] [-- --ganti] [-- --final <ISO>]` | Buat struktur bagan (63 laga per ruangan-sesi + semifinal + final round-robin) dari penempatan peserta; `--final` = jam mulai semifinal; juga tombol di `/admin/peserta` |
-| `npm run db:seed -- --reset` | Kosongkan data turnamen lalu isi ulang (akun tidak dihapus) |
+| `npm run db:seed -- --reset` | Kosongkan data turnamen lalu isi ulang (akun tidak dihapus). Di production wajib `--yakin` bila sudah ada data; database dicadangkan dulu ke `data/cadangan/` |
 | `npm run db:create-admin -- --email <email> [--name <nama>] --password <sandi>` | Buat akun admin utama (atau setel ulang sandinya); sandi juga bisa lewat env `ADMIN_PASSWORD` |
-| `npm run db:import-peserta -- peserta.csv [--dry-run] [--replace]` | Impor peserta dari CSV (format: `data-templates/peserta.csv`); sama dengan tombol **Unggah CSV** di `/admin/peserta` |
+| `npm run db:import-peserta -- peserta.csv [--dry-run] [--replace]` | Impor peserta dari CSV (format: `data-templates/peserta.csv`); `--replace` di production wajib `--yakin` (dicadangkan dulu); sama dengan tombol **Unggah CSV** di `/admin/peserta` |
 | `npm run db:studio` | Buka Drizzle Studio |
 
 Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`

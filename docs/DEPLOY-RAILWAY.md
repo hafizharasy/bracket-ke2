@@ -71,8 +71,24 @@ diisi di **Pantau Ruangan → ruangan** (rahasia, hanya admin).
 ### Memperbarui dari versi format 16 peserta
 
 Migrasi berjalan otomatis saat start. Data lama (bagan 16 peserta) tidak cocok
-dengan format baru, jadi kosongkan dan isi ulang lewat shell: `npm run db:seed -- --reset`
-(data contoh) atau `npm run db:seed -- --reset --dasar` lalu impor peserta asli.
+dengan format baru, jadi kosongkan dan isi ulang lewat shell: `npm run db:seed -- --reset --yakin`
+(data contoh) atau `npm run db:seed -- --reset --dasar --yakin` lalu impor peserta asli.
+
+### Pengaman penghapusan data
+
+Redeploy tidak pernah mengubah data (hanya migrasi yang menambah tabel/kolom).
+Perintah shell yang menghapus data turnamen — `db:seed -- --reset` dan
+`db:import-peserta -- … --replace` — ditolak di production bila database sudah
+berisi data, kecuali ditambah `--yakin`. Sebelum menghapus, salinan database
+otomatis disimpan di `/app/data/cadangan/bracket-<tanggal>-<jam>.db`.
+
+Memulihkan dari cadangan (lewat shell, lalu Redeploy layanan):
+
+```bash
+ls /app/data/cadangan/
+cp /app/data/cadangan/bracket-20261010-154702.db /app/data/bracket.db
+rm -f /app/data/bracket.db-wal /app/data/bracket.db-shm
+```
 
 Peserta bisa juga ditambah langsung dari website: **Peserta & Jadwal → Unggah CSV**
 (pilih berkas, periksa daftar masalah, lalu Simpan) atau **Tambah peserta** satu per satu.
