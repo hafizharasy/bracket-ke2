@@ -7,7 +7,7 @@ import { assertRoomAccess, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
 import { isProofUrlForMatch } from "@/server/storage";
 import { bumpBracketVersion } from "@/server/live";
-import { advanceWinner } from "@/server/propagation";
+import { advanceWinner, retractWinner } from "@/server/propagation";
 
 export const matchResultInput = z.object({
   scoreA: z.int().min(0).max(999),
@@ -86,6 +86,51 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
         recordedAt: now,
       })
       .run();
+
+    bumpBracketVersion(tx);
+    return { match: updated, nextMatch: next };
+  });
+}
+
+/**
+ * Batalkan hasil laga (salah input): laga kembali terjadwal tanpa skor/
+ * pemenang, pemenang ditarik dari laga berikutnya, catatan bukti dihapus,
+ * dan pembatalan tercatat di jejak audit. Ditolak bila laga berikutnya
+ * sudah dimulai.
+ */
+export function cancelMatchResult(matchId: string, user: SessionUser) {
+  return db.transaction((tx) => {
+    const match = tx.select().from(matches).where(eq(matches.id, matchId)).get();
+    if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");
+    assertRoomAccess(user, match.roomId);
+    if (match.status !== "done" || !match.winnerId) {
+      throw new ApiError(409, "Laga ini belum punya hasil untuk dibatalkan.");
+    }
+
+    const next = retractWinner(tx, match);
+    const result = tx.select().from(matchResults).where(eq(matchResults.matchId, match.id)).get();
+
+    tx.insert(matchResultHistory)
+      .values({
+        id: crypto.randomUUID(),
+        matchId: match.id,
+        roomId: match.roomId,
+        action: "cancel",
+        scoreA: match.scoreA ?? 0,
+        scoreB: match.scoreB ?? 0,
+        winnerId: match.winnerId,
+        proofPhotoUrl: result?.proofPhotoUrl ?? "",
+        recordedBy: user.id,
+        recordedAt: new Date(),
+      })
+      .run();
+    tx.delete(matchResults).where(eq(matchResults.matchId, match.id)).run();
+    const updated = tx
+      .update(matches)
+      .set({ scoreA: null, scoreB: null, winnerId: null, status: "scheduled" })
+      .where(eq(matches.id, match.id))
+      .returning()
+      .get();
 
     bumpBracketVersion(tx);
     return { match: updated, nextMatch: next };

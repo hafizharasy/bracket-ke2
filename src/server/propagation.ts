@@ -58,6 +58,22 @@ export function advanceWinner(tx: Tx, match: Match, previousWinnerId: string | n
     .get();
 }
 
+/**
+ * Tarik kembali pemenang `match` dari slotnya di laga berikutnya (mis. saat
+ * hasil dibatalkan). Ditolak bila laga berikutnya sudah dimulai.
+ */
+export function retractWinner(tx: Tx, match: Match) {
+  if (!match.nextMatchId || !match.winnerId) return null;
+  const next = tx.select().from(matches).where(eq(matches.id, match.nextMatchId)).get();
+  if (!next) return null;
+  const slot = slotColumn(advanceSide(tx, match));
+  if (next[slot] !== match.winnerId) return next; // sudah tidak di sana
+  if (next.status !== "scheduled") {
+    throw new ApiError(409, "Laga berikutnya sudah dimulai; hasil ini tidak bisa dibatalkan.");
+  }
+  return tx.update(matches).set({ [slot]: null }).where(eq(matches.id, next.id)).returning().get();
+}
+
 export type RepropagateReport = { filled: number; unchanged: number; conflicts: string[] };
 
 /**

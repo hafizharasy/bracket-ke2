@@ -148,10 +148,11 @@ export const matchResults = sqliteTable(
   ],
 );
 
-export const RESULT_ACTIONS = ["create", "correct"] as const;
+export const RESULT_ACTIONS = ["create", "correct", "cancel"] as const;
 
 /**
- * Jejak audit setiap penyimpanan hasil (input pertama & koreksi). Satu baris
+ * Jejak audit setiap perubahan hasil (input pertama, koreksi, pembatalan —
+ * untuk pembatalan, skor/pemenang/bukti berisi nilai yang dibatalkan). Satu baris
  * per penyimpanan, tidak pernah diubah, supaya riwayat ruangan dan koreksi
  * bisa ditelusuri. `roomId` disalin agar riwayat per ruangan cepat dibaca.
  */
@@ -180,7 +181,7 @@ export const matchResultHistory = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [
-    check("match_result_history_action_check", sql`${t.action} in ('create', 'correct')`),
+    check("match_result_history_action_check", sql`${t.action} in ('create', 'correct', 'cancel')`),
     check("match_result_history_score_check", sql`${t.scoreA} >= 0 and ${t.scoreB} >= 0`),
     index("match_result_history_room_idx").on(t.roomId, t.recordedAt),
     index("match_result_history_match_idx").on(t.matchId, t.recordedAt),

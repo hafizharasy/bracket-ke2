@@ -11,6 +11,14 @@ npm run db:setup   # migrasi + seed (4 sesi, 10 ruangan, 640 peserta)
 npm run dev        # http://localhost:3000
 ```
 
+## Pengecekan
+
+```bash
+npm run typecheck   # generate tipe rute + tsc
+npm run lint
+npm test            # vitest (SQLite di memori)
+```
+
 ## Database
 
 | Perintah | Fungsi |
@@ -42,5 +50,6 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
 | `GET /api/matches/:id` | Detail satu pertandingan |
 | `POST /api/matches/:id/proof` | Unggah foto bukti (multipart `photo`, JPEG/PNG/WebP ≤ 5 MB) |
+| `DELETE /api/matches/:id/result` | Batalkan hasil (salah input) selama laga berikutnya belum dimulai |
 | `PUT /api/matches/:id/result` | Simpan/koreksi hasil (pengawas ruangan / admin); `proofPhotoUrl` harus hasil unggah untuk laga itu |
 | `GET /api/bukti/:file` | Foto bukti tersimpan |

@@ -22,6 +22,13 @@
       "when": 1791591916620,
       "tag": "0002_match_result_history",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791592907297,
+      "tag": "0003_history_cancel_action",
+      "breakpoints": true
     }
   ]
 }
