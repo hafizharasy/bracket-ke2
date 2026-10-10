@@ -97,10 +97,15 @@ async function Summary() {
             <h2 className="text-sm font-semibold">Peserta dengan pelanggaran</h2>
             <ul className="divide-y rounded-xl border bg-card">
               {perParticipant.slice(0, 5).map(({ participant, count }) => (
-                <li key={participant?.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate">{participant?.name ?? "?"}</span>
-                  <span className="text-xs text-muted-foreground">{participant?.id.toUpperCase()}</span>
-                  <span className="w-6 text-right font-semibold tabular-nums">{count}</span>
+                <li key={participant?.id}>
+                  <Link
+                    href={`/ruangan/pelanggaran/peserta/${participant?.id}`}
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{participant?.name ?? "?"}</span>
+                    <span className="text-xs text-muted-foreground">{participant?.id.toUpperCase()}</span>
+                    <span className="w-6 text-right font-semibold tabular-nums">{count}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -114,7 +119,12 @@ async function Summary() {
                 return (
                   <li key={v.id} className="flex flex-col gap-0.5 rounded-xl border bg-card p-3 text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{participants.get(v.participantId)?.name}</span>
+                      <Link
+                        href={`/ruangan/pelanggaran/peserta/${v.participantId}`}
+                        className="font-medium hover:underline"
+                      >
+                        {participants.get(v.participantId)?.name}
+                      </Link>
                       <span className="ml-auto text-xs text-muted-foreground">
                         {timeFormat.format(new Date(v.occurredAt))}
                       </span>
