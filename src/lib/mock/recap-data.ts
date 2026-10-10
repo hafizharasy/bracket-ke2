@@ -36,6 +36,17 @@ export function getMockRecap(filters: RecapFilters): RecapData {
         occurredAt: new Date(new Date(m.scheduledAt ?? 0).getTime() + ((i % 5) + 2) * 60_000).toISOString(),
         recordedBy: `Pengawas ${mockBracket.rooms.find((r) => r.id === m.roomId)?.name ?? m.roomId}`,
       });
+      // Sebagian peserta melanggar lagi di laga yang sama (peserta berulang).
+      if (i % 9 === 1) {
+        const first = violations.at(-1)!;
+        violations.push({
+          ...first,
+          id: `${first.id}-2`,
+          type: "Perilaku tidak sportif",
+          note: null,
+          occurredAt: new Date(new Date(first.occurredAt).getTime() + 3 * 60_000).toISOString(),
+        });
+      }
     });
 
   return buildRecap(mockBracket, violations, filters, meta);
