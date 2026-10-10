@@ -16,7 +16,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "db:import-peserta": "tsx src/db/import-peserta.ts",
-    "db:create-admin": "tsx src/db/create-admin.ts"
+    "db:create-admin": "tsx src/db/create-admin.ts",
+    "db:buat-bagan": "tsx src/db/buat-bagan.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

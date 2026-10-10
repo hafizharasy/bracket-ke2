@@ -1,8 +1,9 @@
 "use server";
 
-import { assertAdminAction } from "@/lib/admin-session";
+import { assertAdminAction, getAdminSession } from "@/lib/admin-session";
 import type { AdminActionResult, AssignMode, PairingPayload, ParticipantFormValues } from "@/lib/admin-client";
 import { assignInput, assignParticipants, autoAssign, autoAssignInput } from "@/server/assignments";
+import { generateBracketStructure } from "@/server/bracket-structure";
 import { ApiError } from "@/server/errors";
 import { bracketSource, notifyBracketChanged } from "@/server/live";
 import { pairingInput, savePairings } from "@/server/pairings";
@@ -79,4 +80,23 @@ export async function savePairingsAction(payload: PairingPayload): Promise<Admin
   const parsed = pairingInput.safeParse(payload);
   if (!parsed.success) return { ok: false, error: "Susunan pasangan tidak valid." };
   return run(() => savePairings(parsed.data));
+}
+
+export type GenerateBracketResult =
+  | { ok: true; simulated: boolean; summary?: string }
+  | { ok: false; error: string; problems?: string[] };
+
+/** Buat (atau susun ulang) struktur bagan dari penempatan peserta. */
+export async function generateBracketAction(replace: boolean): Promise<GenerateBracketResult> {
+  const admin = await getAdminSession();
+  if (!admin) return { ok: false, error: "Hanya admin utama yang boleh melakukan ini." };
+  if (bracketSource() === "mock") return { ok: true, simulated: true };
+  try {
+    const result = generateBracketStructure({ replace }, admin.userId);
+    notifyBracketChanged();
+    return { ok: true, simulated: false, summary: `${result.roomMatches} laga ruangan + ${result.finalMatches} laga final dibuat.` };
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    return { ok: false, error: error.message, problems: error.details?.errors as string[] | undefined };
+  }
 }

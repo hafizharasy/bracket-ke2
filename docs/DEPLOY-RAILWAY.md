@@ -45,17 +45,29 @@ Buka shell layanan: di dasbor **⋮ → SSH** / atau `railway ssh` (Railway CLI)
 # Akun admin utama pertama (sandi lewat env supaya tidak tercatat di riwayat shell)
 ADMIN_PASSWORD='sandi-yang-kuat' npm run db:create-admin -- --email admin@domain.id --name "Admin Utama"
 
-# Data turnamen:
-npm run db:seed                       # data contoh (uji coba): 4 sesi, 10 ruangan, 640 peserta, bagan
-# atau peserta asli dari CSV (format: data-templates/peserta.csv)
-npm run db:import-peserta -- peserta.csv --dry-run
+# A) Uji coba dengan data contoh (640 peserta fiktif + bagan lengkap):
+npm run db:seed
+
+# B) Data asli:
+npm run db:seed -- --dasar                              # 4 sesi & 10 ruangan saja
+npm run db:import-peserta -- peserta.csv --dry-run      # cek CSV (format: data-templates/peserta.csv)
+npm run db:import-peserta -- peserta.csv                # simpan
+npm run db:buat-bagan -- --cek                          # cek kelengkapan penempatan
+npm run db:buat-bagan                                   # buat 639 laga (bisa juga lewat tombol di /admin/peserta)
 ```
 
 > `db:seed` di production **tidak** membuat akun contoh — akun pengawas dibuat
 > admin dari `/admin/pengawas` (tombol buat akun untuk ruangan yang belum punya
 > pengawas; sandi ditampilkan sekali, bagikan ke tiap pengawas).
 
-Lalu masuk ke `https://domain-anda/masuk/admin`.
+Lalu masuk ke `https://domain-anda/masuk/admin`. Peserta yang belum punya
+sesi/ruangan di CSV bisa dibagi dari **Peserta & Jadwal** (bagi rata otomatis),
+lalu klik **Buat struktur bagan** di halaman yang sama. Atur jam sesi di
+**Ruangan & Sesi** dan pasangan babak 1 di tab **Pasangan Tanding** sebelum hari-H.
+
+Untuk membawa CSV ke server, buat berkasnya lewat shell (`cat > peserta.csv`,
+tempel isinya, lalu Ctrl+D). Jangan memakai `railway run` dari komputer lokal:
+perintah itu berjalan di komputer Anda, bukan di volume server.
 
 ## 6. Backup
 

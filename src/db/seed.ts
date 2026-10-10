@@ -3,12 +3,24 @@
 // dan tautan next_match_id (termasuk juara ruangan → babak final). Belum ada hasil.
 //   npm run db:seed            → isi data yang belum ada (aman diulang)
 //   npm run db:seed -- --reset → kosongkan data turnamen dulu, lalu isi ulang
+//   npm run db:seed -- --dasar → hanya 4 sesi & 10 ruangan (untuk data peserta asli:
+//                               lanjut db:import-peserta lalu db:buat-bagan)
 // Data diambil dari data tiruan frontend supaya ID & pembagian sesi/ruangan sama.
 
 import { eq, sql } from "drizzle-orm";
 
 import { DATABASE_PATH, db } from "@/db";
-import { authAccounts, matches, matchResults, participants, rooms, sessions, users, violations } from "@/db/schema";
+import {
+  authAccounts,
+  matches,
+  matchResultHistory,
+  matchResults,
+  participants,
+  rooms,
+  sessions,
+  users,
+  violations,
+} from "@/db/schema";
 import { championSlots, mockBracket } from "@/lib/mock/bracket-data";
 import { hashUserPassword, storePasswordHash } from "@/server/credentials";
 import { bumpBracketVersion } from "@/server/live";
@@ -18,12 +30,13 @@ const DEV_PASSWORDS = { admin: "admin12345", pengawas: "pengawas123" } as const;
 type DevHashes = Record<keyof typeof DEV_PASSWORDS, string> | null;
 
 const reset = process.argv.includes("--reset");
+const baseOnly = process.argv.includes("--dasar");
 
 function seed(devHashes: DevHashes) {
   db.transaction((tx) => {
     if (reset) {
       // Urutan mengikuti foreign key. Akun (users) tidak disentuh.
-      for (const table of [violations, matchResults, matches, participants]) tx.delete(table).run();
+      for (const table of [violations, matchResultHistory, matchResults, matches, participants]) tx.delete(table).run();
       tx.delete(sessions).run();
       tx.delete(rooms)
         .where(sql`${rooms.id} not in (select room_id from users where room_id is not null)`)
@@ -42,35 +55,38 @@ function seed(devHashes: DevHashes) {
 
     tx.insert(rooms).values(mockBracket.rooms).onConflictDoNothing().run();
 
-    // SQLite membatasi jumlah parameter per statement → sisipkan per batch.
-    const BATCH = 50;
-    for (let i = 0; i < mockBracket.participants.length; i += BATCH) {
-      tx.insert(participants)
-        .values(mockBracket.participants.slice(i, i + BATCH))
-        .onConflictDoNothing()
-        .run();
-    }
+    // Data contoh peserta & bagan (dilewati dengan --dasar).
+    if (!baseOnly) {
+      // SQLite membatasi jumlah parameter per statement → sisipkan per batch.
+      const BATCH = 50;
+      for (let i = 0; i < mockBracket.participants.length; i += BATCH) {
+        tx.insert(participants)
+          .values(mockBracket.participants.slice(i, i + BATCH))
+          .onConflictDoNothing()
+          .run();
+      }
 
-    // Struktur bagan tanpa hasil. Babak tertinggi lebih dulu supaya laga tujuan
-    // next_match_id selalu sudah ada saat laga asalnya disisipkan.
-    const structure = mockBracket.matches
-      .map((m) => ({
-        ...m,
-        participantAId: m.round === 1 ? m.participantAId : null,
-        participantBId: m.round === 1 ? m.participantBId : null,
-        winnerId: null,
-        scoreA: null,
-        scoreB: null,
-        status: "scheduled" as const,
-        nextMatchId: m.nextMatchId ?? championSlots.get(m.id)?.matchId ?? null,
-        scheduledAt: m.scheduledAt ? new Date(m.scheduledAt) : null,
-      }))
-      .sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
-    for (let i = 0; i < structure.length; i += BATCH) {
-      tx.insert(matches)
-        .values(structure.slice(i, i + BATCH))
-        .onConflictDoNothing()
-        .run();
+      // Struktur bagan tanpa hasil. Babak tertinggi lebih dulu supaya laga tujuan
+      // next_match_id selalu sudah ada saat laga asalnya disisipkan.
+      const structure = mockBracket.matches
+        .map((m) => ({
+          ...m,
+          participantAId: m.round === 1 ? m.participantAId : null,
+          participantBId: m.round === 1 ? m.participantBId : null,
+          winnerId: null,
+          scoreA: null,
+          scoreB: null,
+          status: "scheduled" as const,
+          nextMatchId: m.nextMatchId ?? championSlots.get(m.id)?.matchId ?? null,
+          scheduledAt: m.scheduledAt ? new Date(m.scheduledAt) : null,
+        }))
+        .sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
+      for (let i = 0; i < structure.length; i += BATCH) {
+        tx.insert(matches)
+          .values(structure.slice(i, i + BATCH))
+          .onConflictDoNothing()
+          .run();
+      }
     }
 
     // Akun contoh untuk pengembangan: admin@lrp.local / admin12345 dan
@@ -127,7 +143,7 @@ async function main() {
         };
   seed(devHashes);
   console.log(
-    `✓ Seed ${DATABASE_PATH}${reset ? " (reset)" : ""}: ` +
+    `✓ Seed ${DATABASE_PATH}${reset ? " (reset)" : ""}${baseOnly ? " (dasar)" : ""}: ` +
       `${count(sessions)} sesi, ${count(rooms)} ruangan, ${count(participants)} peserta, ` +
       `${count(matches)} laga`,
   );

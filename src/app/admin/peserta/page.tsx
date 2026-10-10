@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { ParticipantFormDialog } from "@/components/admin/participant-form-dialog";
+import { BracketStructureCard } from "@/components/admin/bracket-structure-card";
 import { CompletenessPanel } from "@/components/admin/completeness-panel";
 import { ParticipantTable } from "@/components/admin/participant-table";
 import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
@@ -31,6 +32,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
   const cell = (sessionId: string, roomId: string) =>
     participants.filter((p) => p.sessionId === sessionId && p.roomId === roomId).length;
   const TARGET = 16;
+  const checks = checkScheduleCompleteness(data);
 
   const stats = [
     { label: "Total peserta", value: participants.length },
@@ -41,7 +43,12 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
 
   return (
     <div className="flex flex-col gap-5">
-      <CompletenessPanel checks={checkScheduleCompleteness(data)} />
+      <CompletenessPanel checks={checks} />
+      <BracketStructureCard
+        total={data.matches.length}
+        started={data.matches.some((m) => m.status !== "scheduled")}
+        placementReady={checks.filter((c) => ["session", "room", "cells"].includes(c.key)).every((c) => c.ok)}
+      />
       <div className="flex justify-end">
         <ParticipantFormDialog sessions={sessions} rooms={rooms} />
       </div>

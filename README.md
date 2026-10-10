@@ -32,6 +32,8 @@ npm test            # vitest (SQLite di memori)
 | `npm run db:generate` | Buat file migrasi baru dari `src/db/schema.ts` |
 | `npm run db:migrate` | Terapkan migrasi di `drizzle/` |
 | `npm run db:seed` | Isi sesi, ruangan, peserta, dan struktur bagan yang belum ada (aman diulang) |
+| `npm run db:seed -- --dasar` | Hanya 4 sesi & 10 ruangan (awal untuk data peserta asli) |
+| `npm run db:buat-bagan [-- --cek] [-- --ganti] [-- --final <ISO>]` | Buat struktur bagan (600 laga ruangan + 39 laga final) dari penempatan peserta; juga tombol di `/admin/peserta` |
 | `npm run db:seed -- --reset` | Kosongkan data turnamen lalu isi ulang (akun tidak dihapus) |
 | `npm run db:create-admin -- --email <email> [--name <nama>] --password <sandi>` | Buat akun admin utama (atau setel ulang sandinya); sandi juga bisa lewat env `ADMIN_PASSWORD` |
 | `npm run db:import-peserta -- peserta.csv [--dry-run] [--replace]` | Impor peserta dari CSV (format: `data-templates/peserta.csv`) |
@@ -116,6 +118,7 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `POST /api/admin/pengawas/:id/logout` | Keluarkan akun pengawas dari semua perangkat → `{ revoked }` — admin |
 | `POST /api/admin/pengawas/generate` | `{ domain? }` buat akun (sandi acak, ditampilkan sekali) untuk tiap ruangan tanpa pengawas aktif — admin |
 | `GET /api/admin/audit?batas=` | Jejak aksi admin: login/logout, buat/ubah/nonaktif/hapus akun, keluarkan sesi — admin |
+| `GET/POST /api/admin/bracket/structure` | Status struktur bagan / buat `{ finalStart?, replace?, dryRun? }` dari penempatan peserta (422 + `errors` bila belum lengkap) — admin |
 | `GET /api/admin/recap/results?sesi=&ruangan=&status=&babak=&q=&koreksi=1&hal=&per=` | Rekap hasil per laga (skor, pemenang, pencatat, waktu catat, koreksi, bukti) berhalaman + ringkasan progres & juara — admin |
 | `GET /api/admin/recap/violations?sesi=&ruangan=&jenis=&q=&tampilan=peserta&hal=&per=` | Rekap pelanggaran: ringkasan (jumlah, peserta, berulang, per jenis/ruangan) + daftar catatan atau per peserta, berhalaman — admin |
 | `GET /api/admin/recap/export?laporan=hasil\|pelanggaran\|juara&sesi=&ruangan=&pemisah=koma` | Unduh laporan CSV (UTF-8 + BOM, default pemisah `;` untuk Excel Indonesia); tercatat di `audit_logs` — admin |
