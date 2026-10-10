@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdminSidebar, AdminTabs } from "@/components/admin/admin-nav";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { getAdminSession, requireAdmin } from "@/lib/admin-session";
 
 export const metadata = { title: { template: "%s · Admin LRP 2026", default: "Admin LRP 2026" } };
@@ -25,6 +26,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
             <ArrowLeftIcon className="size-3" />
             Bracket publik
           </Link>
+          <LogoutButton role="admin" className="ml-3" />
         </div>
         {/* Tab aktif dibaca dari URL → perlu Suspense pada rute dinamis. */}
         <Suspense fallback={<div className="h-9 lg:hidden" />}>
@@ -33,9 +35,12 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
       </header>
       <div className="flex flex-1">
         <aside className="sticky top-12 hidden h-[calc(100dvh-3rem)] w-56 shrink-0 border-r p-3 lg:block">
-          <Suspense>
-            <AdminSidebar />
-          </Suspense>
+          <div className="flex h-full flex-col">
+            <Suspense>
+              <AdminSidebar />
+            </Suspense>
+            <LogoutButton role="admin" className="mt-auto rounded-lg px-3 py-2 text-sm hover:bg-muted" />
+          </div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Pembatas akses: konten admin hanya dirender untuk admin utama. */}

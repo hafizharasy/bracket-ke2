@@ -39,7 +39,11 @@ export async function getAdminAccounts(): Promise<AdminAccount[]> {
 /** Halaman/aksi khusus admin utama: arahkan ke halaman masuk admin bila bukan admin. */
 export async function requireAdmin(next = "/admin"): Promise<AdminSession> {
   const session = await getAdminSession();
-  if (!session) redirect(`/masuk/admin?next=${encodeURIComponent(next)}`);
+  if (!session) {
+    // Cookie admin ada tapi tidak sah lagi → sesi berakhir.
+    const hadCookie = (await cookies()).has(STUB_ADMIN_COOKIE);
+    redirect(`/masuk/admin?next=${encodeURIComponent(next)}${hadCookie ? "&alasan=sesi" : ""}`);
+  }
   return session;
 }
 
