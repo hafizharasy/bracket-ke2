@@ -4,6 +4,7 @@ import { DicesIcon, Loader2Icon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { CopyCredentials } from "@/components/admin/copy-credentials";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { type AccountFormValues, generatePassword, saveAccount, validateAccount } from "@/lib/admin-client";
@@ -17,23 +18,34 @@ export function AccountDialog({
   rooms,
   open,
   onOpenChange,
+  defaultRoomId,
 }: {
   account?: PengawasAccount;
   rooms: Room[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Ruangan terpilih awal untuk akun baru. */
+  defaultRoomId?: string;
 }) {
   const router = useRouter();
   const isNew = !account;
   const [values, setValues] = useState<AccountFormValues>({
     name: account?.name ?? "",
     email: account?.email ?? "",
-    roomId: account?.roomId ?? "",
+    roomId: account?.roomId ?? defaultRoomId ?? "",
     password: "",
   });
   const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
+  // Data halaman dimuat ulang saat dialog ditutup (bukan langsung setelah simpan),
+  // supaya kredensial tetap terlihat walau tombol pemicunya hilang setelah refresh.
+  const [saved, setSaved] = useState(false);
+  const close = (next: boolean) => {
+    if (!next && saved) router.refresh();
+    onOpenChange(next);
+  };
   const errors = validateAccount(values, isNew);
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -47,9 +59,10 @@ export function AccountDialog({
     if (!result.ok) return setMessage({ ok: false, text: result.error });
     setMessage({
       ok: true,
-      text: `Akun tersimpan${result.simulated ? " (mode simulasi)" : ""}.${values.password ? " Berikan sandi ini ke pengawas." : ""}`,
+      text: `Akun tersimpan${result.simulated ? " (mode simulasi)" : ""}.${values.password ? " Berikan kredensial ini ke pengawas:" : ""}`,
     });
-    router.refresh();
+    setCredentials(values.password ? { email: values.email.trim().toLowerCase(), password: values.password } : null);
+    setSaved(true);
   }
 
   const set = (key: keyof AccountFormValues) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -61,7 +74,7 @@ export function AccountDialog({
     touched && errors[key] ? <span className="text-xs text-destructive">{errors[key]}</span> : null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <DialogHeader>
@@ -112,8 +125,9 @@ export function AccountDialog({
               {message.text}
             </p>
           )}
+          {credentials && <CopyCredentials email={credentials.email} password={credentials.password} />}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Tutup</Button>
+            <Button type="button" variant="outline" onClick={() => close(false)}>Tutup</Button>
             <Button type="submit" disabled={saving || (touched && hasErrors)}>
               {saving && <Loader2Icon className="animate-spin" />} Simpan
             </Button>
@@ -124,15 +138,25 @@ export function AccountDialog({
   );
 }
 
-/** Tombol "Tambah akun" + dialognya. */
-export function AddAccountButton({ rooms }: { rooms: Room[] }) {
+/** Tombol "Tambah akun" + dialognya (opsional ruangan terpilih). */
+export function AddAccountButton({
+  rooms,
+  roomId,
+  label = "Tambah akun",
+  variant = "default",
+}: {
+  rooms: Room[];
+  roomId?: string;
+  label?: string;
+  variant?: "default" | "outline";
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
-        <PlusIcon /> Tambah akun
+      <Button variant={variant} size={variant === "outline" ? "sm" : "default"} onClick={() => setOpen(true)}>
+        <PlusIcon /> {label}
       </Button>
-      {open && <AccountDialog rooms={rooms} open={open} onOpenChange={setOpen} />}
+      {open && <AccountDialog rooms={rooms} open={open} onOpenChange={setOpen} defaultRoomId={roomId} />}
     </>
   );
 }

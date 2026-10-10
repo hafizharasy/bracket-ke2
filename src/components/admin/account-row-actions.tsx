@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AccountDialog } from "@/components/admin/account-dialog";
+import { CopyCredentials } from "@/components/admin/copy-credentials";
 import { Button } from "@/components/ui/button";
 import { generatePassword, updateAccountStatus } from "@/lib/admin-client";
 import type { PengawasAccount } from "@/lib/pengawas-accounts";
@@ -16,6 +17,7 @@ export function AccountRowActions({ account, rooms }: { account: PengawasAccount
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState<string | null>(null);
 
   async function resetPassword() {
     if (!confirm(`Atur ulang sandi ${account.name}?`)) return;
@@ -23,7 +25,8 @@ export function AccountRowActions({ account, rooms }: { account: PengawasAccount
     setBusy(true);
     const result = await updateAccountStatus(account.id, { resetPassword: password });
     setBusy(false);
-    setNotice(result.ok ? `Sandi baru: ${password}${result.simulated ? " (simulasi)" : ""}` : result.error);
+    setNotice(result.ok ? `Sandi diatur ulang${result.simulated ? " (simulasi)" : ""}:` : result.error);
+    setNewPassword(result.ok ? password : null);
   }
 
   async function toggleActive() {
@@ -49,7 +52,8 @@ export function AccountRowActions({ account, rooms }: { account: PengawasAccount
           <PowerIcon /> {account.active ? "Nonaktifkan" : "Aktifkan"}
         </Button>
       </div>
-      {notice && <span aria-live="polite" className="font-mono text-xs text-muted-foreground">{notice}</span>}
+      {notice && <span aria-live="polite" className="text-xs text-muted-foreground">{notice}</span>}
+      {newPassword && <CopyCredentials email={account.email} password={newPassword} />}
       {editing && <AccountDialog account={account} rooms={rooms} open={editing} onOpenChange={setEditing} />}
     </div>
   );
