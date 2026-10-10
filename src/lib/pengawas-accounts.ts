@@ -1,6 +1,3 @@
-import { getBracket } from "@/lib/get-bracket";
-import { bracketSource } from "@/server/live";
-
 export type PengawasAccount = {
   id: string;
   name: string;
@@ -11,40 +8,10 @@ export type PengawasAccount = {
 };
 
 /**
- * Daftar akun pengawas. Dari tabel users (role pengawas); saat
- * BRACKET_DATA_SOURCE=mock memakai contoh satu akun per ruangan.
+ * Daftar akun pengawas dari tabel users (role pengawas). Akun login selalu
+ * dari database, juga saat BRACKET_DATA_SOURCE=mock.
  */
 export async function getPengawasAccounts(): Promise<PengawasAccount[]> {
-  // Perubahan dari form admin (state tiruan) ditimpakan di atas daftar dasar.
-  const { applyAccountOverlay } = await import("@/lib/mock/account-store");
-  return applyAccountOverlay(await getBaseAccounts());
-}
-
-async function getBaseAccounts(): Promise<PengawasAccount[]> {
-  if (bracketSource() === "db") {
-    const [{ db }, { users }, { asc, eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
-    return db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        roomId: users.roomId,
-        active: users.active,
-        lastLoginAt: users.lastLoginAt,
-      })
-      .from(users)
-      .where(eq(users.role, "pengawas"))
-      .orderBy(asc(users.email))
-      .all()
-      .map((u) => ({ ...u, lastLoginAt: u.lastLoginAt?.toISOString() ?? null }));
-  }
-  const { rooms } = await getBracket();
-  return rooms.map((room, i) => ({
-    id: `u-pengawas-${i + 1}`,
-    name: `Pengawas ${room.name}`,
-    email: `ruangan${i + 1}@lrp.local`,
-    roomId: room.id,
-    active: i !== 9,
-    lastLoginAt: i < 6 ? new Date(Date.now() - (i + 1) * 17 * 60_000).toISOString() : null,
-  }));
+  const { listPengawas } = await import("@/server/pengawas-accounts");
+  return listPengawas().map(({ id, name, email, roomId, active, lastLoginAt }) => ({ id, name, email, roomId, active, lastLoginAt }));
 }

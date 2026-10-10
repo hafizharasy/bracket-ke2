@@ -82,7 +82,7 @@ export function generatePassword(length = 10) {
   return Array.from(bytes, (n) => chars[n % chars.length]).join("");
 }
 
-/** Simpan akun pengawas (baru/ubah) — sementara ke state tiruan di server. */
+/** Simpan akun pengawas (baru/ubah). */
 export async function saveAccount(id: string | null, values: AccountFormValues): Promise<AdminActionResult> {
   try {
     return await saveAccountAction(id, values);
@@ -91,7 +91,7 @@ export async function saveAccount(id: string | null, values: AccountFormValues):
   }
 }
 
-/** Aktif/nonaktifkan akun atau atur ulang sandinya — sementara ke state tiruan. */
+/** Aktif/nonaktifkan akun atau atur ulang sandinya. */
 export async function updateAccountStatus(
   id: string,
   change: { active: boolean } | { resetPassword: string },
@@ -106,7 +106,7 @@ export async function updateAccountStatus(
 export type RoomFormValues = { name: string; location: string };
 export type SessionFormValues = { name: string; startTime: string };
 
-/** Simpan nama & lokasi ruangan — sementara ke state tiruan di server. */
+/** Simpan nama & lokasi ruangan (state tiruan hanya saat mode mock). */
 export async function saveRoom(id: string, values: RoomFormValues): Promise<AdminActionResult> {
   try {
     return await saveRoomAction(id, values);
@@ -115,7 +115,7 @@ export async function saveRoom(id: string, values: RoomFormValues): Promise<Admi
   }
 }
 
-/** Simpan nama & jam mulai sesi (startTime ISO) — sementara ke state tiruan. */
+/** Simpan nama & jam mulai sesi (startTime ISO; state tiruan hanya saat mode mock). */
 export async function saveSession(id: string, values: SessionFormValues): Promise<AdminActionResult> {
   try {
     return await saveSessionAction(id, values);

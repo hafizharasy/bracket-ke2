@@ -39,7 +39,8 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 
 Login memakai [Better Auth](https://www.better-auth.com) (email + sandi, sesi di
 cookie httpOnly, tabel `auth_sessions` / `auth_accounts`). Pendaftaran publik
-dimatikan: akun admin dibuat dengan `db:create-admin`, akun pengawas dibuat admin.
+dimatikan: akun admin dibuat dengan `db:create-admin`, akun pengawas dibuat admin
+di `/admin/pengawas`.
 
 - **Admin utama** (`/masuk/admin`) — akses penuh ke `/admin` dan semua endpoint admin.
 - **Pengawas ruangan** (`/masuk`) — hanya ruangannya sendiri (`/ruangan`, hasil,
@@ -89,3 +90,4 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/admin/summary?aktivitas=` | Ringkasan dashboard admin: progres laga per sesi, juara ruangan, laga berikutnya, total pelanggaran, perlu perhatian, aktivitas terbaru, status ruangan — admin |
 | `GET /api/admin/rooms?sesi=` | Pantau semua ruangan pada sesi (default sesi aktif): status, laga berjalan & berikutnya, juara, pelanggaran, pengawas aktif — admin |
 | `GET /api/admin/matches/:id` | Detail laga untuk admin: hasil & foto bukti, asal slot, laga berikutnya, jejak audit hasil, pelanggaran di laga itu — admin |
+| `GET/POST /api/admin/pengawas` · `GET/PATCH/DELETE /api/admin/pengawas/:id` | Akun pengawas `{ name, email, roomId, password, active? }`; pindah ruangan / ganti sandi / nonaktif mengakhiri sesi login; hapus ditolak 409 bila sudah punya jejak — admin |

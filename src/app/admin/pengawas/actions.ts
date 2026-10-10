@@ -1,55 +1,42 @@
 "use server";
 
-import { z } from "zod";
-
 import { assertAdminAction } from "@/lib/admin-session";
 import type { AccountFormValues, AdminActionResult } from "@/lib/admin-client";
-import { createMockAccount, updateMockAccount } from "@/lib/mock/account-store";
-import { getBracket } from "@/lib/get-bracket";
-import { getPengawasAccounts } from "@/lib/pengawas-accounts";
+import { ApiError } from "@/server/errors";
+import { createPengawas, pengawasCreateInput, pengawasUpdateInput, updatePengawas } from "@/server/pengawas-accounts";
 
-const accountInput = z.object({
-  name: z.string().trim().min(2).max(100),
-  email: z.email().trim().toLowerCase(),
-  roomId: z.string().min(1),
-  password: z.string(),
-});
-
-/** Simpan akun pengawas ke state tiruan (validasi sama dengan form + email unik). */
-export async function saveAccountAction(id: string | null, values: AccountFormValues): Promise<AdminActionResult> {
+async function run(write: () => Promise<{ id: string }>): Promise<AdminActionResult> {
   const denied = await assertAdminAction();
   if (denied) return denied;
-  const parsed = accountInput.safeParse(values);
-  if (!parsed.success) return { ok: false, error: "Data akun tidak valid." };
-  const input = parsed.data;
-  if ((id === null || input.password) && input.password.length < 8) {
-    return { ok: false, error: "Sandi minimal 8 karakter." };
+  try {
+    const { id } = await write();
+    return { ok: true, simulated: false, id };
+  } catch (error) {
+    if (error instanceof ApiError) return { ok: false, error: error.message };
+    throw error;
   }
-  const [{ rooms }, accounts] = await Promise.all([getBracket(), getPengawasAccounts()]);
-  if (!rooms.some((r) => r.id === input.roomId)) return { ok: false, error: "Ruangan tidak ditemukan." };
-  if (accounts.some((a) => a.email === input.email && a.id !== id)) {
-    return { ok: false, error: "Email sudah dipakai akun lain." };
-  }
-
-  if (id === null) {
-    const created = createMockAccount({ name: input.name, email: input.email, roomId: input.roomId, active: true });
-    return { ok: true, simulated: true, id: created.id };
-  }
-  if (!accounts.some((a) => a.id === id)) return { ok: false, error: "Akun tidak ditemukan." };
-  updateMockAccount(id, { name: input.name, email: input.email, roomId: input.roomId });
-  return { ok: true, simulated: true, id };
 }
 
-/** Aktif/nonaktifkan atau atur ulang sandi (sandi tidak disimpan di state tiruan). */
+const firstIssue = (error: { issues: { message: string }[] }) => error.issues[0]?.message ?? "Data akun tidak valid.";
+
+/** Buat akun pengawas (id null) atau ubah nama/email/ruangan (+ sandi bila diisi). */
+export async function saveAccountAction(id: string | null, values: AccountFormValues): Promise<AdminActionResult> {
+  if (id === null) {
+    const parsed = pengawasCreateInput.safeParse(values);
+    if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+    return run(() => createPengawas(parsed.data));
+  }
+  const parsed = pengawasUpdateInput.safeParse({ ...values, password: values.password || undefined });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+  return run(() => updatePengawas(id, parsed.data));
+}
+
+/** Aktif/nonaktifkan akun atau atur ulang sandinya (sesi login akun itu diakhiri). */
 export async function updateAccountStatusAction(
   id: string,
   change: { active: boolean } | { resetPassword: string },
 ): Promise<AdminActionResult> {
-  const denied = await assertAdminAction();
-  if (denied) return denied;
-  const accounts = await getPengawasAccounts();
-  if (!accounts.some((a) => a.id === id)) return { ok: false, error: "Akun tidak ditemukan." };
-  if ("active" in change) updateMockAccount(id, { active: change.active });
-  else if (change.resetPassword.length < 8) return { ok: false, error: "Sandi minimal 8 karakter." };
-  return { ok: true, simulated: true };
+  const parsed = pengawasUpdateInput.safeParse("active" in change ? { active: change.active } : { password: change.resetPassword });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+  return run(() => updatePengawas(id, parsed.data));
 }

@@ -9,22 +9,6 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   return user?.role === "admin" ? { userId: user.id, name: user.name } : null;
 }
 
-export type AdminAccount = { id: string; name: string; email: string };
-
-/** Akun admin utama yang aktif: dari tabel users (role admin), atau akun contoh saat mode mock. */
-export async function getAdminAccounts(): Promise<AdminAccount[]> {
-  const { bracketSource } = await import("@/server/live");
-  if (bracketSource() === "db") {
-    const [{ db }, { users }, { and, eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
-    return db
-      .select({ id: users.id, name: users.name, email: users.email })
-      .from(users)
-      .where(and(eq(users.role, "admin"), eq(users.active, true)))
-      .all();
-  }
-  return [{ id: "u-admin", name: "Admin Utama", email: "admin@lrp.local" }];
-}
-
 /** Halaman/aksi khusus admin utama: arahkan ke halaman masuk admin bila bukan admin. */
 export async function requireAdmin(next = "/admin"): Promise<AdminSession> {
   const session = await getAdminSession();
