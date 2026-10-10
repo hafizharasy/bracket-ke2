@@ -32,3 +32,17 @@ describe("buildRecap", () => {
     expect(recap.summary.corrections).toBe(2);
   });
 });
+
+describe("queryResults", () => {
+  it("menyaring status, babak, koreksi, kata kunci, lalu membagi halaman", async () => {
+    const { queryResults } = await import("@/lib/recap");
+    const rows = getMockRecap({}).results;
+    expect(queryResults(rows, { status: "ongoing" }).total).toBe(15);
+    expect(queryResults(rows, { round: 4 }).total).toBe(40);
+    expect(queryResults(rows, { onlyCorrected: true }).items.every((r) => r.corrections > 0)).toBe(true);
+    expect(queryResults(rows, { q: "m-s1-r1-b1-1" }).items.map((r) => r.matchId)).toEqual(["m-s1-r1-b1-1"]);
+    const page = queryResults(rows, { page: 99, pageSize: 100 });
+    expect(page).toMatchObject({ page: 7, pages: 7, total: 639 });
+    expect(page.items).toHaveLength(39);
+  });
+});

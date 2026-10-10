@@ -109,4 +109,5 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `POST /api/admin/pengawas/:id/logout` | Keluarkan akun pengawas dari semua perangkat → `{ revoked }` — admin |
 | `POST /api/admin/pengawas/generate` | `{ domain? }` buat akun (sandi acak, ditampilkan sekali) untuk tiap ruangan tanpa pengawas aktif — admin |
 | `GET /api/admin/audit?batas=` | Jejak aksi admin: login/logout, buat/ubah/nonaktif/hapus akun, keluarkan sesi — admin |
+| `GET /api/admin/recap/results?sesi=&ruangan=&status=&babak=&q=&koreksi=1&hal=&per=` | Rekap hasil per laga (skor, pemenang, pencatat, waktu catat, koreksi, bukti) berhalaman + ringkasan progres & juara — admin |
 | `GET /api/admin/session` · `DELETE /api/admin/session[?semua=1 \| ?id=<sesi>]` | Perangkat tempat admin login / logout admin (semua perangkat, atau akhiri satu sesi lain); tercatat di `audit_logs` — admin |

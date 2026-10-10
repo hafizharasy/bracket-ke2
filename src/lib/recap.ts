@@ -171,3 +171,38 @@ export function buildRecap(
     generatedAt: now.toISOString(),
   };
 }
+
+export type ResultQuery = {
+  status?: MatchStatus;
+  /** Nomor babak. */
+  round?: number;
+  /** Cari nama/ID peserta atau ID laga. */
+  q?: string;
+  onlyCorrected?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+/** Saring baris rekap hasil (dipakai daftar di halaman admin & API). */
+export function filterResults(rows: ResultRecapRow[], query: Omit<ResultQuery, "page" | "pageSize">) {
+  const q = query.q?.trim().toLowerCase();
+  return rows.filter(
+    (r) =>
+      (!query.status || r.status === query.status) &&
+      (!query.round || r.round === query.round) &&
+      (!query.onlyCorrected || r.corrections > 0) &&
+      (!q ||
+        [r.participantA?.name, r.participantB?.name, r.participantA?.id, r.participantB?.id, r.matchId].some((v) =>
+          v?.toLowerCase().includes(q),
+        )),
+  );
+}
+
+/** Saring & bagi halaman baris rekap hasil. */
+export function queryResults(rows: ResultRecapRow[], query: ResultQuery) {
+  const filtered = filterResults(rows, query);
+  const pageSize = Math.min(Math.max(query.pageSize ?? 50, 1), 500);
+  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const page = Math.min(Math.max(query.page ?? 1, 1), pages);
+  return { items: filtered.slice((page - 1) * pageSize, page * pageSize), total: filtered.length, page, pageSize, pages };
+}

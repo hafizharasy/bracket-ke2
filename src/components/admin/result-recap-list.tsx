@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ResultRecapRow } from "@/lib/recap";
+import { filterResults, type ResultRecapRow } from "@/lib/recap";
 import type { MatchStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,18 +30,16 @@ export function ResultRecapList({ rows }: { rows: ResultRecapRow[] }) {
   const [shown, setShown] = useState(PAGE);
 
   const rounds = useMemo(() => [...new Map(rows.map((r) => [r.round, r.roundLabel]))].sort((a, b) => a[0] - b[0]), [rows]);
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter(
-      (r) =>
-        (status === "all" || r.status === status) &&
-        (round === "all" || String(r.round) === round) &&
-        (!onlyCorrected || r.corrections > 0) &&
-        (!q ||
-          [r.participantA?.name, r.participantB?.name, r.participantA?.id, r.participantB?.id, r.matchId]
-            .some((v) => v?.toLowerCase().includes(q))),
-    );
-  }, [rows, query, status, round, onlyCorrected]);
+  const filtered = useMemo(
+    () =>
+      filterResults(rows, {
+        status: status === "all" ? undefined : status,
+        round: round === "all" ? undefined : Number(round),
+        q: query,
+        onlyCorrected,
+      }),
+    [rows, query, status, round, onlyCorrected],
+  );
   const visible = filtered.slice(0, shown);
   const reset = () => setShown(PAGE);
 

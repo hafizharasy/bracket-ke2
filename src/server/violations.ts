@@ -89,11 +89,16 @@ export function recordViolation(input: ViolationInput, user: SessionUser): Viola
 
 /** Pelanggaran di satu ruangan, terbaru dulu, dengan nama pencatat. */
 export function listRoomViolations(roomId: string): Violation[] {
+  return listViolations(roomId);
+}
+
+/** Pelanggaran (semua ruangan, atau satu ruangan), terbaru dulu, dengan nama pencatat. */
+export function listViolations(roomId?: string): Violation[] {
   return db
     .select({ v: violations, recorderName: users.name })
     .from(violations)
     .leftJoin(users, eq(users.id, violations.recordedBy))
-    .where(eq(violations.roomId, roomId))
+    .where(roomId ? eq(violations.roomId, roomId) : undefined)
     .orderBy(desc(violations.occurredAt))
     .all()
     .map(({ v, recorderName }) => toViolation({ ...v, recorderName }));
