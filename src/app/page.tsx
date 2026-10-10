@@ -4,18 +4,19 @@ import { Suspense } from "react";
 import { ArenaFooter, ArenaHeader, FormatSection, SectionBadge } from "@/components/arena/arena-chrome";
 import { ArenaHero, ArenaStats } from "@/components/arena/arena-hero";
 import { BracketFilter } from "@/components/bracket/bracket-filter";
-import { BracketScroller } from "@/components/bracket/bracket-scroller";
 import { BracketTree } from "@/components/bracket/bracket-tree";
 import { FinalStandingsTable } from "@/components/bracket/final-standings-table";
 import { LiveUpdater } from "@/components/bracket/live-updater";
 import { MatchCard } from "@/components/bracket/match-card";
 import { MatchDetails } from "@/components/bracket/match-details";
 import { PathHighlight } from "@/components/bracket/path-highlight";
-import { activeCells, buildSlotLabels, FINAL_ROUND, isFinalStage, roundLabel, roomsInSession, SEMIFINAL_ROUND } from "@/lib/bracket";
+import { activeCells, buildSlotLabels, FINAL_ROUND, isFinalStage, roomsInSession, SEMIFINAL_ROUND } from "@/lib/bracket";
 import { finalStandings } from "@/lib/final-standings";
 import { getBracket } from "@/lib/get-bracket";
 import type { Match, MatchStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const timeFormat = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
 const dateFormat = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
@@ -106,14 +107,26 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
   }
 
   const finalMatches = matches.filter(isFinalStage);
-  const scopedFinalMatches = finalMatches.filter(inScope);
   const semifinals = finalMatches.filter((m) => m.round === SEMIFINAL_ROUND).sort((a, b) => a.matchNumber - b.matchNumber);
   const roundRobin = finalMatches.filter((m) => m.round === FINAL_ROUND).sort((a, b) => a.matchNumber - b.matchNumber);
   const finalists = semifinals.map((m) => (m.status === "done" ? m.winnerId : null));
   const standings = finalStandings(roundRobin, finalists.filter((id): id is string => !!id));
   const pendingFinalists = semifinals.filter((m, i) => !finalists[i]).map((m) => m.matchNumber);
   const finalComplete = roundRobin.length > 0 && roundRobin.every((m) => m.status === "done");
-  const showFinal = filter.roomId ? scopedFinalMatches.length > 0 : finalMatches.length > 0 && !filter.sessionId;
+  // Babak final tampil bila tidak difilter sesi; filter ruangan hanya menyaring kartu laga
+  // (klasemen poin selalu utuh).
+  const showFinal = finalMatches.length > 0 && !filter.sessionId;
+  const shortRoom = (roomId: string) => roomMap.get(roomId)?.name.replace(/^Ruangan /, "R");
+  const shownSemifinals = semifinals.filter((m) => !filter.roomId || m.roomId === filter.roomId);
+  // Laga final dikelompokkan per putaran (laga yang dijadwalkan bersamaan).
+  const finalRounds = [...Map.groupBy(roundRobin, (m) => m.scheduledAt ?? "")]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([at, list], i) => ({
+      index: i + 1,
+      time: at ? timeFormat.format(new Date(at)) : null,
+      list: list.filter((m) => !filter.roomId || m.roomId === filter.roomId),
+    }))
+    .filter((r) => r.list.length > 0);
 
   return (
     <>
@@ -217,67 +230,82 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
             </div>
           </section>
 
-          {showFinal && (
-            <section id="final" className="scroll-mt-20 border-t-4 border-gold bg-[#fff3d6]">
+          {showFinal && semifinals.length > 0 && (
+            <section id="semifinal" className="scroll-mt-20 border-t-4 border-gold bg-[#fff3d6]">
+              <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6">
+                <div className="flex flex-col items-start gap-3">
+                  <SectionBadge>Puncak kompetisi · tahap 1</SectionBadge>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="font-display text-3xl text-ink sm:text-4xl">Semifinal</h2>
+                    <StatusPill status={overallStatus(semifinals)} />
+                  </div>
+                  <p className="text-sm text-ink/65">
+                    Juara tiap ruangan bertanding <b>best of 3</b> — yang lebih dulu menang 2 game lolos ke final. Skor di kartu =
+                    jumlah game dimenangkan.
+                    {filter.roomId && ` Menampilkan laga di ${roomMap.get(filter.roomId)?.name}.`}
+                  </p>
+                </div>
+                {shownSemifinals.length === 0 ? (
+                  <p className="text-sm text-ink/55">Tidak ada laga semifinal di ruangan ini.</p>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {shownSemifinals.map((match) => (
+                      <div key={match.id} className="flex flex-col gap-1.5">
+                        <span className="font-display text-xs text-ink/70 uppercase">Semifinal #{match.matchNumber}</span>
+                        <MatchCard match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {showFinal && roundRobin.length > 0 && (
+            <section id="final" className="scroll-mt-20 border-t-4 border-crimson bg-ink text-white">
               <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-14 sm:px-6">
                 <div className="flex flex-col items-start gap-3">
-                  <SectionBadge>Puncak kompetisi</SectionBadge>
+                  <SectionBadge>Puncak kompetisi · tahap 2</SectionBadge>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="font-display text-3xl text-ink sm:text-4xl">Semifinal & Final</h2>
-                    <StatusPill status={overallStatus(filter.roomId ? scopedFinalMatches : finalMatches)} />
+                    <h2 className="font-display text-3xl text-gold sm:text-4xl">Final — kompetisi penuh</h2>
+                    <StatusPill status={overallStatus(roundRobin)} />
+                  </div>
+                  <p className="text-sm text-[#d9cbbd]">
+                    Setiap finalis bertemu dua kali: sekali sebagai tuan rumah (jalan pertama) dan sekali sebagai tamu. Juara
+                    ditentukan dari total poin di klasemen.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-display text-lg text-white uppercase">Klasemen poin</h3>
+                  <div className="rounded-2xl bg-cream p-3 text-ink sm:p-4">
+                    <FinalStandingsTable rows={standings} participants={participantMap} pending={pendingFinalists} complete={finalComplete} />
                   </div>
                 </div>
 
-                {filter.roomId ? (
-                  <>
-                    <p className="-mt-4 text-sm text-ink/65">Laga babak final yang dimainkan di {roomMap.get(filter.roomId)?.name}.</p>
-                    <div className="flex flex-wrap gap-4">
-                      {scopedFinalMatches.map((match) => (
-                        <div key={match.id} className="flex flex-col gap-1.5">
-                          <span className="font-display text-xs text-ink uppercase">{roundLabel(match.round)}</span>
-                          <MatchCard match={match} participants={participantMap} roomName={roomMap.get(match.roomId)?.name.replace(/^Ruangan /, "R")} slotLabels={slotLabels.get(match.id)} />
+                <div className="flex flex-col gap-5">
+                  <h3 className="font-display text-lg text-white uppercase">
+                    Hasil laga final
+                    {filter.roomId && <span className="ml-2 font-body text-sm normal-case text-[#d9cbbd]">di {roomMap.get(filter.roomId)?.name}</span>}
+                  </h3>
+                  {finalRounds.length === 0 ? (
+                    <p className="text-sm text-[#d9cbbd]">Tidak ada laga final di ruangan ini.</p>
+                  ) : (
+                    finalRounds.map(({ index, time, list }) => (
+                      <div key={index} className="flex flex-col gap-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-display text-sm text-gold">Putaran {index}</span>
+                          {time && <span className="text-xs text-[#d9cbbd]">{time} WIB</span>}
                         </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex flex-col gap-3">
-                      <div>
-                        <h3 className="font-display text-lg text-ink uppercase">Semifinal</h3>
-                        <p className="text-sm text-ink/65">Juara tiap ruangan bertanding best of 3 — yang lebih dulu menang 2 game lolos ke final.</p>
-                      </div>
-                      <BracketScroller label="Laga semifinal" tone="background">
-                        <div className="flex w-max gap-4 pr-2 pb-2">
-                          {semifinals.map((match) => (
-                            <div key={match.id} data-round-col className="snap-start">
-                              <MatchCard match={match} participants={participantMap} roomName={roomMap.get(match.roomId)?.name.replace(/^Ruangan /, "R")} slotLabels={slotLabels.get(match.id)} />
-                            </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {list.map((match) => (
+                            <MatchCard key={match.id} match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
                           ))}
                         </div>
-                      </BracketScroller>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <div>
-                        <h3 className="font-display text-lg text-ink uppercase">Final — kompetisi penuh</h3>
-                        <p className="text-sm text-ink/65">
-                          Setiap finalis bertemu dua kali: sekali sebagai tuan rumah (jalan pertama) dan sekali sebagai tamu.
-                        </p>
                       </div>
-                      <FinalStandingsTable rows={standings} participants={participantMap} pending={pendingFinalists} complete={finalComplete} />
-                      <BracketScroller label="Laga final" tone="background">
-                        <div className="flex w-max gap-4 pr-2 pb-2">
-                          {roundRobin.map((match) => (
-                            <div key={match.id} data-round-col className="snap-start">
-                              <MatchCard match={match} participants={participantMap} roomName={roomMap.get(match.roomId)?.name.replace(/^Ruangan /, "R")} slotLabels={slotLabels.get(match.id)} />
-                            </div>
-                          ))}
-                        </div>
-                      </BracketScroller>
-                    </div>
-                  </>
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             </section>
           )}

@@ -1,6 +1,6 @@
 import { CheckIcon, Clock3Icon } from "lucide-react";
 
-import type { SlotLabel, SlotLabels } from "@/lib/bracket";
+import { type SlotLabel, type SlotLabels, WIN_TYPES, type WinType } from "@/lib/bracket";
 import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,8 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
   const leader =
     isLive && hasScore && match.scoreA !== match.scoreB ? (match.scoreA! > match.scoreB! ? "a" : "b") : null;
   const badge = matchBadge(match);
+  // Final: jenis kemenangan menentukan poin, mis. "Menang telak (4 pion berjajar)".
+  const winTypeLabel = points !== null && match.winType ? WIN_TYPES[match.winType as WinType]?.label : null;
 
   const summary = [
     `Laga #${match.matchNumber}`,
@@ -113,8 +115,13 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
         isLeading={leader === "b"}
         isWinner={!!match.winnerId && match.winnerId === match.participantBId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantBId}
-        className="rounded-b-md border-t border-ink/10"
+        className={cn("border-t border-ink/10", !winTypeLabel && "rounded-b-md")}
       />
+      {winTypeLabel && (
+        <div className="rounded-b-md border-t border-ink/10 bg-ink px-2.5 py-1 text-[10px] font-semibold text-gold">
+          {winTypeLabel} · <span className="font-display">+{points}</span> poin
+        </div>
+      )}
     </div>
   );
 }
