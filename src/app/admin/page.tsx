@@ -5,6 +5,9 @@ import { TournamentSummaryCards } from "@/components/admin/tournament-summary-ca
 import { getBracket } from "@/lib/get-bracket";
 import { summarizeTournament } from "@/lib/tournament-summary";
 import { getTotalViolations } from "@/lib/violation-totals";
+import { RoomMonitorGrid } from "@/components/admin/room-monitor-grid";
+import { monitorRooms } from "@/lib/room-monitor";
+import { getViolationCountsByRoom } from "@/lib/room-violation-counts";
 
 export const metadata = { title: "Dashboard" };
 
@@ -36,6 +39,17 @@ export default function AdminDashboardPage() {
 }
 
 async function QuickStats() {
-  const [data, violations] = await Promise.all([getBracket(), getTotalViolations()]);
-  return <TournamentSummaryCards summary={summarizeTournament(data)} violations={violations} />;
+  const [data, violations, counts] = await Promise.all([getBracket(), getTotalViolations(), getViolationCountsByRoom()]);
+  return (
+    <>
+      <TournamentSummaryCards summary={summarizeTournament(data)} violations={violations} />
+      <section aria-label="Pantau ruangan" className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-semibold">Ruangan</h2>
+          <Link href="/admin/pantau" className="text-sm text-muted-foreground hover:text-foreground">Lihat detail →</Link>
+        </div>
+        <RoomMonitorGrid rooms={monitorRooms(data, counts).rooms} compact />
+      </section>
+    </>
+  );
 }
