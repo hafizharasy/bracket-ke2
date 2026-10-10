@@ -64,3 +64,25 @@ describe("recordViolation", () => {
     expect(violationInput.safeParse({ participantId: "p1", type: "Lainnya", note: "kronologi" }).success).toBe(true);
   });
 });
+
+describe("getRoomViolationSummary", () => {
+  it("menghitung total, peserta terlibat, per jenis, per peserta, dan filter sesi", async () => {
+    const { getRoomViolationSummary } = await import("@/server/violations");
+    db.insert(sessions).values({ id: "sesi-2", name: "Sesi 2", orderIndex: 2 }).run();
+    db.update(participants).set({ sessionId: "sesi-2" }).run();
+    recordViolation({ participantId: "p1", matchId: "m1", type: "Terlambat hadir" }, pengawas1);
+    recordViolation({ participantId: "p1", type: "Terlambat hadir" }, pengawas1);
+    recordViolation({ participantId: "p2", matchId: "m1", type: "Lainnya", note: "x" }, pengawas1);
+
+    const all = getRoomViolationSummary("ruangan-1");
+    expect(all).toMatchObject({ total: 3, participantsInvolved: 2 });
+    expect(all.byType[0]).toEqual({ type: "Terlambat hadir", count: 2 });
+    expect(all.byParticipant[0]).toMatchObject({ participantId: "p1", count: 2 });
+    expect(all.violations[0].matchLabel === null || typeof all.violations[0].matchLabel === "string").toBe(true);
+
+    // Laga m1 di sesi-1; pelanggaran tanpa laga mengikuti sesi peserta (sesi-2).
+    expect(getRoomViolationSummary("ruangan-1", "sesi-1").total).toBe(2);
+    expect(getRoomViolationSummary("ruangan-1", "sesi-2").total).toBe(1);
+    expect(getRoomViolationSummary("ruangan-2").total).toBe(0);
+  });
+});

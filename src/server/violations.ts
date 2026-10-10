@@ -1,8 +1,9 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, count, countDistinct, desc, eq, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
 import { matches, participants, users, violations } from "@/db/schema";
+import { roundLabel } from "@/lib/bracket";
 import { VIOLATION_TYPES, type Violation } from "@/lib/violations";
 import { authorize, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
@@ -96,4 +97,73 @@ export function listRoomViolations(roomId: string): Violation[] {
     .orderBy(desc(violations.occurredAt))
     .all()
     .map(({ v, recorderName }) => toViolation({ ...v, recorderName }));
+}
+
+/** Sesi sebuah pelanggaran: dari laganya, atau dari sesi peserta bila di luar laga. */
+const violationSession = sql<string | null>`coalesce(${matches.sessionId}, ${participants.sessionId})`;
+
+/**
+ * Daftar pelanggaran ruangan (opsional satu sesi) beserta total: jumlah,
+ * peserta terlibat, per jenis, dan per peserta. Dihitung di SQL.
+ */
+export function getRoomViolationSummary(roomId: string, sessionId?: string | null) {
+  const where: SQL | undefined = and(
+    eq(violations.roomId, roomId),
+    sessionId ? sql`${violationSession} = ${sessionId}` : undefined,
+  );
+  const base = () =>
+    db
+      .select()
+      .from(violations)
+      .innerJoin(participants, eq(participants.id, violations.participantId))
+      .leftJoin(matches, eq(matches.id, violations.matchId))
+      .where(where)
+      .$dynamic();
+
+  const totals = db
+    .select({ total: count(), participants: countDistinct(violations.participantId) })
+    .from(violations)
+    .innerJoin(participants, eq(participants.id, violations.participantId))
+    .leftJoin(matches, eq(matches.id, violations.matchId))
+    .where(where)
+    .get()!;
+
+  const byType = db
+    .select({ type: violations.type, count: count() })
+    .from(violations)
+    .innerJoin(participants, eq(participants.id, violations.participantId))
+    .leftJoin(matches, eq(matches.id, violations.matchId))
+    .where(where)
+    .groupBy(violations.type)
+    .orderBy(desc(count()))
+    .all();
+
+  const byParticipant = db
+    .select({ participantId: participants.id, name: participants.name, count: count() })
+    .from(violations)
+    .innerJoin(participants, eq(participants.id, violations.participantId))
+    .leftJoin(matches, eq(matches.id, violations.matchId))
+    .where(where)
+    .groupBy(participants.id)
+    .orderBy(desc(count()), participants.name)
+    .all();
+
+  const list = base()
+    .leftJoin(users, eq(users.id, violations.recordedBy))
+    .orderBy(desc(violations.occurredAt))
+    .all()
+    .map((row) => ({
+      ...toViolation({ ...row.violations, recorderName: row.users?.name }),
+      participantName: row.participants.name,
+      sessionId: row.matches?.sessionId ?? row.participants.sessionId,
+      matchLabel: row.matches ? `${roundLabel(row.matches.round)} #${row.matches.matchNumber}` : null,
+    }));
+
+  return {
+    total: totals.total,
+    participantsInvolved: totals.participants,
+    byType,
+    byParticipant,
+    violations: list,
+  };
 }
