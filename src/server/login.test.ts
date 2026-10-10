@@ -59,3 +59,19 @@ describe("loginWithPassword (jalur gagal)", () => {
     expect(loginFailureStatus("locked")).toBe(423);
   });
 });
+
+describe("revokeOwnSession", () => {
+  it("hanya mengakhiri sesi milik akun sendiri dan mencatat untuk admin", async () => {
+    const { authSessions, auditLogs } = await import("@/db/schema");
+    const { revokeOwnSession } = await import("@/server/login");
+    const expiresAt = new Date(Date.now() + 3600_000);
+    db.insert(authSessions).values([
+      { id: "s-a", token: "t-a", userId: "u-a", expiresAt },
+      { id: "s-p", token: "t-p", userId: "u-p", expiresAt },
+    ]).run();
+    expect(() => revokeOwnSession("u-a", "s-p", { role: "admin" })).toThrow("Sesi tidak ditemukan.");
+    revokeOwnSession("u-a", "s-a", { role: "admin" });
+    expect(db.select().from(authSessions).all().map((s) => s.id)).toEqual(["s-p"]);
+    expect(db.select().from(auditLogs).all()).toEqual([expect.objectContaining({ action: "auth.revoke-session", actorId: "u-a" })]);
+  });
+});

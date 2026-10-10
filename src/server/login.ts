@@ -1,13 +1,14 @@
 import { APIError } from "better-auth/api";
 import { verifyPassword } from "better-auth/crypto";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { authAccounts, rooms, users, USER_ROLES } from "@/db/schema";
+import { authAccounts, authSessions, rooms, users, USER_ROLES } from "@/db/schema";
 import { recordAudit } from "@/server/audit";
 import { auth } from "@/server/better-auth";
 import { purgeExpiredSessions, revokeSessions } from "@/server/credentials";
+import { ApiError } from "@/server/errors";
 import { getLockout, recordLoginAttempt } from "@/server/login-attempts";
 
 type Role = (typeof USER_ROLES)[number];
@@ -179,4 +180,40 @@ export async function logout(headers: Headers, { everywhere = false } = {}) {
   }
   await auth.api.signOut({ headers }).catch(() => undefined);
   return { revokedOthers: Math.max(0, revoked) };
+}
+
+/** Sesi login yang masih berlaku milik satu akun (perangkat), `current` = sesi request ini. */
+export async function listOwnSessions(headers: Headers) {
+  const current = await auth.api.getSession({ headers });
+  if (!current) return [];
+  return db
+    .select({
+      id: authSessions.id,
+      createdAt: authSessions.createdAt,
+      expiresAt: authSessions.expiresAt,
+      ipAddress: authSessions.ipAddress,
+      userAgent: authSessions.userAgent,
+    })
+    .from(authSessions)
+    .where(and(eq(authSessions.userId, current.user.id), gt(authSessions.expiresAt, new Date())))
+    .orderBy(desc(authSessions.createdAt))
+    .all()
+    .map((s) => ({
+      ...s,
+      createdAt: s.createdAt.toISOString(),
+      expiresAt: s.expiresAt.toISOString(),
+      current: s.id === current.session.id,
+    }));
+}
+
+/** Akhiri satu sesi milik akun ini di perangkat lain (404 bila bukan miliknya). */
+export function revokeOwnSession(userId: string, sessionId: string, actor: { role: string }) {
+  const removed = db
+    .delete(authSessions)
+    .where(and(eq(authSessions.id, sessionId), eq(authSessions.userId, userId)))
+    .run().changes;
+  if (!removed) throw new ApiError(404, "Sesi tidak ditemukan.");
+  if (actor.role === "admin") {
+    recordAudit({ actorId: userId, action: "auth.revoke-session", entity: "user", entityId: userId, summary: "Mengakhiri sesi admin di perangkat lain" });
+  }
 }
