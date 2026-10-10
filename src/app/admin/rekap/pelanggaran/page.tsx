@@ -21,8 +21,7 @@ async function Violations({ searchParams }: Pick<PageProps<"/admin/rekap/pelangg
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <RekapFilter sessions={recap.sessions} rooms={recap.rooms} />
-        {/* Cukup kirim data laporan ini ke klien. */}
-        <DownloadCsvButton recap={{ ...recap, results: [] }} kind="pelanggaran" />
+        <DownloadCsvButton filters={recap.filters} kind="pelanggaran" />
       </div>
       <ViolationRecap key={`${recap.filters.sesi ?? ""}-${recap.filters.ruangan ?? ""}`} rows={recap.violations} />
     </div>

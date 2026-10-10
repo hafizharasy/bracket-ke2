@@ -30,7 +30,14 @@ async function Downloads({ searchParams }: Pick<PageProps<"/admin/rekap/unduh">,
       <p className="text-sm text-muted-foreground">
         Cakupan laporan: <span className="font-medium text-foreground">{scope}</span>. Berkas CSV bisa dibuka di Excel / Google Sheets.
       </p>
-      <ReportDownloads recap={recap} />
+      <ReportDownloads
+        filters={recap.filters}
+        counts={{
+          hasil: `${recap.results.length} laga`,
+          pelanggaran: `${recap.violations.length} catatan`,
+          juara: `${recap.summary.roomChampions.length} ruangan-sesi`,
+        }}
+      />
     </div>
   );
 }

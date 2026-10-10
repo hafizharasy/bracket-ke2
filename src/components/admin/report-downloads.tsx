@@ -3,50 +3,44 @@
 import { DownloadIcon, FileSpreadsheetIcon } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import type { RecapData } from "@/lib/recap";
-import { type CsvSeparator, REPORT_INFO, REPORTS, type ReportKind, reportCsv, reportFilename } from "@/lib/recap-export";
+import { buttonVariants } from "@/components/ui/button";
+import type { RecapFilters } from "@/lib/recap";
+import { type CsvSeparator, REPORT_INFO, REPORTS, type ReportKind } from "@/lib/recap-export";
 import { cn } from "@/lib/utils";
 
-/** Simpan teks sebagai berkas di perangkat (tanpa server). */
-function saveFile(name: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: name });
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+/** URL ekspor CSV di server (/api/admin/recap/export) sesuai filter. */
+export function exportUrl(kind: ReportKind, filters: RecapFilters, separator: CsvSeparator = ";") {
+  const params = new URLSearchParams({ laporan: kind });
+  if (filters.sesi) params.set("sesi", filters.sesi);
+  if (filters.ruangan) params.set("ruangan", filters.ruangan);
+  if (separator === ",") params.set("pemisah", "koma");
+  return `/api/admin/recap/export?${params}`;
 }
 
-/** Tombol unduh CSV satu laporan dari data rekap yang sedang tampil. */
+/** Tautan unduh CSV satu laporan (berkas dibuat server). */
 export function DownloadCsvButton({
-  recap,
+  filters,
   kind,
   separator = ";",
   label = "Unduh CSV",
   variant = "outline",
 }: {
-  recap: RecapData;
+  filters: RecapFilters;
   kind: ReportKind;
   separator?: CsvSeparator;
   label?: string;
   variant?: "outline" | "default";
 }) {
   return (
-    <Button variant={variant} size="sm" onClick={() => saveFile(reportFilename(kind, recap), reportCsv(recap, kind, separator))}>
+    <a href={exportUrl(kind, filters, separator)} download className={cn(buttonVariants({ variant, size: "sm" }))}>
       <DownloadIcon /> {label}
-    </Button>
+    </a>
   );
 }
 
 /** Kartu unduhan semua laporan + pilihan pemisah kolom (Excel Indonesia: titik koma). */
-export function ReportDownloads({ recap }: { recap: RecapData }) {
+export function ReportDownloads({ filters, counts }: { filters: RecapFilters; counts: Record<ReportKind, string> }) {
   const [separator, setSeparator] = useState<CsvSeparator>(";");
-  const counts: Record<ReportKind, string> = {
-    hasil: `${recap.results.length} laga`,
-    pelanggaran: `${recap.violations.length} catatan`,
-    juara: `${recap.summary.roomChampions.length} ruangan-sesi`,
-  };
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -75,7 +69,7 @@ export function ReportDownloads({ recap }: { recap: RecapData }) {
             </div>
             <div className="mt-auto flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">{counts[kind]}</span>
-              <DownloadCsvButton recap={recap} kind={kind} separator={separator} variant="default" />
+              <DownloadCsvButton filters={filters} kind={kind} separator={separator} variant="default" />
             </div>
           </li>
         ))}

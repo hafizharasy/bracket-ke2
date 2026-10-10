@@ -21,8 +21,7 @@ async function Results({ searchParams }: Pick<PageProps<"/admin/rekap/hasil">, "
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <RekapFilter sessions={recap.sessions} rooms={recap.rooms} />
-        {/* Cukup kirim data laporan ini ke klien. */}
-        <DownloadCsvButton recap={{ ...recap, violations: [] }} kind="hasil" />
+        <DownloadCsvButton filters={recap.filters} kind="hasil" />
       </div>
       {/* key: reset pencarian & halaman saat filter sesi/ruangan berubah */}
       <ResultRecapList key={`${recap.filters.sesi ?? ""}-${recap.filters.ruangan ?? ""}`} rows={recap.results} />
