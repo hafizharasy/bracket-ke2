@@ -11,9 +11,11 @@ import { bracketSource } from "@/server/live";
 export async function getBracket(): Promise<BracketData> {
   // Data live → selalu dibaca saat request, bukan saat prerender.
   await connection();
+  const { applyStructureOverlay } = await import("@/lib/mock/structure-store");
   if (bracketSource() === "mock") {
     const { getLiveMockBracket } = await import("@/lib/mock/live-simulator");
-    return getLiveMockBracket();
+    return applyStructureOverlay(getLiveMockBracket());
   }
-  return getBracketFromDb();
+  // Perubahan ruangan/sesi dari form admin (state tiruan) sampai endpoint-nya dibuat.
+  return applyStructureOverlay(getBracketFromDb());
 }

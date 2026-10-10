@@ -1,6 +1,7 @@
 // Pemanggil aksi admin dari sisi klien.
 
 import { saveAccountAction, updateAccountStatusAction } from "@/app/admin/pengawas/actions";
+import { saveRoomAction, saveSessionAction } from "@/app/admin/ruangan/actions";
 
 export type ParticipantFormValues = {
   name: string;
@@ -118,16 +119,20 @@ export async function updateAccountStatus(
 export type RoomFormValues = { name: string; location: string };
 export type SessionFormValues = { name: string; startTime: string };
 
-/** SEMENTARA (stub frontend): simpan nama & lokasi ruangan. */
+/** Simpan nama & lokasi ruangan — sementara ke state tiruan di server. */
 export async function saveRoom(id: string, values: RoomFormValues): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  console.info("[simulasi] simpan ruangan", id, values);
-  return { ok: true, simulated: true };
+  try {
+    return await saveRoomAction(id, values);
+  } catch {
+    return { ok: false, error: "Gagal menyimpan. Periksa koneksi lalu coba lagi." };
+  }
 }
 
-/** SEMENTARA (stub frontend): simpan nama & jam mulai sesi (startTime ISO). */
+/** Simpan nama & jam mulai sesi (startTime ISO) — sementara ke state tiruan. */
 export async function saveSession(id: string, values: SessionFormValues): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  console.info("[simulasi] simpan sesi", id, values);
-  return { ok: true, simulated: true };
+  try {
+    return await saveSessionAction(id, values);
+  } catch {
+    return { ok: false, error: "Gagal menyimpan. Periksa koneksi lalu coba lagi." };
+  }
 }
