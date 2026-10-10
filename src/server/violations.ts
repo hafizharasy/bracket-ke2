@@ -167,3 +167,35 @@ export function getRoomViolationSummary(roomId: string, sessionId?: string | nul
     violations: list,
   };
 }
+
+/**
+ * Pelanggaran satu peserta. `roomId` membatasi ke satu ruangan (pengawas);
+ * null = semua ruangan (admin). Null bila peserta tidak ada.
+ */
+export function getParticipantViolations(participantId: string, roomId: string | null) {
+  const participant = db
+    .select({ id: participants.id, name: participants.name, teamOrClub: participants.teamOrClub })
+    .from(participants)
+    .where(eq(participants.id, participantId))
+    .get();
+  if (!participant) return null;
+
+  const list = db
+    .select()
+    .from(violations)
+    .leftJoin(matches, eq(matches.id, violations.matchId))
+    .leftJoin(users, eq(users.id, violations.recordedBy))
+    .where(and(eq(violations.participantId, participantId), roomId ? eq(violations.roomId, roomId) : undefined))
+    .orderBy(desc(violations.occurredAt))
+    .all()
+    .map((row) => ({
+      ...toViolation({ ...row.violations, recorderName: row.users?.name }),
+      matchLabel: row.matches ? `${roundLabel(row.matches.round)} #${row.matches.matchNumber}` : null,
+    }));
+
+  const byType = [...Map.groupBy(list, (v) => v.type)]
+    .map(([type, items]) => ({ type, count: items.length }))
+    .sort((a, b) => b.count - a.count);
+
+  return { participant, total: list.length, byType, violations: list };
+}

@@ -86,3 +86,17 @@ describe("getRoomViolationSummary", () => {
     expect(getRoomViolationSummary("ruangan-2").total).toBe(0);
   });
 });
+
+describe("getParticipantViolations", () => {
+  it("membatasi ke ruangan pengawas, atau semua ruangan untuk admin", async () => {
+    const { getParticipantViolations } = await import("@/server/violations");
+    recordViolation({ participantId: "p1", matchId: "m1", type: "Terlambat hadir" }, pengawas1);
+    recordViolation({ participantId: "p1", matchId: "m2", type: "Perilaku tidak sportif" }, admin);
+
+    expect(getParticipantViolations("p1", "ruangan-1")).toMatchObject({ total: 1 });
+    const all = getParticipantViolations("p1", null)!;
+    expect(all.total).toBe(2);
+    expect(all.byType).toHaveLength(2);
+    expect(getParticipantViolations("tidak-ada", null)).toBeNull();
+  });
+});

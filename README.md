@@ -53,4 +53,7 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 | `DELETE /api/matches/:id/result` | Batalkan hasil (salah input) selama laga berikutnya belum dimulai |
 | `PUT /api/matches/:id/result` | Simpan/koreksi hasil (pengawas ruangan / admin); `proofPhotoUrl` harus hasil unggah untuk laga itu |
 | `GET /api/bukti/:file` | Foto bukti tersimpan |
+| `GET /api/rooms/:id/violations?sesi=` | Pelanggaran ruangan + total per jenis/peserta |
+| `GET /api/participants/:id/violations` | Riwayat pelanggaran peserta (pengawas: ruangannya; admin: semua) |
+| `GET /api/rooms/:id/matches?sesi=` · `GET /api/rooms/:id/history?sesi=` | Laga & riwayat hasil ruangan |
 | `POST /api/violations` | Catat pelanggaran (`participantId`, `matchId?`, `roomId?`, `type`, `note?`, `occurredAt?`) |
