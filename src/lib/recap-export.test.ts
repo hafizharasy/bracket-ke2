@@ -13,8 +13,8 @@ describe("ekspor CSV", () => {
   it("menyusun laporan hasil, pelanggaran, dan juara sesuai filter", () => {
     const recap = getMockRecap({ sesi: "sesi-1", ruangan: "ruangan-2" });
     const lines = (csv: string) => csv.trim().split("\r\n");
-    expect(lines(reportCsv(recap, "hasil"))).toHaveLength(1 + 15);
-    expect(lines(reportCsv(recap, "hasil"))[1]).toContain("Sesi 1;Ruangan 2;16 Besar Ruangan;1;");
+    expect(lines(reportCsv(recap, "hasil"))).toHaveLength(1 + 63);
+    expect(lines(reportCsv(recap, "hasil"))[1]).toContain("Sesi 1;Ruangan 2;64 Besar Ruangan;1;");
     expect(lines(reportCsv(recap, "pelanggaran"))).toHaveLength(1 + recap.violations.length);
     expect(lines(reportCsv(recap, "juara"))).toEqual(["Sesi;Ruangan;Juara ruangan", expect.stringMatching(/^Sesi 1;Ruangan 2;.+/)]);
     expect(reportFilename("hasil", recap)).toMatch(/^rekap-hasil-sesi-1-ruangan-2-\d{4}-\d{2}-\d{2}\.csv$/);

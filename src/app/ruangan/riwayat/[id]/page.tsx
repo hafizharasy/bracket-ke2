@@ -130,7 +130,7 @@ function Scoreboard({ match }: { match: MatchDetail }) {
             <span className={cn("font-medium leading-tight", !p && "italic text-muted-foreground")}>
               {p?.name ?? (label ? `Pemenang ${label}` : "Belum ada")}
             </span>
-            {p && <span className="text-xs text-muted-foreground">{p.teamOrClub ?? "Tanpa klub"} · {p.id.toUpperCase()}</span>}
+            {p && <span className="text-xs text-muted-foreground">{p.teamOrClub ?? "Tanpa sekolah"} · {p.id.toUpperCase()}</span>}
             {won && (
               <Badge className="mt-1 bg-emerald-600 text-white">
                 <TrophyIcon data-icon="inline-start" /> Pemenang

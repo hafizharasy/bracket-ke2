@@ -2,7 +2,7 @@ import { and, eq, inArray, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { matches, participants, rooms, sessions } from "@/db/schema";
+import { matches, participants, rooms, sessionRooms, sessions } from "@/db/schema";
 import { PLAYERS_PER_ROOM } from "@/lib/bracket";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
@@ -27,8 +27,15 @@ const byNumber = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.
 function orderedSessions() {
   return db.select().from(sessions).all().sort((a, b) => a.orderIndex - b.orderIndex);
 }
-function orderedRooms() {
-  return db.select().from(rooms).all().sort(byNumber);
+/** Ruangan yang dipakai di satu sesi, urut nomor. */
+function roomsOfSession(sessionId: string) {
+  return db
+    .select({ id: sessionRooms.roomId })
+    .from(sessionRooms)
+    .where(eq(sessionRooms.sessionId, sessionId))
+    .all()
+    .sort(byNumber)
+    .map((r) => r.id);
 }
 
 /** Peserta yang sudah bertanding (laga berlangsung/selesai) tidak boleh dipindah. */
@@ -74,6 +81,9 @@ export function assignParticipants(input: AssignInput) {
     let roomId = input.roomId !== undefined ? input.roomId : p.roomId;
     if (input.roomId === undefined && sessionId !== p.sessionId) roomId = null;
     if (roomId && !sessionId) throw new ApiError(422, `Peserta ${p.id.toUpperCase()} belum punya sesi; atur sesinya dulu.`);
+    if (roomId && sessionId && !roomsOfSession(sessionId).includes(roomId)) {
+      throw new ApiError(422, "Ruangan itu tidak dipakai di sesi tersebut; tambahkan dulu di Ruangan & Sesi.");
+    }
     return { id: p.id, sessionId, roomId };
   });
 
@@ -100,20 +110,20 @@ function write(updates: { id: string; sessionId: string | null; roomId: string |
 
 /**
  * Isi kelompok (sesi/ruangan) secara merata: tiap peserta masuk ke kelompok
- * yang paling sedikit isinya dan masih muat. Peserta diurutkan per klub lalu
- * dibagi bergiliran, sehingga peserta satu klub tersebar ke kelompok berbeda.
+ * yang paling sedikit isinya dan masih muat. Peserta diurutkan per sekolah lalu
+ * dibagi bergiliran, sehingga peserta satu sekolah tersebar ke kelompok berbeda.
  */
 function distribute<T extends { id: string; teamOrClub: string | null }>(
   people: T[],
   groups: string[],
   filled: Map<string, number>,
-  capacity: number,
+  capacity: (group: string) => number,
 ) {
   const sorted = [...people].sort((a, b) => (a.teamOrClub ?? "").localeCompare(b.teamOrClub ?? "") || byNumber(a, b));
   const result = new Map<string, string>();
   for (const person of sorted) {
     const target = groups
-      .filter((g) => (filled.get(g) ?? 0) < capacity)
+      .filter((g) => (filled.get(g) ?? 0) < capacity(g))
       .sort((a, b) => (filled.get(a) ?? 0) - (filled.get(b) ?? 0))[0];
     if (!target) throw new ApiError(409, "Kapasitas tidak cukup untuk semua peserta.");
     filled.set(target, (filled.get(target) ?? 0) + 1);
@@ -123,22 +133,23 @@ function distribute<T extends { id: string; teamOrClub: string | null }>(
 }
 
 /**
- * Bagi otomatis. `sesi`: peserta dibagi rata ke semua sesi (kapasitas
- * jumlah ruangan × 16); bagi ulang "all" juga mengosongkan ruangan.
- * `ruangan`: peserta satu sesi dibagi rata ke semua ruangan (maks. 16).
+ * Bagi otomatis. `sesi`: peserta dibagi rata ke sesi yang punya ruangan
+ * (kapasitas = ruangan dipakai × 64); bagi ulang "all" juga mengosongkan
+ * ruangan. `ruangan`: peserta satu sesi dibagi rata ke ruangan yang dipakai
+ * sesi itu (maks. 64 per ruangan).
  */
 export function autoAssign(input: AutoAssignInput) {
   const all = db.select().from(participants).all();
-  const roomIds = orderedRooms().map((r) => r.id);
 
   if (input.kind === "sesi") {
-    const sessionIds = orderedSessions().map((s) => s.id);
-    if (sessionIds.length === 0) throw new ApiError(409, "Belum ada sesi.");
+    const roomCount = new Map(orderedSessions().map((s) => [s.id, roomsOfSession(s.id).length]));
+    const sessionIds = [...roomCount].filter(([, n]) => n > 0).map(([id]) => id);
+    if (sessionIds.length === 0) throw new ApiError(409, "Belum ada sesi yang memakai ruangan.");
     const people = input.mode === "all" ? all : all.filter((p) => !p.sessionId);
     if (input.mode === "all") assertNotPlayed("all");
     const filled = new Map<string, number>();
     if (input.mode === "unassigned") for (const p of all) if (p.sessionId) filled.set(p.sessionId, (filled.get(p.sessionId) ?? 0) + 1);
-    const plan = distribute(people, sessionIds, filled, roomIds.length * PLAYERS_PER_ROOM);
+    const plan = distribute(people, sessionIds, filled, (id) => roomCount.get(id)! * PLAYERS_PER_ROOM);
     return write(people.map((p) => {
       const sessionId = plan.get(p.id)!;
       return { id: p.id, sessionId, roomId: input.mode === "all" ? null : p.roomId };
@@ -146,12 +157,13 @@ export function autoAssign(input: AutoAssignInput) {
   }
 
   if (!db.select().from(sessions).where(eq(sessions.id, input.sessionId)).get()) throw new ApiError(404, "Sesi tidak ditemukan.");
-  if (roomIds.length === 0) throw new ApiError(409, "Belum ada ruangan.");
+  const roomIds = roomsOfSession(input.sessionId);
+  if (roomIds.length === 0) throw new ApiError(409, "Sesi ini belum memakai ruangan.");
   const inSession = all.filter((p) => p.sessionId === input.sessionId);
   const people = input.mode === "all" ? inSession : inSession.filter((p) => !p.roomId);
   if (input.mode === "all") assertNotPlayed("all", input.sessionId);
   const filled = new Map<string, number>();
   if (input.mode === "unassigned") for (const p of inSession) if (p.roomId) filled.set(p.roomId, (filled.get(p.roomId) ?? 0) + 1);
-  const plan = distribute(people, roomIds, filled, PLAYERS_PER_ROOM);
+  const plan = distribute(people, roomIds, filled, () => PLAYERS_PER_ROOM);
   return write(people.map((p) => ({ id: p.id, sessionId: input.sessionId, roomId: plan.get(p.id)! })));
 }

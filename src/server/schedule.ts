@@ -2,7 +2,7 @@ import { and, asc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { matches, participants, rooms, sessions, users } from "@/db/schema";
+import { matches, participants, rooms, sessionRooms, sessions, users } from "@/db/schema";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
 
@@ -230,4 +230,56 @@ export function deleteRoom(id: string) {
     tx.delete(rooms).where(eq(rooms.id, id)).run();
     bumpBracketVersion(tx);
   });
+}
+
+export const sessionRoomsInput = z.object({ roomIds: z.array(z.string().min(1)).max(100) });
+
+/**
+ * Atur ruangan yang dipakai sebuah sesi (tiap ruangan aktif = satu bagan 64
+ * peserta). Ruangan yang dilepas tidak boleh masih berisi peserta sesi itu
+ * atau laga yang sudah berjalan. Bila struktur bagan sudah dibuat, admin perlu
+ * menyusun ulang bagan setelah perubahan (dilaporkan lewat `structureStale`).
+ */
+export function setSessionRooms(sessionId: string, roomIds: string[]) {
+  if (!db.select({ id: sessions.id }).from(sessions).where(eq(sessions.id, sessionId)).get()) {
+    throw new ApiError(404, "Sesi tidak ditemukan.");
+  }
+  const wanted = [...new Set(roomIds)];
+  const known = new Set(db.select({ id: rooms.id }).from(rooms).all().map((r) => r.id));
+  const unknown = wanted.filter((id) => !known.has(id));
+  if (unknown.length) throw new ApiError(422, `Ruangan tidak ditemukan: ${unknown.join(", ")}.`);
+
+  const current = db.select({ roomId: sessionRooms.roomId }).from(sessionRooms).where(eq(sessionRooms.sessionId, sessionId)).all().map((r) => r.roomId);
+  const added = wanted.filter((id) => !current.includes(id));
+  const removed = current.filter((id) => !wanted.includes(id));
+  if (added.length === 0 && removed.length === 0) return { sessionId, roomIds: current, added, removed, structureStale: false };
+
+  const started = db
+    .select({ n: sql<number>`count(*)` })
+    .from(matches)
+    .where(ne(matches.status, "scheduled"))
+    .get()!.n;
+  if (started > 0) throw new ApiError(409, "Turnamen sudah berjalan; ruangan per sesi tidak bisa diubah lagi.");
+
+  for (const roomId of removed) {
+    const n = db
+      .select({ n: sql<number>`count(*)` })
+      .from(participants)
+      .where(and(eq(participants.sessionId, sessionId), eq(participants.roomId, roomId)))
+      .get()!.n;
+    if (n > 0) {
+      const name = db.select({ name: rooms.name }).from(rooms).where(eq(rooms.id, roomId)).get()?.name ?? roomId;
+      throw new ApiError(409, `${name} masih berisi ${n} peserta di sesi ini. Pindahkan pesertanya dulu.`);
+    }
+  }
+
+  const structureStale = db.select({ n: sql<number>`count(*)` }).from(matches).get()!.n > 0;
+  db.transaction((tx) => {
+    for (const roomId of removed) {
+      tx.delete(sessionRooms).where(and(eq(sessionRooms.sessionId, sessionId), eq(sessionRooms.roomId, roomId))).run();
+    }
+    if (added.length) tx.insert(sessionRooms).values(added.map((roomId) => ({ sessionId, roomId }))).run();
+    bumpBracketVersion(tx);
+  });
+  return { sessionId, roomIds: wanted, added, removed, structureStale };
 }

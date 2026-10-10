@@ -3,8 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { RefereeEditor } from "@/components/admin/referee-editor";
+import { ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
 import { getAdminMatchView } from "@/lib/admin-match-view";
+import { loadReferees } from "@/lib/admin-referees";
+import { getBracket } from "@/lib/get-bracket";
+import { nextPreview } from "@/lib/next-preview";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Detail laga" };
@@ -26,8 +31,12 @@ export default function AdminMatchPage({ params }: PageProps<"/admin/laga/[id]">
 
 async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">) {
   const { id } = await params;
-  const m = await getAdminMatchView(id);
+  const referees = await loadReferees([id], `/admin/laga/${id}`);
+  const [m, data] = await Promise.all([getAdminMatchView(id), getBracket()]);
   if (!m) notFound();
+  const match = data.matches.find((x) => x.id === id)!;
+  const a = data.participants.find((p) => p.id === match.participantAId);
+  const b = data.participants.find((p) => p.id === match.participantBId);
   const nameOf = (pid: string) => (pid === m.participantA?.id ? m.participantA.name : pid === m.participantB?.id ? m.participantB.name : pid);
 
   return (
@@ -58,7 +67,7 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
             <div key={key} className={cn("flex flex-col items-center gap-1 rounded-xl border p-4 text-center", won && "border-emerald-500 bg-emerald-500/5")}>
               <span className="text-4xl font-bold tabular-nums">{score ?? "–"}</span>
               <span className={cn("font-medium", !p && "italic text-muted-foreground")}>{p?.name ?? source ?? "Belum ada"}</span>
-              {p && <span className="text-xs text-muted-foreground">{p.teamOrClub ?? "Tanpa klub"} · {p.id.toUpperCase()}</span>}
+              {p && <span className="text-xs text-muted-foreground">{p.teamOrClub ?? "Tanpa sekolah"} · {p.id.toUpperCase()}</span>}
               {won && <Badge className="mt-1 bg-emerald-600 text-white"><TrophyIcon data-icon="inline-start" /> Pemenang</Badge>}
             </div>
           );
@@ -70,6 +79,19 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
           Pemenang maju ke <ArrowRightIcon className="size-3.5" /> <span className="font-medium">{m.nextMatch.label}</span>
         </Link>
       )}
+
+      <RefereeEditor key={referees[id] ?? ""} rows={[{ matchId: id, label: `${m.roundLabel} #${m.matchNumber}` }]} initial={referees} />
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">{m.status === "done" ? "Koreksi hasil (admin)" : "Input hasil (admin)"}</h2>
+        {a && b ? (
+          <ResultForm key={match.id} match={match} participantA={a} participantB={b} next={nextPreview(data, match)} />
+        ) : (
+          <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+            Peserta laga ini belum lengkap. Hasil bisa diisi setelah pemenang laga sebelumnya ditentukan.
+          </p>
+        )}
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="flex flex-col gap-2">

@@ -10,12 +10,9 @@ import { MatchDetails } from "@/components/bracket/match-details";
 import { PathHighlight } from "@/components/bracket/path-highlight";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  buildSlotLabels,
-  isFinalStage,
-  PLAYOFF_ROUND,
-  roundLabel,
-} from "@/lib/bracket";
+import { FinalStandingsTable } from "@/components/bracket/final-standings-table";
+import { buildSlotLabels, FINAL_ROUND, isFinalStage, roundLabel, SEMIFINAL_ROUND } from "@/lib/bracket";
+import { finalStandings } from "@/lib/final-standings";
 import { getBracket } from "@/lib/get-bracket";
 import type { Match, MatchStatus } from "@/lib/types";
 
@@ -51,7 +48,7 @@ export default function BracketPage({ searchParams }: PageProps<"/">) {
           Bracket LRP 2026
         </h1>
         <p className="text-sm text-muted-foreground">
-          1 vs 1 eliminasi langsung · 7 menit + 3 menit injury time
+          Babak ruangan 1 vs 1 eliminasi · semifinal best of 3 · final kompetisi penuh
         </p>
       </div>
       <Suspense fallback={<BracketSkeleton />}>
@@ -93,8 +90,12 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
   // Babak final tampil utuh kecuali difilter: per sesi → hanya bila laganya di sesi itu;
   // per ruangan → daftar laga final di ruangan itu (bagan utuh tidak bisa dipotong).
   const scopedFinalMatches = finalMatches.filter(inScope);
-  const playoffMatches = finalMatches.filter((m) => m.round === PLAYOFF_ROUND);
-  const mainFinalMatches = finalMatches.filter((m) => m.round > PLAYOFF_ROUND);
+  const semifinals = finalMatches.filter((m) => m.round === SEMIFINAL_ROUND).sort((a, b) => a.matchNumber - b.matchNumber);
+  const roundRobin = finalMatches.filter((m) => m.round === FINAL_ROUND).sort((a, b) => a.matchNumber - b.matchNumber);
+  const finalists = semifinals.map((m) => (m.status === "done" ? m.winnerId : null));
+  const standings = finalStandings(roundRobin, finalists.filter((id): id is string => !!id));
+  const pendingFinalists = semifinals.filter((m, i) => !finalists[i]).map((m) => m.matchNumber);
+  const finalComplete = roundRobin.length > 0 && roundRobin.every((m) => m.status === "done");
 
   const stats = [
     { label: "Peserta", value: participants.filter(inScope).length },
@@ -108,7 +109,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
       <header className="flex flex-col gap-4">
         <div className="-mt-6 flex flex-wrap items-end justify-between gap-2 text-sm text-muted-foreground">
           <p>
-            {participants.length} peserta · {sessions.length} sesi · {rooms.length} ruangan
+            {participants.length} peserta · {sessions.length} sesi · {data.sessionRooms.length} ruangan-sesi
           </p>
           <LiveUpdater version={version} updatedAt={updatedAt} />
         </div>
@@ -131,7 +132,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
             <div>
               <h2 className="font-heading text-lg font-semibold">Babak Ruangan</h2>
               <p className="text-sm text-muted-foreground">
-                Tiap ruangan di tiap sesi berisi 16 peserta. Juara ruangan maju ke babak final.
+                Tiap ruangan di tiap sesi berisi 64 peserta (63 laga). Juara ruangan maju ke semifinal.
                 Arahkan kursor ke nama peserta untuk menyorot jalurnya; klik kartu untuk melihat detail laga.
               </p>
             </div>
@@ -189,7 +190,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
           {scopedFinalMatches.length > 0 && (
             <section className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center gap-3">
-                <h2 className="font-heading text-lg font-semibold">Babak Final</h2>
+                <h2 className="font-heading text-lg font-semibold">Semifinal & Final</h2>
                 <Badge variant={STATUS_BADGE[overallStatus(scopedFinalMatches)].variant}>
                   {STATUS_BADGE[overallStatus(scopedFinalMatches)].label}
                 </Badge>
@@ -218,16 +219,14 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                 </>
               ) : (
                 <>
-                  <p className="-mt-2 text-sm text-muted-foreground">
-                    40 juara ruangan: 24 unggulan langsung ke 32 besar, 16 lainnya bertanding di
-                    play-off untuk memperebutkan 8 tempat tersisa.
-                  </p>
-
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold">Play-off</h3>
-                    <BracketScroller label="Laga play-off" tone="background">
+                    <h3 className="text-sm font-semibold">Semifinal</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Juara tiap ruangan bertanding best of 3 — yang lebih dulu menang 2 game lolos ke final.
+                    </p>
+                    <BracketScroller label="Laga semifinal" tone="background">
                       <div className="flex w-max gap-3">
-                        {playoffMatches.map((match) => (
+                        {semifinals.map((match) => (
                           <div key={match.id} data-round-col className="snap-start">
                             <MatchCard
                               match={match}
@@ -241,14 +240,32 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                     </BracketScroller>
                   </div>
 
-                  <BracketTree
-                    matches={mainFinalMatches}
-                    participants={participantMap}
-                    rooms={roomMap}
-                    slotLabels={slotLabels}
-                    label="Bagan babak final"
-                    tone="background"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold">Final — kompetisi penuh</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Setiap finalis bertemu dua kali: sekali sebagai tuan rumah (jalan pertama) dan sekali sebagai tamu.
+                    </p>
+                    <FinalStandingsTable
+                      rows={standings}
+                      participants={participantMap}
+                      pending={pendingFinalists}
+                      complete={finalComplete}
+                    />
+                    <BracketScroller label="Laga final" tone="background">
+                      <div className="flex w-max gap-3">
+                        {roundRobin.map((match) => (
+                          <div key={match.id} data-round-col className="snap-start">
+                            <MatchCard
+                              match={match}
+                              participants={participantMap}
+                              roomName={roomMap.get(match.roomId)?.name}
+                              slotLabels={slotLabels.get(match.id)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </BracketScroller>
+                  </div>
                 </>
               )}
             </section>

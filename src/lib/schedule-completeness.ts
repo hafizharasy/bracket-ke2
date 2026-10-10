@@ -1,4 +1,4 @@
-import { PLAYERS_PER_ROOM } from "@/lib/bracket";
+import { activeCells, PLAYERS_PER_ROOM } from "@/lib/bracket";
 import type { BracketData } from "@/lib/types";
 
 export type CompletenessCheck = {
@@ -15,15 +15,19 @@ export type CompletenessCheck = {
  * Periksa kelengkapan jadwal sebelum turnamen: penempatan peserta, isi tiap
  * ruangan per sesi, dan pasangan babak 1. Fungsi murni (tanpa I/O).
  */
-export function checkScheduleCompleteness(data: Pick<BracketData, "participants" | "sessions" | "rooms" | "matches">): CompletenessCheck[] {
-  const { participants, sessions, rooms, matches } = data;
+export function checkScheduleCompleteness(
+  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "sessionRooms" | "matches">,
+): CompletenessCheck[] {
+  const { participants, sessions, matches } = data;
   const byId = new Map(participants.map((p) => [p.id, p]));
   const roundOne = matches.filter((m) => m.round === 1);
-  const cells = sessions.flatMap((s) => rooms.map((r) => ({ s, r })));
+  const cells = activeCells(data).map(({ session: s, room: r }) => ({ s, r }));
+  const activeKeys = new Set(cells.map(({ s, r }) => `${s.id}|${r.id}`));
   const matchesPerRoom = PLAYERS_PER_ROOM / 2;
 
   const noSession = participants.filter((p) => !p.sessionId).length;
-  const noRoom = participants.filter((p) => !p.roomId).length;
+  // Ruangan kosong atau ruangan yang tidak dipakai di sesi peserta itu.
+  const noRoom = participants.filter((p) => !p.roomId || (p.sessionId && !activeKeys.has(`${p.sessionId}|${p.roomId}`))).length;
   const badCells = cells.filter(
     ({ s, r }) => participants.filter((p) => p.sessionId === s.id && p.roomId === r.id).length !== PLAYERS_PER_ROOM,
   );
@@ -57,10 +61,16 @@ export function checkScheduleCompleteness(data: Pick<BracketData, "participants"
 
   return [
     check("session", "Semua peserta punya sesi", noSession, `${noSession} peserta belum punya sesi`, "/admin/peserta/sesi"),
-    check("room", "Semua peserta punya ruangan", noRoom, `${noRoom} peserta belum punya ruangan`, "/admin/peserta/ruangan"),
+    check(
+      "room",
+      "Semua peserta punya ruangan yang dipakai sesinya",
+      noRoom,
+      `${noRoom} peserta belum punya ruangan (atau ruangannya tidak dipakai di sesi itu)`,
+      "/admin/peserta/ruangan",
+    ),
     check(
       "cells",
-      `Tiap ruangan per sesi berisi ${PLAYERS_PER_ROOM} peserta`,
+      `Tiap ruangan yang dipakai berisi ${PLAYERS_PER_ROOM} peserta`,
       badCells.length,
       `${badCells.length} dari ${cells.length} ruangan-sesi belum pas`,
       "/admin/peserta/ruangan",
@@ -97,7 +107,7 @@ export type PlacementSummary = {
   total: number;
   withoutSession: number;
   withoutRoom: number;
-  /** Isi tiap sesi dan ruangan di dalamnya; `pairsComplete` = 8 laga babak 1 terisi. */
+  /** Isi tiap sesi dan ruangan yang dipakai; `pairsComplete` = 32 laga babak 1 terisi. */
   sessions: {
     id: string;
     name: string;
@@ -111,9 +121,10 @@ export type PlacementSummary = {
 
 /** Ringkasan penempatan peserta per sesi × ruangan plus pemeriksaan kelengkapan. */
 export function summarizePlacement(
-  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "matches">,
+  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "sessionRooms" | "matches">,
 ): PlacementSummary {
-  const { participants, sessions, rooms, matches } = data;
+  const { participants, sessions, matches } = data;
+  const cells = activeCells(data);
   const cellKey = (s: string, r: string) => `${s}|${r}`;
   const counts = new Map<string, number>();
   for (const p of participants) {
@@ -135,7 +146,7 @@ export function summarizePlacement(
       id: s.id,
       name: s.name,
       count: counts.get(s.id) ?? 0,
-      rooms: rooms.map((r) => ({
+      rooms: cells.filter((c) => c.session.id === s.id).map(({ room: r }) => ({
         id: r.id,
         name: r.name,
         count: counts.get(cellKey(s.id, r.id)) ?? 0,

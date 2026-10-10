@@ -95,7 +95,7 @@ export function PairingEditor({
       )}
     >
       <span className="truncate font-medium">{p?.name ?? "Kosong"}</span>
-      {p && <span className="truncate text-xs text-muted-foreground">{p.club ?? "Tanpa klub"} · {p.id.toUpperCase()}</span>}
+      {p && <span className="truncate text-xs text-muted-foreground">{p.club ?? "Tanpa sekolah"} · {p.id.toUpperCase()}</span>}
     </button>
   );
 
@@ -127,7 +127,7 @@ export function PairingEditor({
         <p className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
           <TriangleAlertIcon className="size-4" />
           {incomplete && `Babak 1 butuh ${slots} peserta, saat ini ${order.length}. `}
-          {sameClub > 0 && `${sameClub} pasangan berasal dari klub yang sama.`}
+          {sameClub > 0 && `${sameClub} pasangan berasal dari sekolah yang sama.`}
         </p>
       )}
       {message && (

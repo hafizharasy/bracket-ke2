@@ -2,7 +2,7 @@
 //   npm run db:import-peserta -- peserta.csv            → tambahkan peserta
 //   npm run db:import-peserta -- peserta.csv --dry-run  → periksa saja
 //   npm run db:import-peserta -- peserta.csv --replace  → kosongkan peserta & bagan dulu
-// Format: lihat data-templates/peserta.csv (kolom nama, klub, sesi, ruangan).
+// Format: lihat data-templates/peserta.csv (kolom nama, sekolah, sesi, ruangan).
 
 import { readFileSync } from "node:fs";
 

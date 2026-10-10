@@ -1,7 +1,7 @@
 // Buat struktur bagan dari peserta yang sudah ditempatkan (sesi & ruangan).
 //   npm run db:buat-bagan                       → cek lalu simpan
 //   npm run db:buat-bagan -- --cek              → cek saja, tidak menyimpan
-//   npm run db:buat-bagan -- --final 2026-10-17T18:00:00+07:00
+//   npm run db:buat-bagan -- --final 2026-10-17T18:00:00+07:00   (jam mulai semifinal)
 //   npm run db:buat-bagan -- --ganti            → susun ulang (selama belum ada hasil)
 
 import { parseArgs } from "node:util";
@@ -19,8 +19,8 @@ try {
   const final = new Date(result.finalStart).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
   console.log(
     `${result.saved ? "✓ Struktur bagan disimpan" : "✓ Siap dibuat (cek saja)"} di ${DATABASE_PATH}: ` +
-      `${result.roomMatches} laga ruangan + ${result.finalMatches} laga final ` +
-      `(${result.byes} juara bye, ${result.playoffMatches} laga play-off), final mulai ${final} WIB` +
+      `${result.rooms} ruangan (${result.roomMatches} laga), ${result.semifinalMatches} semifinal (best of 3), ` +
+      `final round-robin ${result.finalists} finalis (${result.finalMatches} laga), semifinal mulai ${final} WIB` +
       (result.replaced ? `; menggantikan ${result.replaced} laga lama` : ""),
   );
 } catch (error) {

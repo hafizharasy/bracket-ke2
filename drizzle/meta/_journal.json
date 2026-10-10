@@ -85,6 +85,13 @@
       "when": 1791599678056,
       "tag": "0011_admin_terakhir",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791633834733,
+      "tag": "0012_format_64_semifinal_final",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,7 @@ export default function PesertaLayout({ children }: LayoutProps<"/admin/peserta"
       <div>
         <h1 className="font-heading text-2xl font-semibold">Atur Peserta & Jadwal</h1>
         <p className="text-sm text-muted-foreground">
-          Daftar peserta, pembagian ke 4 sesi dan 10 ruangan, serta penyusunan pasangan tanding.
+          Daftar peserta & sekolahnya, pembagian ke sesi dan ruangan (64 per ruangan), pasangan babak 1, serta pasangan semifinal.
         </p>
       </div>
       <Suspense fallback={<div className="h-9" />}>

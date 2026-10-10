@@ -1,12 +1,16 @@
 // Pemanggil penyimpanan dari sisi klien (form pengawas) lewat Server Actions.
 
+import type { WinType } from "@/lib/bracket";
 import { saveMatchResult } from "@/app/ruangan/laga/actions";
 import { recordViolation } from "@/app/ruangan/pelanggaran/actions";
 
 export type ResultPayload = {
-  scoreA: number;
-  scoreB: number;
+  /** Babak ruangan: skor; semifinal: game dimenangkan; final: tidak dipakai. */
+  scoreA?: number | null;
+  scoreB?: number | null;
   winnerId?: string;
+  /** Final round-robin: jenis kemenangan. */
+  winType?: WinType;
   proofPhotoUrl?: string;
 };
 

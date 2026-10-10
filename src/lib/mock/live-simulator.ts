@@ -4,8 +4,9 @@
 // selesai & pemenang maju, laga berikutnya dimulai). Dihitung saat diminta,
 // jadi tidak butuh timer di server.
 
-import { buildAdvanceMap } from "@/lib/bracket";
-import { championSlots, mockBracket } from "@/lib/mock/bracket-data";
+import { FINAL_ROUND, SEMIFINAL_ROUND } from "@/lib/bracket";
+import { mockBracket } from "@/lib/mock/bracket-data";
+import { createSimulation, finishMatch } from "@/lib/mock/simulate";
 import type { BracketData, Match } from "@/lib/types";
 
 const TICK_MS = 5_000;
@@ -14,34 +15,13 @@ const MAX_CATCH_UP = 12;
 /** Kira-kira satu laga per ruangan berjalan bersamaan. */
 const MAX_ONGOING = 10;
 
-type Advance = { matchId: string; side: "A" | "B" };
-
 const state: { data: BracketData; matches: Map<string, Match>; lastTick: number } = (() => {
   const data: BracketData = structuredClone(mockBracket);
   return { data, matches: new Map(data.matches.map((m) => [m.id, m])), lastTick: Date.now() };
 })();
 
-const advanceMap = new Map<string, Advance>([...buildAdvanceMap(state.data.matches), ...championSlots]);
-
-function finish(match: Match) {
-  let a = match.scoreA ?? 0;
-  let b = match.scoreB ?? 0;
-  if (a === b) {
-    if (Math.random() < 0.5) a++;
-    else b++;
-  }
-  match.scoreA = a;
-  match.scoreB = b;
-  match.winnerId = a > b ? match.participantAId : match.participantBId;
-  match.status = "done";
-
-  const target = advanceMap.get(match.id);
-  const next = target && state.matches.get(target.matchId);
-  if (next) {
-    if (target.side === "A") next.participantAId = match.winnerId;
-    else next.participantBId = match.winnerId;
-  }
-}
+const sim = createSimulation(state.data.matches);
+const finish = (match: Match) => finishMatch(sim, match, Math.random);
 
 /**
  * Satu langkah: tiap laga berjalan mungkin mencetak poin atau selesai,
@@ -53,7 +33,10 @@ function step() {
   for (const match of matches.filter((m) => m.status === "ongoing")) {
     const total = (match.scoreA ?? 0) + (match.scoreB ?? 0);
     const roll = Math.random();
-    if (total >= 4 && roll < 0.25) finish(match);
+    // Semifinal & final diselesaikan langsung (skor game / jenis kemenangan).
+    if (match.round === SEMIFINAL_ROUND || match.round === FINAL_ROUND) {
+      if (roll < 0.3) finish(match);
+    } else if (total >= 4 && roll < 0.25) finish(match);
     else if (roll < 0.45) match.scoreA = (match.scoreA ?? 0) + 1;
     else if (roll < 0.65) match.scoreB = (match.scoreB ?? 0) + 1;
   }
@@ -66,8 +49,9 @@ function step() {
   for (const match of ready) {
     if (running >= MAX_ONGOING) break;
     match.status = "ongoing";
-    match.scoreA = 0;
-    match.scoreB = 0;
+    const scored = match.round < SEMIFINAL_ROUND;
+    match.scoreA = scored ? 0 : null;
+    match.scoreB = scored ? 0 : null;
     running++;
   }
 }

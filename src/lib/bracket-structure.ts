@@ -1,23 +1,26 @@
 // Penyusun struktur bagan dari penempatan peserta (fungsi murni).
 //
-// Babak ruangan (ronde 1–4): tiap sesi × ruangan berisi 16 peserta → 15 laga.
-// Babak final: juara ruangan masuk 32 besar. Bila juara > 32, sisanya main
-// play-off (ronde 5): juara paling awal (urutan sesi, lalu ruangan) mendapat
-// bye langsung ke 32 besar, yang lain main play-off. Contoh 4 × 10 = 40 juara:
-// 24 bye + 16 pemain play-off (8 laga) → 32 besar.
+// - Babak ruangan (ronde 1–6): tiap ruangan yang dipakai di suatu sesi berisi
+//   64 peserta → 63 laga, menghasilkan 1 juara ruangan.
+// - Semifinal (ronde 7, best of 3): juara ruangan dipasangkan berurutan
+//   (ruangan ke-1 vs ke-2, …); admin bisa mengubah pasangannya.
+// - Final (ronde 8): double round-robin antar pemenang semifinal — tiap
+//   pasangan bertemu dua kali, sekali sebagai tuan rumah (jalan pertama).
 
-import { LAST_ROOM_ROUND, PLAYERS_PER_ROOM, PLAYOFF_ROUND } from "@/lib/bracket";
+import { FINAL_ROUND, LAST_ROOM_ROUND, PLAYERS_PER_ROOM, SEMIFINAL_ROUND } from "@/lib/bracket";
 
 export const MATCH_MINUTES = 10; // 7 menit + 3 menit injury time
 export const ROUND_GAP_MINUTES = 15; // jeda antarbabak
-const FINAL_SLOTS = 32;
-const LAST_ROUND = 10;
+/** Semifinal best of 3: sampai 3 game + jeda. */
+const SEMIFINAL_MINUTES = 3 * MATCH_MINUTES + ROUND_GAP_MINUTES;
 
 export type StructureInput = {
   sessions: { id: string; name: string; startTime: string | null }[];
   rooms: { id: string; name: string }[];
+  /** Ruangan yang dipakai di tiap sesi. */
+  sessionRooms: { sessionId: string; roomId: string }[];
   participants: { id: string; teamOrClub: string | null; sessionId: string | null; roomId: string | null }[];
-  /** Jam mulai babak final (ISO); default 150 menit setelah sesi terakhir dimulai. */
+  /** Jam mulai semifinal (ISO); default 150 menit setelah sesi terakhir dimulai. */
   finalStart?: string;
 };
 
@@ -30,31 +33,41 @@ export type StructureMatch = {
   participantAId: string | null;
   participantBId: string | null;
   nextMatchId: string | null;
+  feedAId: string | null;
+  feedBId: string | null;
   scheduledAt: Date;
 };
 
-export type StructureResult =
-  | { ok: true; matches: StructureMatch[]; summary: { roomMatches: number; finalMatches: number; byes: number; playoffMatches: number; finalStart: string } }
-  | { ok: false; errors: string[] };
+export type StructureSummary = {
+  rooms: number;
+  roomMatches: number;
+  semifinalMatches: number;
+  finalists: number;
+  finalMatches: number;
+  finalStart: string;
+};
+
+export type StructureResult = { ok: true; matches: StructureMatch[]; summary: StructureSummary } | { ok: false; errors: string[] };
 
 const addMinutes = (date: Date, minutes: number) => new Date(date.getTime() + minutes * 60_000);
-const slotMinutes = (round: number) => (round - 1) * (MATCH_MINUTES + ROUND_GAP_MINUTES);
+const roundsInRoom = Math.log2(PLAYERS_PER_ROOM);
+const byNumber = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id, "id", { numeric: true });
 
 /**
  * Urutkan peserta satu ruangan supaya pasangan babak 1 (indeks 2k vs 2k+1)
- * sebisa mungkin dari klub berbeda: ambil bergiliran dari klub terbesar.
+ * sebisa mungkin dari sekolah berbeda: ambil bergiliran dari sekolah terbesar.
  */
 export function spreadClubs<T extends { id: string; teamOrClub: string | null }>(players: T[]): T[] {
   const groups = new Map<string, T[]>();
-  for (const p of [...players].sort((a, b) => a.id.localeCompare(b.id, "id", { numeric: true }))) {
-    const key = p.teamOrClub ?? `tanpa-klub:${p.id}`;
+  for (const p of [...players].sort(byNumber)) {
+    const key = p.teamOrClub?.trim().toLowerCase() || `tanpa-sekolah:${p.id}`;
     groups.set(key, [...(groups.get(key) ?? []), p]);
   }
   const order: T[] = [];
   let last: string | null = null;
   while (order.length < players.length) {
     const candidates = [...groups].filter(([, list]) => list.length > 0).sort((a, b) => b[1].length - a[1].length);
-    // Jangan ambil klub yang sama dengan lawan di slot sebelumnya (posisi ganjil) bila ada pilihan lain.
+    // Jangan ambil sekolah yang sama dengan lawan di slot sebelumnya bila ada pilihan lain.
     const pairing = order.length % 2 === 1;
     const [key, list] = (pairing && candidates.find(([k]) => k !== last)) || candidates[0];
     order.push(list.shift()!);
@@ -63,105 +76,140 @@ export function spreadClubs<T extends { id: string; teamOrClub: string | null }>
   return order;
 }
 
-/** Susun seluruh laga (babak ruangan + babak final) dengan tautan nextMatchId & jadwal. */
+/**
+ * Jadwal double round-robin (metode lingkaran): daftar putaran, tiap putaran
+ * berisi pasangan [tuan rumah, tamu] berupa indeks finalis. Putaran kedua
+ * membalik tuan rumah/tamu, sehingga tiap pasangan bertemu dua kali.
+ */
+export function doubleRoundRobin(count: number): [number, number][][] {
+  const players: (number | null)[] = Array.from({ length: count }, (_, i) => i);
+  if (count % 2 === 1) players.push(null); // bye
+  const n = players.length;
+  const firstLeg: [number, number][][] = [];
+  for (let r = 0; r < n - 1; r++) {
+    const pairs: [number, number][] = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = players[i];
+      const b = players[n - 1 - i];
+      if (a === null || b === null) continue;
+      // Gilir tuan rumah supaya tiap finalis kebagian jalan pertama secara merata.
+      pairs.push((r + i) % 2 === 0 ? [a, b] : [b, a]);
+    }
+    firstLeg.push(pairs);
+    players.splice(1, 0, players.pop()!); // putar semua kecuali posisi 0
+  }
+  return [...firstLeg, ...firstLeg.map((pairs) => pairs.map(([a, b]) => [b, a] as [number, number]))];
+}
+
+/** Susun seluruh laga (babak ruangan, semifinal, final) dengan tautan & jadwal. */
 export function buildBracketStructure(input: StructureInput): StructureResult {
   const errors: string[] = [];
-  const { sessions, rooms } = input;
-  if (sessions.length === 0) errors.push("Belum ada sesi.");
-  if (rooms.length === 0) errors.push("Belum ada ruangan.");
-  for (const s of sessions) if (!s.startTime) errors.push(`${s.name} belum punya jam mulai.`);
+  const sessions = input.sessions;
+  const rooms = [...input.rooms].sort(byNumber);
+  const sessionIndex = new Map(sessions.map((s, i) => [s.id, i]));
+  const roomIndex = new Map(rooms.map((r, i) => [r.id, i]));
 
-  const cells = sessions.flatMap((s, si) => rooms.map((r, ri) => ({ s, r, si, ri })));
-  const champions = cells.length;
-  const playoffMatches = champions - FINAL_SLOTS;
-  if (champions > 0 && (playoffMatches < 0 || playoffMatches > FINAL_SLOTS / 2)) {
-    errors.push(`Format babak final butuh ${FINAL_SLOTS}–${FINAL_SLOTS + FINAL_SLOTS / 2} juara ruangan (sesi × ruangan); saat ini ${champions}.`);
+  const cells = input.sessionRooms
+    .filter((c) => sessionIndex.has(c.sessionId) && roomIndex.has(c.roomId))
+    .sort((a, b) => sessionIndex.get(a.sessionId)! - sessionIndex.get(b.sessionId)! || roomIndex.get(a.roomId)! - roomIndex.get(b.roomId)!)
+    .map((c) => ({ session: sessions[sessionIndex.get(c.sessionId)!], room: rooms[roomIndex.get(c.roomId)!] }));
+
+  if (cells.length === 0) errors.push("Belum ada ruangan yang dipakai di sesi mana pun.");
+  else if (cells.length < 4 || cells.length % 2 === 1) {
+    errors.push(`Jumlah ruangan di semua sesi harus genap dan minimal 4 (juara ruangan dipasangkan di semifinal); saat ini ${cells.length}.`);
+  }
+  for (const { session } of cells) {
+    if (!session.startTime && !errors.includes(`${session.name} belum punya jam mulai.`)) errors.push(`${session.name} belum punya jam mulai.`);
   }
   const playersOf = (sessionId: string, roomId: string) =>
     input.participants.filter((p) => p.sessionId === sessionId && p.roomId === roomId);
-  for (const { s, r } of cells) {
-    const n = playersOf(s.id, r.id).length;
-    if (n !== PLAYERS_PER_ROOM) errors.push(`${s.name} · ${r.name}: ${n} peserta (harus ${PLAYERS_PER_ROOM}).`);
+  for (const { session, room } of cells) {
+    const n = playersOf(session.id, room.id).length;
+    if (n !== PLAYERS_PER_ROOM) errors.push(`${session.name} · ${room.name}: ${n} peserta (harus ${PLAYERS_PER_ROOM}).`);
   }
-  const unplaced = input.participants.filter((p) => !p.sessionId || !p.roomId).length;
-  if (unplaced) errors.push(`${unplaced} peserta belum punya sesi/ruangan.`);
+  const active = new Set(cells.map((c) => `${c.session.id}|${c.room.id}`));
+  const outside = input.participants.filter((p) => !p.sessionId || !p.roomId || !active.has(`${p.sessionId}|${p.roomId}`)).length;
+  if (outside) errors.push(`${outside} peserta belum punya sesi/ruangan yang dipakai.`);
   if (errors.length) return { ok: false, errors };
 
   const matches: StructureMatch[] = [];
-  const championMatch: string[] = []; // urutan sesi lalu ruangan
-  for (const { s, r, si, ri } of cells) {
-    const prefix = `m-s${si + 1}-r${ri + 1}`;
-    const order = spreadClubs(playersOf(s.id, r.id));
-    const start = new Date(s.startTime!);
-    for (let round = 1; round <= LAST_ROOM_ROUND; round++) {
+  const base = { feedAId: null, feedBId: null };
+  const semifinalId = (k: number) => `m-sf-${k}`;
+
+  // Babak ruangan; juara ruangan ke-k menuju semifinal ke-ceil(k/2).
+  cells.forEach(({ session, room }, k) => {
+    const prefix = `m-s${sessionIndex.get(session.id)! + 1}-r${roomIndex.get(room.id)! + 1}`;
+    const order = spreadClubs(playersOf(session.id, room.id));
+    const start = new Date(session.startTime!);
+    for (let round = 1; round <= roundsInRoom; round++) {
       for (let n = 1; n <= PLAYERS_PER_ROOM / 2 ** round; n++) {
         matches.push({
+          ...base,
           id: `${prefix}-b${round}-${n}`,
-          sessionId: s.id,
-          roomId: r.id,
+          sessionId: session.id,
+          roomId: room.id,
           round,
           matchNumber: n,
           participantAId: round === 1 ? order[(n - 1) * 2].id : null,
           participantBId: round === 1 ? order[(n - 1) * 2 + 1].id : null,
-          nextMatchId: round < LAST_ROOM_ROUND ? `${prefix}-b${round + 1}-${Math.ceil(n / 2)}` : null,
-          scheduledAt: addMinutes(start, slotMinutes(round)),
+          nextMatchId: round < LAST_ROOM_ROUND ? `${prefix}-b${round + 1}-${Math.ceil(n / 2)}` : semifinalId(Math.ceil((k + 1) / 2)),
+          scheduledAt: addMinutes(start, (round - 1) * (MATCH_MINUTES + ROUND_GAP_MINUTES)),
         });
       }
     }
-    championMatch.push(`${prefix}-b${LAST_ROOM_ROUND}-1`);
-  }
-
-  const lastSession = sessions.at(-1)!;
-  const finalStart = input.finalStart ? new Date(input.finalStart) : addMinutes(new Date(lastSession.startTime!), 150);
-  const roomFinal = new Map(matches.filter((m) => m.round === LAST_ROOM_ROUND).map((m) => [m.id, m]));
-  const finalId = (round: number, n: number) => `m-final-b${round}-${n}`;
-  let roomCursor = 0;
-  const finalMatch = (round: number, n: number, nextMatchId: string | null): StructureMatch => ({
-    id: finalId(round, n),
-    sessionId: lastSession.id,
-    roomId: rooms[roomCursor++ % rooms.length].id,
-    round,
-    matchNumber: n,
-    participantAId: null,
-    participantBId: null,
-    nextMatchId,
-    scheduledAt: addMinutes(finalStart, (round - PLAYOFF_ROUND) * (MATCH_MINUTES + ROUND_GAP_MINUTES)),
   });
 
-  // 32 besar menerima pemenang play-off di slot B laga yang disebar merata
-  // (8 play-off → laga 1, 3, 5, …, 15); slot lain diisi juara ber-bye.
-  const roundOf32 = FINAL_SLOTS / 2;
-  const playoffTarget = Array.from({ length: playoffMatches }, (_, i) => Math.floor((i * roundOf32) / playoffMatches) + 1);
-  const byes = championMatch.slice(0, FINAL_SLOTS - playoffMatches);
-  const playoffPlayers = championMatch.slice(FINAL_SLOTS - playoffMatches);
-  const finals: StructureMatch[] = [];
-  playoffTarget.forEach((target, i) => {
-    finals.push(finalMatch(PLAYOFF_ROUND, i + 1, finalId(PLAYOFF_ROUND + 1, target)));
-    roomFinal.get(playoffPlayers[i * 2])!.nextMatchId = finalId(PLAYOFF_ROUND, i + 1);
-    roomFinal.get(playoffPlayers[i * 2 + 1])!.nextMatchId = finalId(PLAYOFF_ROUND, i + 1);
-  });
-  let byeCursor = 0;
-  for (let round = PLAYOFF_ROUND + 1; round <= LAST_ROUND; round++) {
-    const count = 2 ** (LAST_ROUND - round);
-    for (let n = 1; n <= count; n++) {
-      finals.push(finalMatch(round, n, round < LAST_ROUND ? finalId(round + 1, Math.ceil(n / 2)) : null));
-      if (round === PLAYOFF_ROUND + 1) {
-        // Slot A selalu juara ber-bye; slot B juara ber-bye bila tidak menerima pemenang play-off.
-        const seats = playoffTarget.includes(n) ? 1 : 2;
-        for (let k = 0; k < seats; k++) roomFinal.get(byes[byeCursor++])!.nextMatchId = finalId(round, n);
-      }
-    }
+  const lastSession = sessions.reduce((last, s) => (cells.some((c) => c.session.id === s.id) ? s : last), cells[0].session);
+  const venues = cells.filter((c) => c.session.id === lastSession.id).map((c) => c.room);
+  const venue = (i: number) => (venues.length ? venues : rooms)[i % (venues.length || rooms.length)].id;
+  const semifinalStart = input.finalStart ? new Date(input.finalStart) : addMinutes(new Date(lastSession.startTime!), 150);
+  const semifinals = cells.length / 2;
+  for (let k = 1; k <= semifinals; k++) {
+    matches.push({
+      ...base,
+      id: semifinalId(k),
+      sessionId: lastSession.id,
+      roomId: venue(k - 1),
+      round: SEMIFINAL_ROUND,
+      matchNumber: k,
+      participantAId: null,
+      participantBId: null,
+      nextMatchId: null,
+      scheduledAt: semifinalStart,
+    });
   }
+
+  // Final: finalis ke-i = pemenang semifinal ke-i.
+  const finalStart = addMinutes(semifinalStart, SEMIFINAL_MINUTES);
+  let matchNumber = 0;
+  doubleRoundRobin(semifinals).forEach((pairs, round) => {
+    pairs.forEach(([home, away], i) => {
+      matches.push({
+        id: `m-final-${home + 1}-${away + 1}`,
+        sessionId: lastSession.id,
+        roomId: venue(i),
+        round: FINAL_ROUND,
+        matchNumber: ++matchNumber,
+        participantAId: null,
+        participantBId: null,
+        nextMatchId: null,
+        feedAId: semifinalId(home + 1),
+        feedBId: semifinalId(away + 1),
+        scheduledAt: addMinutes(finalStart, round * (MATCH_MINUTES + ROUND_GAP_MINUTES)),
+      });
+    });
+  });
 
   return {
     ok: true,
-    matches: [...matches, ...finals],
+    matches,
     summary: {
-      roomMatches: matches.length,
-      finalMatches: finals.length,
-      byes: byes.length,
-      playoffMatches,
-      finalStart: finalStart.toISOString(),
+      rooms: cells.length,
+      roomMatches: cells.length * (PLAYERS_PER_ROOM - 1),
+      semifinalMatches: semifinals,
+      finalists: semifinals,
+      finalMatches: matchNumber,
+      finalStart: semifinalStart.toISOString(),
     },
   };
 }

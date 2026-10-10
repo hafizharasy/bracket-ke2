@@ -11,14 +11,14 @@ describe("buildRecap", () => {
     expect(matches.total).toBe(mockBracket.matches.length);
     expect(matches.done + matches.ongoing + matches.scheduled).toBe(matches.total);
     expect(recap.results).toHaveLength(matches.total);
-    expect(recap.summary.roomChampions).toHaveLength(40);
+    expect(recap.summary.roomChampions).toHaveLength(10);
     expect(recap.summary.violations.total).toBe(recap.violations.length);
     expect(recap.summary.violations.byType.reduce((n, t) => n + t.count, 0)).toBe(recap.violations.length);
   });
 
   it("memfilter hasil & pelanggaran per sesi dan ruangan", () => {
     const recap = getMockRecap({ sesi: "sesi-2", ruangan: "ruangan-3" });
-    expect(recap.results.length).toBe(15);
+    expect(recap.results.length).toBe(63);
     expect(recap.results.every((r) => r.sessionId === "sesi-2" && r.roomId === "ruangan-3")).toBe(true);
     expect(recap.violations.every((v) => v.roomId === "ruangan-3" && v.sessionName === "Sesi 2")).toBe(true);
     expect(recap.summary.roomChampions).toEqual([expect.objectContaining({ sessionName: "Sesi 2", roomName: "Ruangan 3" })]);
@@ -37,13 +37,13 @@ describe("queryResults", () => {
   it("menyaring status, babak, koreksi, kata kunci, lalu membagi halaman", async () => {
     const { queryResults } = await import("@/lib/recap");
     const rows = getMockRecap({}).results;
-    expect(queryResults(rows, { status: "ongoing" }).total).toBe(15);
+    expect(queryResults(rows, { status: "ongoing" }).total).toBe(8);
     expect(queryResults(rows, { round: 4 }).total).toBe(40);
     expect(queryResults(rows, { onlyCorrected: true }).items.every((r) => r.corrections > 0)).toBe(true);
-    expect(queryResults(rows, { q: "m-s1-r1-b1-1" }).items.map((r) => r.matchId)).toEqual(["m-s1-r1-b1-1"]);
+    expect(queryResults(rows, { q: "m-s1-r1-b1-32" }).items.map((r) => r.matchId)).toEqual(["m-s1-r1-b1-32"]);
     const page = queryResults(rows, { page: 99, pageSize: 100 });
-    expect(page).toMatchObject({ page: 7, pages: 7, total: 639 });
-    expect(page.items).toHaveLength(39);
+    expect(page).toMatchObject({ page: 7, pages: 7, total: 655 });
+    expect(page.items).toHaveLength(55);
   });
 });
 

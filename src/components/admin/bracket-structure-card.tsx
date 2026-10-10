@@ -39,7 +39,7 @@ export function BracketStructureCard({ total, started, placementReady }: { total
           <p className="text-sm text-muted-foreground">
             {total > 0
               ? `${total} laga sudah dibuat. Atur pasangan babak 1 di tab Pasangan Tanding.`
-              : "Belum ada laga. Buat setelah semua peserta ditempatkan (16 per ruangan per sesi) dan jam sesi terisi."}
+              : "Belum ada laga. Buat setelah semua peserta ditempatkan (64 per ruangan aktif di tiap sesi) dan jam sesi terisi."}
           </p>
         </div>
         {started ? (

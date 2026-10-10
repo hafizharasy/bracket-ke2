@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { AutoAssignButton } from "@/components/admin/auto-assign-button";
 import { BulkAssign } from "@/components/admin/bulk-assign";
-import { PLAYERS_PER_ROOM } from "@/lib/bracket";
+import { PLAYERS_PER_ROOM, roomsInSession } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +18,12 @@ export default function PenempatanRuanganPage({ searchParams }: PageProps<"/admi
 }
 
 async function RoomAssignment({ searchParams }: Pick<PageProps<"/admin/peserta/ruangan">, "searchParams">) {
-  const [{ participants, sessions, rooms }, params] = await Promise.all([getBracket(), searchParams]);
+  const [data, params] = await Promise.all([getBracket(), searchParams]);
+  const { participants, sessions } = data;
   const session = sessions.find((s) => s.id === params.sesi) ?? sessions[0];
   if (!session) return <p className="text-sm text-muted-foreground">Belum ada sesi.</p>;
+  // Hanya ruangan yang dipakai di sesi ini (diatur di /admin/ruangan).
+  const rooms = roomsInSession(data, session.id);
 
   // Penempatan ruangan dilakukan per sesi: peserta sesi ini saja.
   const inSession = participants.filter((p) => p.sessionId === session.id);
@@ -48,7 +51,16 @@ async function RoomAssignment({ searchParams }: Pick<PageProps<"/admin/peserta/r
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          {session.name}: {inSession.length} peserta · target {PLAYERS_PER_ROOM} per ruangan.
+          {session.name}: {inSession.length} peserta di {rooms.length} ruangan · target {PLAYERS_PER_ROOM} per ruangan.
+          {rooms.length === 0 && (
+            <>
+              {" "}
+              <Link href="/admin/ruangan" className="text-amber-700 underline underline-offset-2 dark:text-amber-400">
+                Pilih ruangan untuk sesi ini
+              </Link>
+              .
+            </>
+          )}
           {noSession > 0 && (
             <>
               {" "}

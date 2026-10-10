@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { OtherRoomNotice } from "@/components/ruangan/other-room-notice";
-import { type NextPreview, ResultForm } from "@/components/ruangan/result-form";
+import { ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
-import { buildAdvanceMap, buildSlotLabels, LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
+import { roundLabel } from "@/lib/bracket";
+import { nextPreview } from "@/lib/next-preview";
 import { getBracket } from "@/lib/get-bracket";
 import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 
@@ -19,11 +20,6 @@ const timeFormat = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
 });
 
-const shortTime = new Intl.DateTimeFormat("id-ID", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Jakarta",
-});
 
 export default function InputHasilPage({ params }: PageProps<"/ruangan/laga/[id]">) {
   return (
@@ -66,26 +62,7 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
   const session_ = data.sessions.find((s) => s.id === match.sessionId);
 
   // Pratinjau babak lanjut: laga tujuan, slot, dan calon lawan pemenang.
-  let next: NextPreview = { kind: match.round === LAST_ROOM_ROUND ? "final-stage" : "champion" };
-  const nextMatch = match.nextMatchId ? data.matches.find((m) => m.id === match.nextMatchId) : undefined;
-  if (nextMatch) {
-    const side = buildAdvanceMap(data.matches).get(match.id)?.side ?? "B";
-    const opponentId = side === "A" ? nextMatch.participantBId : nextMatch.participantAId;
-    const labels = buildSlotLabels(data.matches, {
-      sessions: new Map(data.sessions.map((s) => [s.id, s])),
-      rooms: new Map(data.rooms.map((r) => [r.id, r])),
-    }).get(nextMatch.id);
-    const opponent = opponentId ? participants.get(opponentId) : undefined;
-    next = {
-      kind: "match",
-      label: `${roundLabel(nextMatch.round)} #${nextMatch.matchNumber}`,
-      roomName: data.rooms.find((r) => r.id === nextMatch.roomId)?.name ?? null,
-      time: nextMatch.scheduledAt ? shortTime.format(new Date(nextMatch.scheduledAt)) : null,
-      status: nextMatch.status,
-      opponent: opponent?.name ?? (side === "A" ? labels?.b.text : labels?.a.text) ?? "Belum diketahui",
-      opponentKnown: !!opponent,
-    };
-  }
+  const next = nextPreview(data, match);
 
   return (
     <>

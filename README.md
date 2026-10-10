@@ -1,15 +1,32 @@
 # Bracket LRP 2026
 
-Bagan turnamen 1 vs 1 LRP 2026: 640 peserta, 4 sesi, 10 ruangan.
-Next.js (App Router) + Tailwind + shadcn/ui, SQLite + Drizzle ORM.
+Bagan turnamen 1 vs 1 LRP 2026. Next.js (App Router) + Tailwind + shadcn/ui, SQLite + Drizzle ORM.
 
 ## Menjalankan
 
 ```bash
 npm install
-npm run db:setup   # migrasi + seed (4 sesi, 10 ruangan, 640 peserta)
+npm run db:setup   # migrasi + seed (4 sesi, 3 ruangan, 10 ruangan-sesi, 640 peserta)
 npm run dev        # http://localhost:3000
 ```
+
+## Format turnamen
+
+- **Ruangan per sesi** — daftar ruangan dipakai bersama; admin memilih ruangan
+  yang dipakai tiap sesi di `/admin/ruangan` (tabel `session_rooms`). Tiap
+  ruangan-sesi berisi **64 peserta → 63 laga** (babak 1–6, gugur), juaranya
+  satu orang.
+- **Semifinal** (babak 7) — juara ruangan-sesi dipasangkan (bisa diatur admin di
+  `/admin/peserta/semifinal`), **best of 3**: skor = game dimenangkan, yang
+  lebih dulu 2 menang. Jumlah ruangan-sesi harus genap dan minimal 4.
+- **Final** (babak 8) — pemenang semifinal bertanding **double round-robin**
+  (tiap pasangan dua kali, tuan rumah jalan pertama bergantian). Poin: +3 menang
+  4 pion berjajar, +2 menang 3 pion, +1 menang 3 pion tercepat, +½ menang 2 pion
+  terbanyak, 0 kalah. Klasemen: poin → head-to-head → jumlah menang.
+- **Nama pengawas per laga** — diisi admin (`/admin/laga/:id` atau isi massal di
+  `/admin/pantau/:ruangan`), disimpan di tabel terpisah `match_officials` dan
+  tidak pernah ikut di data publik maupun data pengawas ruangan.
+- Admin bisa menginput/mengoreksi hasil laga mana pun dari `/admin/laga/:id`.
 
 ## Deploy
 
@@ -32,8 +49,8 @@ npm test            # vitest (SQLite di memori)
 | `npm run db:generate` | Buat file migrasi baru dari `src/db/schema.ts` |
 | `npm run db:migrate` | Terapkan migrasi di `drizzle/` |
 | `npm run db:seed` | Isi sesi, ruangan, peserta, dan struktur bagan yang belum ada (aman diulang) |
-| `npm run db:seed -- --dasar` | Hanya 4 sesi & 10 ruangan (awal untuk data peserta asli) |
-| `npm run db:buat-bagan [-- --cek] [-- --ganti] [-- --final <ISO>]` | Buat struktur bagan (600 laga ruangan + 39 laga final) dari penempatan peserta; juga tombol di `/admin/peserta` |
+| `npm run db:seed -- --dasar` | Hanya sesi, ruangan, & ruangan per sesi contoh (awal untuk data peserta asli; atur lagi di `/admin/ruangan`) |
+| `npm run db:buat-bagan [-- --cek] [-- --ganti] [-- --final <ISO>]` | Buat struktur bagan (63 laga per ruangan-sesi + semifinal + final round-robin) dari penempatan peserta; `--final` = jam mulai semifinal; juga tombol di `/admin/peserta` |
 | `npm run db:seed -- --reset` | Kosongkan data turnamen lalu isi ulang (akun tidak dihapus) |
 | `npm run db:create-admin -- --email <email> [--name <nama>] --password <sandi>` | Buat akun admin utama (atau setel ulang sandinya); sandi juga bisa lewat env `ADMIN_PASSWORD` |
 | `npm run db:import-peserta -- peserta.csv [--dry-run] [--replace]` | Impor peserta dari CSV (format: `data-templates/peserta.csv`) |
@@ -104,10 +121,11 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/participants/:id/violations` | Riwayat pelanggaran peserta (pengawas: ruangannya; admin: semua) |
 | `GET /api/rooms/:id/matches?sesi=` · `GET /api/rooms/:id/history?sesi=` | Laga & riwayat hasil ruangan |
 | `POST /api/violations` | Catat pelanggaran (`participantId`, `matchId?`, `roomId?`, `type`, `note?`, `occurredAt?`) |
-| `GET /api/participants?q=&sesi=&ruangan=&hal=&per=` | Cari peserta (nama/ID/klub), filter sesi/ruangan (`none` = belum ditempatkan), berhalaman — admin |
+| `PUT /api/sessions/:id/rooms` | Atur ruangan yang dipakai sesi `{ roomIds }`; ruangan yang dilepas harus kosong dari peserta sesi itu — admin |
+| `GET /api/participants?q=&sesi=&ruangan=&hal=&per=` | Cari peserta (nama/ID/sekolah), filter sesi/ruangan (`none` = belum ditempatkan), berhalaman — admin |
 | `POST /api/participants` · `GET/PATCH/DELETE /api/participants/:id` | Tambah/lihat/ubah/hapus peserta (hapus ditolak 409 bila sudah masuk bagan) — admin |
-| `POST /api/participants/assign` | Pindahkan peserta `{ ids, sessionId?, roomId? }` (null = kosongkan; ganti sesi mengosongkan ruangan; maks. 16 per ruangan per sesi) — admin |
-| `POST /api/participants/auto-assign` | Bagi rata otomatis `{ kind: "sesi", mode }` / `{ kind: "ruangan", mode, sessionId }`, mode `unassigned`/`all`; klub disebar — admin |
+| `POST /api/participants/assign` | Pindahkan peserta `{ ids, sessionId?, roomId? }` (null = kosongkan; ganti sesi mengosongkan ruangan; maks. 64 per ruangan per sesi; ruangan harus dipakai sesi itu) — admin |
+| `POST /api/participants/auto-assign` | Bagi rata otomatis `{ kind: "sesi", mode }` / `{ kind: "ruangan", mode, sessionId }`, mode `unassigned`/`all`; sekolah disebar — admin |
 | `GET /api/pairings?sesi=&ruangan=` · `PUT /api/pairings` | Baca/simpan pasangan babak 1 `{ sessionId, roomId, order }` (indeks 2k vs 2k+1; dikunci setelah laga ruangan dimulai) — admin |
 | `GET /api/participants/summary` | Ringkasan kelengkapan: isi tiap sesi × ruangan, belum ditempatkan, status pasangan babak 1, `checks` & `ready` — admin |
 | `GET /api/admin/summary?aktivitas=` | Ringkasan dashboard admin: progres laga per sesi, juara ruangan, laga berikutnya, total pelanggaran, perlu perhatian, aktivitas terbaru, status ruangan — admin |

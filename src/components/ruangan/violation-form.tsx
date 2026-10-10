@@ -124,7 +124,7 @@ export function ViolationForm({
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{selected.name}</div>
               <div className="text-xs text-muted-foreground">
-                {selected.club ?? "Tanpa klub"} · {selected.id.toUpperCase()}
+                {selected.club ?? "Tanpa sekolah"} · {selected.id.toUpperCase()}
               </div>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={() => { setParticipantId(null); setMatchId(""); }}>

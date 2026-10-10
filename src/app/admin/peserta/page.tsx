@@ -4,6 +4,7 @@ import { ParticipantFormDialog } from "@/components/admin/participant-form-dialo
 import { BracketStructureCard } from "@/components/admin/bracket-structure-card";
 import { CompletenessPanel } from "@/components/admin/completeness-panel";
 import { ParticipantTable } from "@/components/admin/participant-table";
+import { PLAYERS_PER_ROOM } from "@/lib/bracket";
 import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
 import { getBracket } from "@/lib/get-bracket";
 
@@ -17,7 +18,7 @@ export default function PesertaPage({ searchParams }: PageProps<"/admin/peserta"
   );
 }
 
-/** Ringkasan pembagian peserta: matriks sesi × ruangan (target 16 per sel). */
+/** Ringkasan pembagian peserta: matriks sesi × ruangan (target 64 per sel aktif). */
 async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "searchParams">) {
   const [data, params] = await Promise.all([getBracket(), searchParams]);
   const { participants, sessions, rooms } = data;
@@ -31,14 +32,16 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
   const unassigned = participants.filter((p) => !p.sessionId || !p.roomId).length;
   const cell = (sessionId: string, roomId: string) =>
     participants.filter((p) => p.sessionId === sessionId && p.roomId === roomId).length;
-  const TARGET = 16;
+  const TARGET = PLAYERS_PER_ROOM;
+  const used = new Set(data.sessionRooms.map((c) => `${c.sessionId}:${c.roomId}`));
+  const isUsed = (sessionId: string, roomId: string) => used.has(`${sessionId}:${roomId}`);
   const checks = checkScheduleCompleteness(data);
 
   const stats = [
     { label: "Total peserta", value: participants.length },
     { label: "Belum ditempatkan", value: unassigned },
     { label: "Sesi", value: sessions.length },
-    { label: "Ruangan", value: rooms.length },
+    { label: "Ruangan-sesi aktif", value: data.sessionRooms.length },
   ];
 
   return (
@@ -50,7 +53,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
         placementReady={checks.filter((c) => ["session", "room", "cells"].includes(c.key)).every((c) => c.ok)}
       />
       <div className="flex justify-end">
-        <ParticipantFormDialog sessions={sessions} rooms={rooms} />
+        <ParticipantFormDialog sessions={sessions} rooms={rooms} sessionRooms={data.sessionRooms} />
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
@@ -64,7 +67,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">Sebaran peserta per sesi × ruangan</h2>
         <p className="text-xs text-muted-foreground">
-          Tiap sel idealnya berisi {TARGET} peserta (satu bagan 16 besar). Sel berwarna menandai kekurangan/kelebihan.
+          Tiap ruangan aktif berisi {TARGET} peserta (satu bagan, 63 laga). Sel berwarna menandai kekurangan/kelebihan; “—” berarti ruangan tidak dipakai di sesi itu (atur di menu Ruangan).
         </p>
         <div className="overflow-x-auto rounded-xl border">
           <table className="w-full min-w-[640px] text-sm">
@@ -85,18 +88,22 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
                 return (
                   <tr key={s.id} className="border-t">
                     <th scope="row" className="px-3 py-2 text-left font-medium">{s.name}</th>
-                    {counts.map((n, i) => (
-                      <td
-                        key={rooms[i].id}
-                        className={
-                          n === TARGET
-                            ? "px-2 py-2 text-center tabular-nums"
-                            : "bg-amber-500/15 px-2 py-2 text-center font-semibold tabular-nums text-amber-800 dark:text-amber-300"
-                        }
-                      >
-                        {n}
-                      </td>
-                    ))}
+                    {counts.map((n, i) => {
+                      const active = isUsed(s.id, rooms[i].id);
+                      const ok = active ? n === TARGET : n === 0;
+                      return (
+                        <td
+                          key={rooms[i].id}
+                          className={
+                            ok
+                              ? "px-2 py-2 text-center tabular-nums" + (active ? "" : " text-muted-foreground")
+                              : "bg-amber-500/15 px-2 py-2 text-center font-semibold tabular-nums text-amber-800 dark:text-amber-300"
+                          }
+                        >
+                          {active || n ? n : "—"}
+                        </td>
+                      );
+                    })}
                     <td className="px-3 py-2 text-right font-semibold tabular-nums">
                       {counts.reduce((a, b) => a + b, 0)}
                     </td>

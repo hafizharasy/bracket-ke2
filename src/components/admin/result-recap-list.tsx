@@ -108,6 +108,7 @@ export function ResultRecapList({ rows }: { rows: ResultRecapRow[] }) {
                     <td className="px-3 py-2 text-center tabular-nums">
                       <div>{r.scoreA ?? "–"}</div>
                       <div>{r.scoreB ?? "–"}</div>
+                      {r.finalResult && <div className="text-[11px] text-muted-foreground">{r.finalResult}</div>}
                     </td>
                     <td className="px-3 py-2">
                       <Badge variant="outline" className={STATUS[r.status].className}>{STATUS[r.status].label}</Badge>
