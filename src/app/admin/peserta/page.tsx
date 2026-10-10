@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { ParticipantFormDialog } from "@/components/admin/participant-form-dialog";
 import { getBracket } from "@/lib/get-bracket";
 
 export const metadata = { title: "Peserta & Jadwal" };
@@ -29,6 +30,9 @@ async function Overview() {
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex justify-end">
+        <ParticipantFormDialog sessions={sessions} rooms={rooms} />
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="rounded-xl border bg-card p-3">
