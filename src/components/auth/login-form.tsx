@@ -1,6 +1,7 @@
 "use client";
 
 import { EyeIcon, EyeOffIcon, Loader2Icon, LogInIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -28,16 +29,20 @@ export function LoginForm({
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState<{ text: string; href: string } | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setHint(null);
     if (!email.trim() || !password) return setError("Isi email dan sandi.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError("Format email tidak valid.");
     setBusy(true);
     setError(null);
     try {
       const result = await submit(email, password, next);
       if (!result.ok) {
         setError(result.error);
+        setHint(result.hint ?? null);
         setBusy(false);
         return;
       }
@@ -91,6 +96,14 @@ export function LoginForm({
       </label>
       <div aria-live="assertive" className="min-h-5 text-sm text-destructive">
         {error}
+        {hint && (
+          <>
+            {" "}
+            <Link href={hint.href} className="font-medium text-foreground underline underline-offset-2">
+              {hint.text}
+            </Link>
+          </>
+        )}
       </div>
       <Button type="submit" size="lg" className="h-12 text-base" disabled={busy}>
         {busy ? <Loader2Icon className="animate-spin" /> : <LogInIcon />}

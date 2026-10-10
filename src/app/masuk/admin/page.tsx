@@ -5,7 +5,9 @@ import { Suspense } from "react";
 
 import { loginAdmin } from "@/app/masuk/actions";
 import { LoginForm } from "@/components/auth/login-form";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { getAdminSession } from "@/lib/admin-session";
+import { getPengawasSession } from "@/lib/pengawas-session";
 
 export const metadata = { title: "Masuk Admin · Bracket LRP 2026" };
 
@@ -46,9 +48,27 @@ export default function MasukAdminPage({ searchParams }: PageProps<"/masuk/admin
 
 /** Sudah login sebagai admin → langsung ke dashboard. */
 async function FormOrRedirect({ searchParams }: Pick<PageProps<"/masuk/admin">, "searchParams">) {
-  const [session, params] = await Promise.all([getAdminSession(), searchParams]);
+  const [session, pengawas, params] = await Promise.all([getAdminSession(), getPengawasSession(), searchParams]);
   const next = typeof params.next === "string" ? params.next : undefined;
   if (session) redirect(next?.startsWith("/admin") ? next : "/admin");
+  if (pengawas) {
+    // Pengawas yang membuka area admin: jelaskan penolakannya + pilihan aksi.
+    return (
+      <div role="alert" className="flex flex-col gap-3 text-sm">
+        <p className="font-medium">Akses ditolak</p>
+        <p className="text-muted-foreground">
+          Anda sedang masuk sebagai <span className="font-medium text-foreground">{pengawas.name}</span>. Dashboard
+          admin hanya untuk admin utama.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/ruangan" className="rounded-lg bg-primary px-3 py-2 font-medium text-primary-foreground">
+            Kembali ke ruangan saya
+          </Link>
+          <LogoutButton className="rounded-lg border px-3 py-2 text-sm text-foreground" />
+        </div>
+      </div>
+    );
+  }
   const notice =
     params.keluar === "1" ? "Anda telah keluar." : params.alasan === "sesi" ? "Sesi admin berakhir. Silakan masuk lagi." : null;
   return (

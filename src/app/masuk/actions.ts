@@ -9,8 +9,12 @@ import { getPengawasAccounts } from "@/lib/pengawas-accounts";
 
 /** Sandi demo login stub (hanya di luar production). */
 const DEMO_PASSWORD = "pengawas123";
+/** Sandi demo login stub admin (hanya di luar production). */
+const DEMO_ADMIN_PASSWORD = "admin12345";
 
-export type LoginResult = { ok: true; redirectTo: string } | { ok: false; error: string };
+export type LoginResult =
+  | { ok: true; redirectTo: string }
+  | { ok: false; error: string; /** Tautan bantuan, mis. ke halaman masuk yang benar. */ hint?: { text: string; href: string } };
 
 const loginInput = z.object({ email: z.email().trim().toLowerCase(), password: z.string().min(1) });
 
@@ -29,6 +33,14 @@ export async function loginPengawas(email: string, password: string, next?: stri
   const account = (await getPengawasAccounts()).find((a) => a.email === parsed.data.email);
   // Pesan sama untuk email tak dikenal & sandi salah (tidak membocorkan akun mana yang ada).
   if (!account || parsed.data.password !== DEMO_PASSWORD) {
+    const isAdmin = (await getAdminAccounts()).some((a) => a.email.toLowerCase() === parsed.data.email);
+    if (isAdmin && parsed.data.password === DEMO_ADMIN_PASSWORD) {
+      return {
+        ok: false,
+        error: "Ini akun admin utama, bukan akun pengawas ruangan.",
+        hint: { text: "Masuk sebagai admin utama", href: "/masuk/admin" },
+      };
+    }
     return { ok: false, error: "Email atau sandi salah." };
   }
   if (!account.active) return { ok: false, error: "Akun ini dinonaktifkan. Hubungi admin." };
@@ -41,9 +53,6 @@ export async function loginPengawas(email: string, password: string, next?: stri
   store.delete(STUB_ADMIN_COOKIE); // satu peran per perangkat
   return { ok: true, redirectTo: safeNext(next) };
 }
-
-/** Sandi demo login stub admin (hanya di luar production). */
-const DEMO_ADMIN_PASSWORD = "admin12345";
 
 /** Hanya izinkan `next` berupa path area admin. */
 function safeAdminNext(next: string | undefined) {
@@ -63,6 +72,15 @@ export async function loginAdmin(email: string, password: string, next?: string)
   if (!parsed.success) return { ok: false, error: "Email atau sandi tidak valid." };
   const admin = (await getAdminAccounts()).find((a) => a.email.toLowerCase() === parsed.data.email);
   if (!admin || parsed.data.password !== DEMO_ADMIN_PASSWORD) {
+    // Akun pengawas yang benar ditolak dengan penjelasan (bukan sekadar "salah").
+    const pengawas = (await getPengawasAccounts()).find((a) => a.email === parsed.data.email);
+    if (pengawas && parsed.data.password === DEMO_PASSWORD) {
+      return {
+        ok: false,
+        error: "Akun pengawas ruangan tidak punya akses ke dashboard admin.",
+        hint: { text: "Masuk ke halaman pengawas", href: "/masuk" },
+      };
+    }
     return { ok: false, error: "Email atau sandi salah." };
   }
   const store = await cookies();
