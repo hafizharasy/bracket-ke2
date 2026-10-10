@@ -14,7 +14,8 @@
     "db:setup": "npm run db:migrate && npm run db:seed",
     "db:propagate": "tsx src/db/propagate.ts",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:import-peserta": "tsx src/db/import-peserta.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

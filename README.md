@@ -27,6 +27,7 @@ npm test            # vitest (SQLite di memori)
 | `npm run db:migrate` | Terapkan migrasi di `drizzle/` |
 | `npm run db:seed` | Isi sesi, ruangan, peserta, dan struktur bagan yang belum ada (aman diulang) |
 | `npm run db:seed -- --reset` | Kosongkan data turnamen lalu isi ulang (akun tidak dihapus) |
+| `npm run db:import-peserta -- peserta.csv [--dry-run] [--replace]` | Impor peserta dari CSV (format: `data-templates/peserta.csv`) |
 | `npm run db:studio` | Buka Drizzle Studio |
 
 Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
