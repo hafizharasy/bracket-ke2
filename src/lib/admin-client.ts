@@ -1,5 +1,7 @@
 // Pemanggil aksi admin dari sisi klien.
 
+import { saveAccountAction, updateAccountStatusAction } from "@/app/admin/pengawas/actions";
+
 export type ParticipantFormValues = {
   name: string;
   teamOrClub: string;
@@ -92,21 +94,25 @@ export function generatePassword(length = 10) {
   return Array.from(bytes, (n) => chars[n % chars.length]).join("");
 }
 
-/** SEMENTARA (stub frontend): simpan akun pengawas (baru/ubah). */
+/** Simpan akun pengawas (baru/ubah) — sementara ke state tiruan di server. */
 export async function saveAccount(id: string | null, values: AccountFormValues): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  console.info("[simulasi] simpan akun", id ?? "(baru)", { ...values, password: values.password ? "***" : "" });
-  return { ok: true, simulated: true };
+  try {
+    return await saveAccountAction(id, values);
+  } catch {
+    return { ok: false, error: "Gagal menyimpan. Periksa koneksi lalu coba lagi." };
+  }
 }
 
-/** SEMENTARA (stub frontend): aktif/nonaktifkan akun atau atur ulang sandinya. */
+/** Aktif/nonaktifkan akun atau atur ulang sandinya — sementara ke state tiruan. */
 export async function updateAccountStatus(
   id: string,
   change: { active: boolean } | { resetPassword: string },
 ): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  console.info("[simulasi] ubah akun", id, "active" in change ? change : { resetPassword: "***" });
-  return { ok: true, simulated: true };
+  try {
+    return await updateAccountStatusAction(id, change);
+  } catch {
+    return { ok: false, error: "Gagal menyimpan. Periksa koneksi lalu coba lagi." };
+  }
 }
 
 export type RoomFormValues = { name: string; location: string };

@@ -16,6 +16,12 @@ export type PengawasAccount = {
  * Status aktif & login terakhir menyusul di backend (sementara: aktif, null).
  */
 export async function getPengawasAccounts(): Promise<PengawasAccount[]> {
+  // Perubahan dari form admin (state tiruan) ditimpakan di atas daftar dasar.
+  const { applyAccountOverlay } = await import("@/lib/mock/account-store");
+  return applyAccountOverlay(await getBaseAccounts());
+}
+
+async function getBaseAccounts(): Promise<PengawasAccount[]> {
   if (bracketSource() === "db") {
     const [{ db }, { users }, { asc, eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
     return db
