@@ -76,7 +76,7 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | Endpoint | Fungsi |
 | --- | --- |
 | `POST /api/login/ruangan` · `POST /api/login/admin` | Login `{ email, password }` → cookie sesi + `{ user, room }`; 401 salah, 403 peran salah/nonaktif, 423 dikunci (Retry-After) |
-| `GET /api/session` · `DELETE /api/session` | Sesi saat ini `{ user, room, expiresAt }` (401 bila tidak ada) / keluar |
+| `GET /api/session` · `DELETE /api/session?semua=1` | Sesi saat ini `{ user, room, expiresAt }` (401 bila tidak ada) / keluar (hapus cookie; `semua=1` juga mengakhiri sesi di perangkat lain) |
 | `GET /api/bracket?sesi=&ruangan=` | Bagan (opsional difilter), ETag/304 |
 | `GET /api/bracket/version` | Versi data bagan (ringan) |
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
@@ -104,3 +104,4 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/admin/rooms?sesi=` | Pantau semua ruangan pada sesi (default sesi aktif): status, laga berjalan & berikutnya, juara, pelanggaran, pengawas aktif — admin |
 | `GET /api/admin/matches/:id` | Detail laga untuk admin: hasil & foto bukti, asal slot, laga berikutnya, jejak audit hasil, pelanggaran di laga itu — admin |
 | `GET/POST /api/admin/pengawas` · `GET/PATCH/DELETE /api/admin/pengawas/:id` | Akun pengawas `{ name, email, roomId, password, active? }`; pindah ruangan / ganti sandi / nonaktif mengakhiri sesi login; hapus ditolak 409 bila sudah punya jejak — admin |
+| `POST /api/admin/pengawas/:id/logout` | Keluarkan akun pengawas dari semua perangkat → `{ revoked }` — admin |

@@ -1,5 +1,5 @@
 import { hashPassword } from "better-auth/crypto";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, gt, lte } from "drizzle-orm";
 
 import { db } from "@/db";
 import { authAccounts, authSessions } from "@/db/schema";
@@ -35,5 +35,21 @@ export function storePasswordHash(tx: Tx | typeof db, userId: string, hash: stri
 
 /** Akhiri semua sesi login akun (mis. setelah dinonaktifkan atau sandi direset). */
 export function revokeSessions(tx: Tx | typeof db, userId: string) {
-  tx.delete(authSessions).where(eq(authSessions.userId, userId)).run();
+  return tx.delete(authSessions).where(eq(authSessions.userId, userId)).run().changes;
+}
+
+/** Jumlah sesi login yang masih berlaku per akun. */
+export function activeSessionCounts(): Map<string, number> {
+  const rows = db
+    .select({ userId: authSessions.userId, n: count() })
+    .from(authSessions)
+    .where(gt(authSessions.expiresAt, new Date()))
+    .groupBy(authSessions.userId)
+    .all();
+  return new Map(rows.map((r) => [r.userId, r.n]));
+}
+
+/** Bersihkan sesi yang sudah kedaluwarsa (dipanggil saat login berhasil). */
+export function purgeExpiredSessions() {
+  return db.delete(authSessions).where(lte(authSessions.expiresAt, new Date())).run().changes;
 }

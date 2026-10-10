@@ -107,7 +107,12 @@ async function Accounts({ searchParams }: Pick<PageProps<"/admin/pengawas">, "se
                     {a.active ? "Aktif" : "Nonaktif"}
                   </Badge>
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">{lastSeen(a.lastLoginAt)}</td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  {lastSeen(a.lastLoginAt)}
+                  {a.activeSessions > 0 && (
+                    <div className="text-xs text-emerald-700 dark:text-emerald-400">Masuk di {a.activeSessions} perangkat</div>
+                  )}
+                </td>
                 <td className="px-3 py-1.5">
                   <AccountRowActions account={a} rooms={rooms} />
                 </td>

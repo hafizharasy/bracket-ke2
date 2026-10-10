@@ -18,10 +18,14 @@ export async function GET(request: Request) {
   }
 }
 
-/** DELETE /api/session — keluar: akhiri sesi & hapus cookie (204, juga bila sudah keluar). */
+/**
+ * DELETE /api/session?semua=1 — keluar: akhiri sesi & hapus cookie (204, juga
+ * bila sudah keluar). `semua=1` mengakhiri juga sesi akun ini di perangkat lain.
+ */
 export async function DELETE(request: Request) {
   try {
-    await logout(request.headers);
+    const everywhere = new URL(request.url).searchParams.get("semua") === "1";
+    await logout(request.headers, { everywhere });
     return new Response(null, { status: 204 });
   } catch (error) {
     return errorResponse(error);

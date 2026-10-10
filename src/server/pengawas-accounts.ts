@@ -3,7 +3,13 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { matchResultHistory, matchResults, rooms, users, violations } from "@/db/schema";
-import { MIN_PASSWORD_LENGTH, hashUserPassword, revokeSessions, storePasswordHash } from "@/server/credentials";
+import {
+  activeSessionCounts,
+  hashUserPassword,
+  MIN_PASSWORD_LENGTH,
+  revokeSessions,
+  storePasswordHash,
+} from "@/server/credentials";
 import { ApiError } from "@/server/errors";
 
 const password = z.string().min(MIN_PASSWORD_LENGTH, `Sandi minimal ${MIN_PASSWORD_LENGTH} karakter.`).max(200);
@@ -29,15 +35,21 @@ const columns = {
 
 const iso = (d: Date | null) => (d ? d.toISOString() : null);
 
-/** Semua akun pengawas, urut email. */
+/** Semua akun pengawas, urut email, beserta jumlah sesi login yang masih berlaku. */
 export function listPengawas() {
+  const sessionsByUser = activeSessionCounts();
   return db
     .select(columns)
     .from(users)
     .where(eq(users.role, "pengawas"))
     .orderBy(asc(users.email))
     .all()
-    .map((u) => ({ ...u, lastLoginAt: iso(u.lastLoginAt), createdAt: iso(u.createdAt) }));
+    .map((u) => ({
+      ...u,
+      lastLoginAt: iso(u.lastLoginAt),
+      createdAt: iso(u.createdAt),
+      activeSessions: sessionsByUser.get(u.id) ?? 0,
+    }));
 }
 
 export function getPengawas(id: string) {
@@ -115,4 +127,10 @@ export function deletePengawas(id: string) {
   if (used) throw new ApiError(409, "Akun sudah mencatat hasil/pelanggaran; nonaktifkan saja agar jejak audit tetap ada.");
   // Sesi & kredensial ikut terhapus (cascade).
   db.delete(users).where(eq(users.id, id)).run();
+}
+
+/** Keluarkan akun pengawas dari semua perangkat (akhiri semua sesi login). */
+export function logoutPengawasEverywhere(id: string) {
+  if (!getPengawas(id)) throw new ApiError(404, "Akun pengawas tidak ditemukan.");
+  return { revoked: revokeSessions(db, id) };
 }

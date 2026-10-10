@@ -74,3 +74,19 @@ describe("akun pengawas", () => {
     expect(db.select().from(users).all().map((u) => u.id)).toEqual([b.id]);
   });
 });
+
+describe("sesi login akun", () => {
+  it("menghitung sesi aktif dan mengeluarkan dari semua perangkat", async () => {
+    const { logoutPengawasEverywhere } = await import("@/server/pengawas-accounts");
+    const { purgeExpiredSessions } = await import("@/server/credentials");
+    const { id } = await createPengawas({ ...base, email: "satu@lrp.id" });
+    addSession(id);
+    addSession(id);
+    db.insert(authSessions).values({ id: "old", token: "old", userId: id, expiresAt: new Date(Date.now() - 1000) }).run();
+    expect(listPengawas()[0].activeSessions).toBe(2);
+    expect(purgeExpiredSessions()).toBe(1);
+    expect(logoutPengawasEverywhere(id)).toEqual({ revoked: 2 });
+    expect(listPengawas()[0].activeSessions).toBe(0);
+    await expectApiError(() => logoutPengawasEverywhere("u-x"), 404);
+  });
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRoundIcon, PencilIcon, PowerIcon } from "lucide-react";
+import { KeyRoundIcon, LogOutIcon, PencilIcon, PowerIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,7 +11,7 @@ import { generatePassword, updateAccountStatus } from "@/lib/admin-client";
 import type { PengawasAccount } from "@/lib/pengawas-accounts";
 import type { Room } from "@/lib/types";
 
-/** Aksi per akun: ubah, atur ulang sandi, aktif/nonaktifkan. */
+/** Aksi per akun: ubah, atur ulang sandi, aktif/nonaktifkan, keluarkan dari semua perangkat. */
 export function AccountRowActions({ account, rooms }: { account: PengawasAccount; rooms: Room[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -39,6 +39,15 @@ export function AccountRowActions({ account, rooms }: { account: PengawasAccount
     if (result.ok) router.refresh();
   }
 
+  async function forceLogout() {
+    if (!confirm(`Keluarkan ${account.name} dari semua perangkat? Pengawas harus login ulang.`)) return;
+    setBusy(true);
+    const result = await updateAccountStatus(account.id, { logout: true });
+    setBusy(false);
+    setNotice(result.ok ? "Akun dikeluarkan dari semua perangkat." : result.error);
+    if (result.ok) router.refresh();
+  }
+
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex gap-1">
@@ -51,6 +60,11 @@ export function AccountRowActions({ account, rooms }: { account: PengawasAccount
         <Button variant="ghost" size="sm" onClick={toggleActive} disabled={busy} aria-label={`${account.active ? "Nonaktifkan" : "Aktifkan"} ${account.name}`}>
           <PowerIcon /> {account.active ? "Nonaktifkan" : "Aktifkan"}
         </Button>
+        {account.activeSessions > 0 && (
+          <Button variant="ghost" size="sm" onClick={forceLogout} disabled={busy} aria-label={`Keluarkan ${account.name} dari semua perangkat`}>
+            <LogOutIcon /> Keluarkan
+          </Button>
+        )}
       </div>
       {notice && <span aria-live="polite" className="text-xs text-muted-foreground">{notice}</span>}
       {newPassword && <CopyCredentials email={account.email} password={newPassword} />}

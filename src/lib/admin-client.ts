@@ -91,10 +91,10 @@ export async function saveAccount(id: string | null, values: AccountFormValues):
   }
 }
 
-/** Aktif/nonaktifkan akun atau atur ulang sandinya. */
+/** Aktif/nonaktifkan akun, atur ulang sandinya, atau keluarkan dari semua perangkat. */
 export async function updateAccountStatus(
   id: string,
-  change: { active: boolean } | { resetPassword: string },
+  change: { active: boolean } | { resetPassword: string } | { logout: true },
 ): Promise<AdminActionResult> {
   try {
     return await updateAccountStatusAction(id, change);

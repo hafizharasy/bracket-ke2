@@ -3,7 +3,13 @@
 import { assertAdminAction } from "@/lib/admin-session";
 import type { AccountFormValues, AdminActionResult } from "@/lib/admin-client";
 import { ApiError } from "@/server/errors";
-import { createPengawas, pengawasCreateInput, pengawasUpdateInput, updatePengawas } from "@/server/pengawas-accounts";
+import {
+  createPengawas,
+  logoutPengawasEverywhere,
+  pengawasCreateInput,
+  pengawasUpdateInput,
+  updatePengawas,
+} from "@/server/pengawas-accounts";
 
 async function run(write: () => Promise<{ id: string }>): Promise<AdminActionResult> {
   const denied = await assertAdminAction();
@@ -31,11 +37,15 @@ export async function saveAccountAction(id: string | null, values: AccountFormVa
   return run(() => updatePengawas(id, parsed.data));
 }
 
-/** Aktif/nonaktifkan akun atau atur ulang sandinya (sesi login akun itu diakhiri). */
+/**
+ * Aktif/nonaktifkan akun, atur ulang sandinya, atau keluarkan dari semua
+ * perangkat. Nonaktif & atur ulang sandi juga mengakhiri sesi login akun itu.
+ */
 export async function updateAccountStatusAction(
   id: string,
-  change: { active: boolean } | { resetPassword: string },
+  change: { active: boolean } | { resetPassword: string } | { logout: true },
 ): Promise<AdminActionResult> {
+  if ("logout" in change) return run(async () => (logoutPengawasEverywhere(id), { id }));
   const parsed = pengawasUpdateInput.safeParse("active" in change ? { active: change.active } : { password: change.resetPassword });
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
   return run(() => updatePengawas(id, parsed.data));

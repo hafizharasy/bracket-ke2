@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { authAccounts, rooms, users, USER_ROLES } from "@/db/schema";
 import { auth } from "@/server/better-auth";
+import { purgeExpiredSessions, revokeSessions } from "@/server/credentials";
 import { getLockout, recordLoginAttempt } from "@/server/login-attempts";
 
 type Role = (typeof USER_ROLES)[number];
@@ -116,6 +117,7 @@ export async function loginWithPassword(
     throw error;
   }
   recordLoginAttempt({ email, role, success: true, ipAddress });
+  purgeExpiredSessions();
   const room = account.roomId
     ? (db.select({ id: rooms.id, name: rooms.name }).from(rooms).where(eq(rooms.id, account.roomId)).get() ?? null)
     : null;
@@ -145,7 +147,17 @@ export async function getCurrentSession(headers: Headers) {
   };
 }
 
-/** Akhiri sesi login saat ini (sesi kedaluwarsa tetap dianggap berhasil keluar). */
-export async function logout(headers: Headers) {
+/**
+ * Keluar: akhiri sesi login saat ini dan hapus cookie-nya (sesi kedaluwarsa
+ * tetap dianggap berhasil keluar). `everywhere` juga mengakhiri semua sesi
+ * akun itu di perangkat lain. Mengembalikan jumlah sesi lain yang diakhiri.
+ */
+export async function logout(headers: Headers, { everywhere = false } = {}) {
+  let revoked = 0;
+  if (everywhere) {
+    const session = await auth.api.getSession({ headers }).catch(() => null);
+    if (session) revoked = revokeSessions(db, session.user.id) - 1;
+  }
   await auth.api.signOut({ headers }).catch(() => undefined);
+  return { revokedOthers: Math.max(0, revoked) };
 }
