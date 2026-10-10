@@ -34,9 +34,9 @@ beforeEach(() => {
     { id: "p4", name: "D", roomId: "ruangan-2" },
   ]).run();
   db.insert(users).values([
-    { id: "u-p1", name: "P1", email: "p1@x", passwordHash: "!", role: "pengawas", roomId: "ruangan-1" },
-    { id: "u-p2", name: "P2", email: "p2@x", passwordHash: "!", role: "pengawas", roomId: "ruangan-2" },
-    { id: "u-admin", name: "Admin", email: "a@x", passwordHash: "!", role: "admin" },
+    { id: "u-p1", name: "P1", email: "p1@x", role: "pengawas", roomId: "ruangan-1" },
+    { id: "u-p2", name: "P2", email: "p2@x", role: "pengawas", roomId: "ruangan-2" },
+    { id: "u-admin", name: "Admin", email: "a@x", role: "admin" },
   ]).run();
   db.insert(matches).values([
     { id: "m1", round: 1, matchNumber: 1, sessionId: "sesi-1", roomId: "ruangan-1", participantAId: "p1", participantBId: "p2" },

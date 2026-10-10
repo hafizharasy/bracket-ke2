@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
@@ -11,31 +10,30 @@ export type PengawasSession = {
   roomId: string;
 };
 
-/** Cookie pengembangan berisi ID akun pengawas yang "login" lewat login stub. */
-export const STUB_USER_COOKIE = "lrp_stub_user";
+/** Ada cookie sesi Better Auth (sah atau tidak) di request ini? */
+export async function hasSessionCookie() {
+  const [{ headers }, { getSessionCookie }] = await Promise.all([import("next/headers"), import("better-auth/cookies")]);
+  return !!getSessionCookie(await headers());
+}
 
 /**
- * Sesi pengawas yang sedang login, atau null.
- *
- * SEMENTARA (stub frontend): akun dari cookie login stub (lrp_stub_user)
- * yang masih aktif & punya ruangan. Di production selalu null sampai login
- * Better Auth dibuat, dengan bentuk data yang sama.
+ * Sesi pengawas yang sedang login (Better Auth), atau null bila belum login,
+ * bukan pengawas, akun nonaktif, atau belum punya ruangan.
  */
 export async function getPengawasSession(): Promise<PengawasSession | null> {
   await connection();
-  const userId = (await cookies()).get(STUB_USER_COOKIE)?.value;
-  if (process.env.NODE_ENV === "production" || !userId) return null;
-  const { getPengawasAccounts } = await import("@/lib/pengawas-accounts");
-  const account = (await getPengawasAccounts()).find((a) => a.id === userId && a.active && a.roomId);
-  return account ? { userId: account.id, name: account.name, roomId: account.roomId! } : null;
+  const { getActingUser } = await import("@/server/auth");
+  const user = await getActingUser();
+  if (!user || user.role !== "pengawas" || !user.roomId) return null;
+  return { userId: user.id, name: user.name, roomId: user.roomId };
 }
 
 /** Halaman pengawas: arahkan ke /masuk (kembali ke `next` setelah login) bila belum login. */
 export async function requirePengawas(next = "/ruangan"): Promise<PengawasSession> {
   const session = await getPengawasSession();
   if (!session) {
-    // Cookie ada tapi tidak sah lagi (akun dinonaktifkan / dipindah) → sesi berakhir.
-    const hadCookie = (await cookies()).has(STUB_USER_COOKIE);
+    // Cookie ada tapi tidak sah lagi (kedaluwarsa / akun dinonaktifkan / dipindah) → sesi berakhir.
+    const hadCookie = await hasSessionCookie();
     redirect(`/masuk?next=${encodeURIComponent(next)}${hadCookie ? "&alasan=sesi" : ""}`);
   }
   return session;

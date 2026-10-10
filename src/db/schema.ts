@@ -47,14 +47,18 @@ export const rooms = sqliteTable(
   (t) => [uniqueIndex("rooms_name_idx").on(t.name)],
 );
 
-/** Akun admin utama & pengawas ruangan. Pengawas terikat ke satu ruangan. */
+/**
+ * Akun admin utama & pengawas ruangan (tabel "user" Better Auth). Pengawas
+ * terikat ke satu ruangan. Hash sandi disimpan Better Auth di auth_accounts.
+ */
 export const users = sqliteTable(
   "users",
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
-    passwordHash: text("password_hash").notNull(),
+    emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+    image: text("image"),
     role: text("role", { enum: USER_ROLES }).notNull(),
     // Ruangan yang masih punya pengawas tidak bisa dihapus (pindahkan akunnya dulu).
     roomId: text("room_id").references(() => rooms.id, { onDelete: "restrict" }),
@@ -74,6 +78,61 @@ export const users = sqliteTable(
     index("users_room_idx").on(t.roomId),
     check("users_active_check", sql`${t.active} in (0, 1)`),
   ],
+);
+
+/** Sesi login (Better Auth). Token disimpan di cookie httpOnly. */
+export const authSessions = sqliteTable(
+  "auth_sessions",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [index("auth_sessions_user_idx").on(t.userId)],
+);
+
+/** Kredensial login (Better Auth); provider "credential" menyimpan hash sandi. */
+export const authAccounts = sqliteTable(
+  "auth_accounts",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    password: text("password"),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: integer("access_token_expires_at", { mode: "timestamp" }),
+    refreshTokenExpiresAt: integer("refresh_token_expires_at", { mode: "timestamp" }),
+    scope: text("scope"),
+    createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [index("auth_accounts_user_idx").on(t.userId)],
+);
+
+/** Token verifikasi (Better Auth), mis. reset sandi. */
+export const authVerifications = sqliteTable(
+  "auth_verifications",
+  {
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [index("auth_verifications_identifier_idx").on(t.identifier)],
 );
 
 /** 640 peserta, dibagi ke sesi & ruangan. */

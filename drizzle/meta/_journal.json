@@ -50,6 +50,20 @@
       "when": 1791597587189,
       "tag": "0006_akun_ruangan_sesi_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791597793109,
+      "tag": "0007_better_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791597793999,
+      "tag": "0008_hapus_password_hash",
+      "breakpoints": true
     }
   ]
 }

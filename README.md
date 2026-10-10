@@ -27,12 +27,33 @@ npm test            # vitest (SQLite di memori)
 | `npm run db:migrate` | Terapkan migrasi di `drizzle/` |
 | `npm run db:seed` | Isi sesi, ruangan, peserta, dan struktur bagan yang belum ada (aman diulang) |
 | `npm run db:seed -- --reset` | Kosongkan data turnamen lalu isi ulang (akun tidak dihapus) |
+| `npm run db:create-admin -- --email <email> [--name <nama>] --password <sandi>` | Buat akun admin utama (atau setel ulang sandinya); sandi juga bisa lewat env `ADMIN_PASSWORD` |
 | `npm run db:import-peserta -- peserta.csv [--dry-run] [--replace]` | Impor peserta dari CSV (format: `data-templates/peserta.csv`) |
 | `npm run db:studio` | Buka Drizzle Studio |
 
 Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 (mis. ke volume persisten saat deploy). Foto bukti disimpan di `data/uploads`
 (env `UPLOAD_DIR`) dan disajikan lewat `/api/bukti/:file`.
+
+## Login & peran
+
+Login memakai [Better Auth](https://www.better-auth.com) (email + sandi, sesi di
+cookie httpOnly, tabel `auth_sessions` / `auth_accounts`). Pendaftaran publik
+dimatikan: akun admin dibuat dengan `db:create-admin`, akun pengawas dibuat admin.
+
+- **Admin utama** (`/masuk/admin`) — akses penuh ke `/admin` dan semua endpoint admin.
+- **Pengawas ruangan** (`/masuk`) — hanya ruangannya sendiri (`/ruangan`, hasil,
+  bukti, pelanggaran); aturan di `src/lib/policy.ts`.
+- Akun nonaktif (`users.active = 0`) tidak bisa login dan sesinya tidak berlaku lagi.
+
+| Env | Fungsi |
+| --- | --- |
+| `BETTER_AUTH_SECRET` | Wajib di production: kunci acak panjang (mis. `openssl rand -hex 32`) |
+| `BETTER_AUTH_URL` | URL publik aplikasi, mis. `https://bracket.contoh.id` |
+
+Akun contoh pengembangan dari `db:seed` (tidak dibuat di production):
+`admin@lrp.local` / `admin12345` dan `ruangan1@lrp.local` … `ruangan10@lrp.local` / `pengawas123`.
+Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>` untuk pengujian.
 
 ## Sumber data & live update
 

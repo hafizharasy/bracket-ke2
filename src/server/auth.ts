@@ -7,45 +7,37 @@ import { ApiError } from "@/server/errors";
 
 export type SessionUser = Pick<typeof users.$inferSelect, "id" | "name" | "role" | "roomId">;
 
-/**
- * Pengguna yang sedang login untuk request ini.
- *
- * SEMENTARA, sampai login (Better Auth) dibuat: di luar production, pengguna
- * dibaca dari header `x-dev-user-id` (ID akun di tabel users) untuk pengujian,
- * atau dari sesi stub pengawas (untuk panggilan dari browser).
- * Akun nonaktif dianggap belum login. Di production selalu null → semua
- * endpoint tulis menolak dengan 401.
- */
-export async function getSessionUser(request: Request): Promise<SessionUser | null> {
-  if (process.env.NODE_ENV === "production") return null;
-  const id = request.headers.get("x-dev-user-id");
-  if (!id) return getActingUser();
-  const user = db
-    .select({ id: users.id, name: users.name, role: users.role, roomId: users.roomId })
-    .from(users)
-    .where(and(eq(users.id, id), eq(users.active, true)))
-    .get();
-  return user ?? null;
+const sessionUserColumns = { id: users.id, name: users.name, role: users.role, roomId: users.roomId };
+
+/** Akun aktif berdasarkan ID (peran & ruangan dibaca ulang dari database). */
+function activeUser(id: string): SessionUser | null {
+  return db.select(sessionUserColumns).from(users).where(and(eq(users.id, id), eq(users.active, true))).get() ?? null;
+}
+
+/** Pengguna dari cookie sesi Better Auth pada header request. */
+async function userFromHeaders(headers: Headers): Promise<SessionUser | null> {
+  const { auth } = await import("@/server/better-auth");
+  const session = await auth.api.getSession({ headers });
+  return session ? activeUser(session.user.id) : null;
 }
 
 /**
- * Pengguna yang sedang bertindak di halaman (Server Action / Server Component).
+ * Pengguna yang sedang login untuk request API ini (cookie sesi Better Auth).
+ * Akun nonaktif dianggap belum login.
  *
- * SEMENTARA, sampai login (Better Auth) dibuat: di luar production memakai
- * akun dari sesi stub pengawas (getPengawasSession). Di production selalu
- * null → semua aksi tulis ditolak.
+ * Khusus di luar production: header `x-dev-user-id` (ID akun di tabel users)
+ * bisa dipakai untuk pengujian endpoint tanpa login.
  */
+export async function getSessionUser(request: Request): Promise<SessionUser | null> {
+  const devId = process.env.NODE_ENV !== "production" ? request.headers.get("x-dev-user-id") : null;
+  if (devId) return activeUser(devId);
+  return userFromHeaders(request.headers);
+}
+
+/** Pengguna yang sedang bertindak di halaman (Server Action / Server Component). */
 export async function getActingUser(): Promise<SessionUser | null> {
-  if (process.env.NODE_ENV === "production") return null;
-  const { getPengawasSession } = await import("@/lib/pengawas-session");
-  const session = await getPengawasSession();
-  if (!session) return null;
-  const user = db
-    .select({ id: users.id, name: users.name, role: users.role, roomId: users.roomId })
-    .from(users)
-    .where(and(eq(users.id, session.userId), eq(users.active, true)))
-    .get();
-  return user ?? null;
+  const { headers } = await import("next/headers");
+  return userFromHeaders(await headers());
 }
 
 export async function requireUser(request: Request) {

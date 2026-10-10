@@ -56,8 +56,8 @@ beforeEach(() => {
     .values(Array.from({ length: 8 }, (_, i) => ({ id: `p${i + 1}`, name: `Peserta ${i + 1}` })))
     .run();
   db.insert(users).values([
-    { id: "u-admin", name: "Admin", email: "a@x", passwordHash: "!", role: "admin" },
-    { id: "u-p2", name: "P2", email: "p2@x", passwordHash: "!", role: "pengawas", roomId: "ruangan-2" },
+    { id: "u-admin", name: "Admin", email: "a@x", role: "admin" },
+    { id: "u-p2", name: "P2", email: "p2@x", role: "pengawas", roomId: "ruangan-2" },
   ]).run();
   const base = { sessionId: "sesi-1", roomId: "ruangan-1" };
   // Babak ruangan: r1-1 & r1-2 → r2-1. Babak final: final ruangan (rf) & play-off (po) → k32.

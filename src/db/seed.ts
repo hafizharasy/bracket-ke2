@@ -5,90 +5,132 @@
 //   npm run db:seed -- --reset → kosongkan data turnamen dulu, lalu isi ulang
 // Data diambil dari data tiruan frontend supaya ID & pembagian sesi/ruangan sama.
 
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { DATABASE_PATH, db } from "@/db";
-import { matches, matchResults, participants, rooms, sessions, users, violations } from "@/db/schema";
+import { authAccounts, matches, matchResults, participants, rooms, sessions, users, violations } from "@/db/schema";
 import { championSlots, mockBracket } from "@/lib/mock/bracket-data";
+import { hashUserPassword, storePasswordHash } from "@/server/credentials";
 import { bumpBracketVersion } from "@/server/live";
+
+/** Sandi akun contoh pengembangan (bukan untuk production). */
+const DEV_PASSWORDS = { admin: "admin12345", pengawas: "pengawas123" } as const;
+type DevHashes = Record<keyof typeof DEV_PASSWORDS, string> | null;
 
 const reset = process.argv.includes("--reset");
 
-db.transaction((tx) => {
-  if (reset) {
-    // Urutan mengikuti foreign key. Akun (users) tidak disentuh.
-    for (const table of [violations, matchResults, matches, participants]) tx.delete(table).run();
-    tx.delete(sessions).run();
-    tx.delete(rooms).where(sql`${rooms.id} not in (select room_id from users where room_id is not null)`).run();
-  }
+function seed(devHashes: DevHashes) {
+  db.transaction((tx) => {
+    if (reset) {
+      // Urutan mengikuti foreign key. Akun (users) tidak disentuh.
+      for (const table of [violations, matchResults, matches, participants]) tx.delete(table).run();
+      tx.delete(sessions).run();
+      tx.delete(rooms)
+        .where(sql`${rooms.id} not in (select room_id from users where room_id is not null)`)
+        .run();
+    }
 
-  tx.insert(sessions)
-    .values(
-      mockBracket.sessions.map((s) => ({
-        ...s,
-        startTime: s.startTime ? new Date(s.startTime) : null,
-      })),
-    )
-    .onConflictDoNothing()
-    .run();
-
-  tx.insert(rooms).values(mockBracket.rooms).onConflictDoNothing().run();
-
-  // SQLite membatasi jumlah parameter per statement → sisipkan per batch.
-  const BATCH = 50;
-  for (let i = 0; i < mockBracket.participants.length; i += BATCH) {
-    tx.insert(participants)
-      .values(mockBracket.participants.slice(i, i + BATCH))
+    tx.insert(sessions)
+      .values(
+        mockBracket.sessions.map((s) => ({
+          ...s,
+          startTime: s.startTime ? new Date(s.startTime) : null,
+        })),
+      )
       .onConflictDoNothing()
       .run();
-  }
 
-  // Struktur bagan tanpa hasil. Babak tertinggi lebih dulu supaya laga tujuan
-  // next_match_id selalu sudah ada saat laga asalnya disisipkan.
-  const structure = mockBracket.matches
-    .map((m) => ({
-      ...m,
-      participantAId: m.round === 1 ? m.participantAId : null,
-      participantBId: m.round === 1 ? m.participantBId : null,
-      winnerId: null,
-      scoreA: null,
-      scoreB: null,
-      status: "scheduled" as const,
-      nextMatchId: m.nextMatchId ?? championSlots.get(m.id)?.matchId ?? null,
-      scheduledAt: m.scheduledAt ? new Date(m.scheduledAt) : null,
-    }))
-    .sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
-  for (let i = 0; i < structure.length; i += BATCH) {
-    tx.insert(matches).values(structure.slice(i, i + BATCH)).onConflictDoNothing().run();
-  }
+    tx.insert(rooms).values(mockBracket.rooms).onConflictDoNothing().run();
 
-  // Akun contoh untuk pengembangan (admin + pengawas tiap ruangan). Sandi
-  // placeholder "!" tidak bisa dipakai login; tidak dibuat di production.
-  if (process.env.NODE_ENV !== "production") {
-    tx.insert(users)
-      .values([
-        { id: "u-admin", name: "Admin Utama", email: "admin@lrp.local", passwordHash: "!", role: "admin" as const },
+    // SQLite membatasi jumlah parameter per statement → sisipkan per batch.
+    const BATCH = 50;
+    for (let i = 0; i < mockBracket.participants.length; i += BATCH) {
+      tx.insert(participants)
+        .values(mockBracket.participants.slice(i, i + BATCH))
+        .onConflictDoNothing()
+        .run();
+    }
+
+    // Struktur bagan tanpa hasil. Babak tertinggi lebih dulu supaya laga tujuan
+    // next_match_id selalu sudah ada saat laga asalnya disisipkan.
+    const structure = mockBracket.matches
+      .map((m) => ({
+        ...m,
+        participantAId: m.round === 1 ? m.participantAId : null,
+        participantBId: m.round === 1 ? m.participantBId : null,
+        winnerId: null,
+        scoreA: null,
+        scoreB: null,
+        status: "scheduled" as const,
+        nextMatchId: m.nextMatchId ?? championSlots.get(m.id)?.matchId ?? null,
+        scheduledAt: m.scheduledAt ? new Date(m.scheduledAt) : null,
+      }))
+      .sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
+    for (let i = 0; i < structure.length; i += BATCH) {
+      tx.insert(matches)
+        .values(structure.slice(i, i + BATCH))
+        .onConflictDoNothing()
+        .run();
+    }
+
+    // Akun contoh untuk pengembangan: admin@lrp.local / admin12345 dan
+    // ruanganN@lrp.local / pengawas123. Tidak dibuat di production — pakai
+    // `npm run db:create-admin` untuk akun admin pertama.
+    if (devHashes) {
+      const devUsers = [
+        {
+          id: "u-admin",
+          name: "Admin Utama",
+          email: "admin@lrp.local",
+          role: "admin" as const,
+        },
         ...mockBracket.rooms.map((room, i) => ({
           id: `u-pengawas-${i + 1}`,
           name: `Pengawas ${room.name}`,
           email: `ruangan${i + 1}@lrp.local`,
-          passwordHash: "!",
           role: "pengawas" as const,
           roomId: room.id,
         })),
-      ])
-      .onConflictDoNothing()
-      .run();
-  }
+      ];
+      tx.insert(users).values(devUsers).onConflictDoNothing().run();
+      // Akun contoh yang belum punya sandi (mis. dibuat sebelum login asli ada) diberi sandi demo.
+      const withPassword = new Set(
+        tx
+          .select({ userId: authAccounts.userId })
+          .from(authAccounts)
+          .where(eq(authAccounts.providerId, "credential"))
+          .all()
+          .map((a) => a.userId),
+      );
+      for (const user of devUsers) {
+        if (!withPassword.has(user.id)) storePasswordHash(tx, user.id, devHashes[user.role]);
+      }
+    }
 
-  bumpBracketVersion(tx);
-});
+    bumpBracketVersion(tx);
+  });
+}
 
 const count = (table: typeof sessions | typeof rooms | typeof participants | typeof matches) =>
-  db.select({ n: sql<number>`count(*)` }).from(table).get()!.n;
+  db
+    .select({ n: sql<number>`count(*)` })
+    .from(table)
+    .get()!.n;
 
-console.log(
-  `✓ Seed ${DATABASE_PATH}${reset ? " (reset)" : ""}: ` +
-    `${count(sessions)} sesi, ${count(rooms)} ruangan, ${count(participants)} peserta, ` +
-    `${count(matches)} laga`,
-);
+async function main() {
+  const devHashes: DevHashes =
+    process.env.NODE_ENV === "production"
+      ? null
+      : {
+          admin: await hashUserPassword(DEV_PASSWORDS.admin),
+          pengawas: await hashUserPassword(DEV_PASSWORDS.pengawas),
+        };
+  seed(devHashes);
+  console.log(
+    `✓ Seed ${DATABASE_PATH}${reset ? " (reset)" : ""}: ` +
+      `${count(sessions)} sesi, ${count(rooms)} ruangan, ${count(participants)} peserta, ` +
+      `${count(matches)} laga`,
+  );
+}
+
+void main();
