@@ -5,20 +5,35 @@ export type AdminSession = { userId: string; name: string };
 
 /** Cookie pengembangan untuk menyimulasikan peran sesi stub: "admin" | "pengawas" | "none". */
 export const STUB_ROLE_COOKIE = "lrp_stub_role";
+/** Cookie pengembangan berisi ID akun admin yang login lewat login stub. */
+export const STUB_ADMIN_COOKIE = "lrp_stub_admin";
 
 /**
  * Sesi admin utama yang sedang login, atau null.
  *
- * SEMENTARA (stub frontend), sampai Login Admin Utama dibuat: di luar
- * production dianggap login sebagai admin contoh, kecuali cookie
- * lrp_stub_role berisi "pengawas"/"none" (untuk menguji pembatas akses).
- * Di production selalu null → area admin tertutup.
+ * SEMENTARA (stub frontend): sesi dari login stub admin (cookie
+ * lrp_stub_role = "admin" + lrp_stub_admin = ID akun). Di production selalu
+ * null sampai login Better Auth dibuat, dengan bentuk data yang sama.
  */
 export async function getAdminSession(): Promise<AdminSession | null> {
   const store = await cookies();
   if (process.env.NODE_ENV === "production") return null;
-  const role = store.get(STUB_ROLE_COOKIE)?.value ?? "admin";
-  return role === "admin" ? { userId: "u-admin", name: "Admin Utama" } : null;
+  if (store.get(STUB_ROLE_COOKIE)?.value !== "admin") return null;
+  const userId = store.get(STUB_ADMIN_COOKIE)?.value;
+  const admin = userId ? (await getAdminAccounts()).find((a) => a.id === userId) : undefined;
+  return admin ? { userId: admin.id, name: admin.name } : null;
+}
+
+export type AdminAccount = { id: string; name: string; email: string };
+
+/** Akun admin utama: dari tabel users (role admin), atau akun contoh saat mode mock. */
+export async function getAdminAccounts(): Promise<AdminAccount[]> {
+  const { bracketSource } = await import("@/server/live");
+  if (bracketSource() === "db") {
+    const [{ db }, { users }, { eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
+    return db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.role, "admin")).all();
+  }
+  return [{ id: "u-admin", name: "Admin Utama", email: "admin@lrp.local" }];
 }
 
 /** Halaman/aksi khusus admin utama: arahkan ke halaman masuk admin bila bukan admin. */
