@@ -1,5 +1,8 @@
 import { ArrowLeftIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
+
+import { RoomNav } from "@/components/ruangan/room-nav";
 
 export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
   return (
@@ -16,6 +19,10 @@ export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
             Bracket publik
           </Link>
         </div>
+        {/* Tab aktif dibaca dari URL → perlu Suspense pada rute dinamis. */}
+        <Suspense fallback={<div className="h-9" />}>
+          <RoomNav />
+        </Suspense>
       </header>
       {children}
     </div>
