@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { can } from "@/lib/policy";
@@ -14,21 +15,31 @@ export type PengawasSession = {
 export const STUB_USER_COOKIE = "lrp_stub_user";
 
 /**
- * Sesi pengawas yang sedang login.
+ * Sesi pengawas yang sedang login, atau null.
  *
- * SEMENTARA (stub frontend): akun dari cookie login stub (lrp_stub_user),
- * atau pengawas Ruangan 1 bila belum login. Akan diganti sesi Better Auth
- * pada fitur Login Ruangan, dengan bentuk data yang sama.
+ * SEMENTARA (stub frontend): akun dari cookie login stub (lrp_stub_user)
+ * yang masih aktif & punya ruangan. Di production selalu null sampai login
+ * Better Auth dibuat, dengan bentuk data yang sama.
  */
-export async function getPengawasSession(): Promise<PengawasSession> {
+export async function getPengawasSession(): Promise<PengawasSession | null> {
   await connection();
   const userId = (await cookies()).get(STUB_USER_COOKIE)?.value;
-  if (userId) {
-    const { getPengawasAccounts } = await import("@/lib/pengawas-accounts");
-    const account = (await getPengawasAccounts()).find((a) => a.id === userId && a.active && a.roomId);
-    if (account) return { userId: account.id, name: account.name, roomId: account.roomId! };
-  }
-  return { userId: "u-pengawas-1", name: "Pengawas Ruangan 1", roomId: "ruangan-1" };
+  if (process.env.NODE_ENV === "production" || !userId) return null;
+  const { getPengawasAccounts } = await import("@/lib/pengawas-accounts");
+  const account = (await getPengawasAccounts()).find((a) => a.id === userId && a.active && a.roomId);
+  return account ? { userId: account.id, name: account.name, roomId: account.roomId! } : null;
+}
+
+/** Halaman pengawas: arahkan ke /masuk (kembali ke `next` setelah login) bila belum login. */
+export async function requirePengawas(next = "/ruangan"): Promise<PengawasSession> {
+  const session = await getPengawasSession();
+  if (!session) redirect(`/masuk?next=${encodeURIComponent(next)}`);
+  return session;
+}
+
+/** Hanya izinkan `next` berupa path area pengawas (mencegah open redirect). */
+export function safeNext(next: string | null | undefined) {
+  return next && /^\/ruangan([/?][\w\-/?=&%.]*)?$/.test(next) && !next.startsWith("//") ? next : "/ruangan";
 }
 
 /** Boleh melihat/mengelola ruangan ini? (aturan di lib/policy, peran pengawas). */

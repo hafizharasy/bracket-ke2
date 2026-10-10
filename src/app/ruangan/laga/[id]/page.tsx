@@ -8,7 +8,7 @@ import { type NextPreview, ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
 import { buildAdvanceMap, buildSlotLabels, LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 
 export const metadata = { title: "Input hasil · Bracket LRP 2026" };
 
@@ -36,7 +36,7 @@ export default function InputHasilPage({ params }: PageProps<"/ruangan/laga/[id]
 }
 
 async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "params">) {
-  const [{ id }, session] = await Promise.all([params, getPengawasSession()]);
+  const [{ id }, session] = await Promise.all([params, requirePengawas("/ruangan")]);
   const data = await getBracket();
   const match = data.matches.find((m) => m.id === id);
   if (!match) notFound();

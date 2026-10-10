@@ -38,6 +38,7 @@ export async function getActingUser(): Promise<SessionUser | null> {
   if (process.env.NODE_ENV === "production") return null;
   const { getPengawasSession } = await import("@/lib/pengawas-session");
   const session = await getPengawasSession();
+  if (!session) return null;
   const user = db
     .select({ id: users.id, name: users.name, role: users.role, roomId: users.roomId })
     .from(users)

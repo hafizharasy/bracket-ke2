@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { STUB_ROLE_COOKIE } from "@/lib/admin-session";
-import { STUB_USER_COOKIE } from "@/lib/pengawas-session";
+import { safeNext, STUB_USER_COOKIE } from "@/lib/pengawas-session";
 import { getPengawasAccounts } from "@/lib/pengawas-accounts";
 
 /** Sandi demo login stub (hanya di luar production). */
@@ -19,7 +19,7 @@ const loginInput = z.object({ email: z.email().trim().toLowerCase(), password: z
  * pengawas dan sandi demo, lalu menyimpan sesi stub di cookie. Diganti
  * Better Auth pada tahap backend; di production selalu ditolak.
  */
-export async function loginPengawas(email: string, password: string): Promise<LoginResult> {
+export async function loginPengawas(email: string, password: string, next?: string): Promise<LoginResult> {
   if (process.env.NODE_ENV === "production") {
     return { ok: false, error: "Login belum diaktifkan di server ini. Hubungi admin." };
   }
@@ -38,5 +38,5 @@ export async function loginPengawas(email: string, password: string): Promise<Lo
   const opts = { httpOnly: true, sameSite: "lax" as const, path: "/", maxAge: 60 * 60 * 12 };
   store.set(STUB_USER_COOKIE, account.id, opts);
   store.set(STUB_ROLE_COOKIE, "pengawas", opts);
-  return { ok: true, redirectTo: "/ruangan" };
+  return { ok: true, redirectTo: safeNext(next) };
 }

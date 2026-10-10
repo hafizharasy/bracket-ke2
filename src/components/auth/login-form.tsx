@@ -14,9 +14,12 @@ import { cn } from "@/lib/utils";
  */
 export function LoginForm({
   submit,
+  next,
   emailLabel = "Email",
 }: {
-  submit: (email: string, password: string) => Promise<LoginResult>;
+  submit: (email: string, password: string, next?: string) => Promise<LoginResult>;
+  /** Halaman tujuan setelah login (divalidasi di server). */
+  next?: string;
   emailLabel?: string;
 }) {
   const router = useRouter();
@@ -32,7 +35,7 @@ export function LoginForm({
     setBusy(true);
     setError(null);
     try {
-      const result = await submit(email, password);
+      const result = await submit(email, password, next);
       if (!result.ok) {
         setError(result.error);
         setBusy(false);

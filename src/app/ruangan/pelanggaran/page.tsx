@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { getPengawasSession } from "@/lib/pengawas-session";
+import { requirePengawas } from "@/lib/pengawas-session";
 import { getRoomViolations } from "@/lib/room-violations";
 import { VIOLATION_TYPES } from "@/lib/violations";
 
@@ -27,7 +27,7 @@ export default function PelanggaranPage() {
 }
 
 async function Summary() {
-  const session = await getPengawasSession();
+  const session = await requirePengawas("/ruangan/pelanggaran");
   const [violations, data] = await Promise.all([getRoomViolations(session.roomId), getBracket()]);
   const room = data.rooms.find((r) => r.id === session.roomId);
   const participants = new Map(data.participants.map((p) => [p.id, p]));

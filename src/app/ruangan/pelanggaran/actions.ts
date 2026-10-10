@@ -34,6 +34,7 @@ async function recordMockViolation(input: ReturnType<typeof violationInput.parse
     import("@/lib/pengawas-session"),
   ]);
   const session = await getPengawasSession();
+  if (!session) return { ok: false, error: "Sesi berakhir. Silakan login kembali." };
   addLocalViolation({
     id: crypto.randomUUID(),
     participantId: input.participantId,

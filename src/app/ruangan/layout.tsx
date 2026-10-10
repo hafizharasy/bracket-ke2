@@ -1,9 +1,12 @@
 import { ArrowLeftIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { RoomLockBadge } from "@/components/ruangan/room-lock-badge";
 import { RoomNav } from "@/components/ruangan/room-nav";
+import { getAdminSession } from "@/lib/admin-session";
+import { requirePengawas } from "@/lib/pengawas-session";
 
 export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
   return (
@@ -28,7 +31,17 @@ export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
           <RoomNav />
         </Suspense>
       </header>
-      {children}
+      {/* Pembatas akses: hanya pengawas yang sudah login. */}
+      <Suspense fallback={<div className="mx-auto m-6 h-64 w-full max-w-3xl animate-pulse rounded-xl bg-muted" />}>
+        <RuanganGuard>{children}</RuanganGuard>
+      </Suspense>
     </div>
   );
+}
+
+async function RuanganGuard({ children }: { children: React.ReactNode }) {
+  // Admin utama memantau dari dashboard, bukan area pengawas.
+  if (await getAdminSession()) redirect("/admin/pantau");
+  await requirePengawas();
+  return children;
 }

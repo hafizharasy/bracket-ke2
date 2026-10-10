@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { getBracket } from "@/lib/get-bracket";
-import { getPengawasSession } from "@/lib/pengawas-session";
+import { requirePengawas } from "@/lib/pengawas-session";
 import { getRoomHistory, type RoomHistoryItem } from "@/lib/room-history";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ export default function RiwayatPage({ searchParams }: PageProps<"/ruangan/riwaya
 }
 
 async function History({ searchParams }: Pick<PageProps<"/ruangan/riwayat">, "searchParams">) {
-  const [session, query] = await Promise.all([getPengawasSession(), searchParams]);
+  const [session, query] = await Promise.all([requirePengawas("/ruangan/riwayat"), searchParams]);
   const [items, data] = await Promise.all([getRoomHistory(session.roomId), getBracket()]);
   const room = data.rooms.find((r) => r.id === session.roomId);
 

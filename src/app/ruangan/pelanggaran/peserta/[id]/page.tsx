@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { roundLabel, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 import { getRoomViolations } from "@/lib/room-violations";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export default function PelanggaranPesertaPage({ params }: PageProps<"/ruangan/p
 }
 
 async function ParticipantViolations({ params }: Pick<PageProps<"/ruangan/pelanggaran/peserta/[id]">, "params">) {
-  const [{ id }, session] = await Promise.all([params, getPengawasSession()]);
+  const [{ id }, session] = await Promise.all([params, requirePengawas("/ruangan/pelanggaran")]);
   const [data, roomViolations] = await Promise.all([getBracket(), getRoomViolations(session.roomId)]);
   const participant = data.participants.find((p) => p.id === id);
   if (!participant) notFound();

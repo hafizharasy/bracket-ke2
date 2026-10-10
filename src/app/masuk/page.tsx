@@ -1,12 +1,15 @@
 import { ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { loginPengawas } from "@/app/masuk/actions";
+import { getPengawasSession, safeNext } from "@/lib/pengawas-session";
 
 export const metadata = { title: "Masuk Pengawas · Bracket LRP 2026" };
 
-export default function MasukPengawasPage() {
+export default function MasukPengawasPage({ searchParams }: PageProps<"/masuk">) {
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 px-5 py-10">
       <div className="flex flex-col items-center gap-2 text-center">
@@ -20,7 +23,9 @@ export default function MasukPengawasPage() {
       </div>
 
       <div className="rounded-2xl border bg-card p-5 shadow-xs">
-        <LoginForm submit={loginPengawas} />
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-muted" />}>
+          <FormOrRedirect searchParams={searchParams} />
+        </Suspense>
       </div>
 
       {process.env.NODE_ENV !== "production" && (
@@ -40,4 +45,12 @@ export default function MasukPengawasPage() {
       </div>
     </main>
   );
+}
+
+/** Sudah login sebagai pengawas → langsung ke ruangan (atau `next`). */
+async function FormOrRedirect({ searchParams }: Pick<PageProps<"/masuk">, "searchParams">) {
+  const [session, params] = await Promise.all([getPengawasSession(), searchParams]);
+  const next = typeof params.next === "string" ? params.next : undefined;
+  if (session) redirect(safeNext(next));
+  return <LoginForm submit={loginPengawas} next={next} />;
 }

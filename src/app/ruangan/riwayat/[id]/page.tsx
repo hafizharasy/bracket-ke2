@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { OtherRoomNotice } from "@/components/ruangan/other-room-notice";
 import { Badge } from "@/components/ui/badge";
 import { getMatchDetail, type MatchDetail } from "@/db/queries/match-detail";
-import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Detail hasil · Bracket LRP 2026" };
@@ -34,7 +34,7 @@ export default function DetailHasilPage({ params }: PageProps<"/ruangan/riwayat/
 }
 
 async function Detail({ params }: Pick<PageProps<"/ruangan/riwayat/[id]">, "params">) {
-  const [{ id }, session] = await Promise.all([params, getPengawasSession()]);
+  const [{ id }, session] = await Promise.all([params, requirePengawas("/ruangan/riwayat")]);
   const match = await getMatchDetail(id);
   if (!match) notFound();
 

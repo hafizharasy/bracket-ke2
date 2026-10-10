@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { ViolationForm } from "@/components/ruangan/violation-form";
 import { roundLabel, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 
 export const metadata = { title: "Catat pelanggaran · Bracket LRP 2026" };
 
@@ -25,7 +25,7 @@ export default function CatatPelanggaranPage({ searchParams }: PageProps<"/ruang
 }
 
 async function FormLoader({ searchParams }: Pick<PageProps<"/ruangan/pelanggaran/baru">, "searchParams">) {
-  const [session, query] = await Promise.all([getPengawasSession(), searchParams]);
+  const [session, query] = await Promise.all([requirePengawas("/ruangan/pelanggaran/baru"), searchParams]);
   const data = await getBracket();
 
   // Hanya laga & peserta di ruangan pengawas: peserta yang ditempatkan di

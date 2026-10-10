@@ -6,7 +6,7 @@ import { RoomHomeSummary } from "@/components/ruangan/room-home-summary";
 import { RoomMatchRow } from "@/components/ruangan/room-match-row";
 import { buildSlotLabels, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 import { ROOM_MATCH_GROUPS, roomMatchGroup } from "@/lib/room-matches";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ export default function RuanganPage({ searchParams }: PageProps<"/ruangan">) {
 }
 
 async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "searchParams">) {
-  const [session, query] = await Promise.all([getPengawasSession(), searchParams]);
+  const [session, query] = await Promise.all([requirePengawas("/ruangan"), searchParams]);
   const data = await getBracket();
 
   const room = data.rooms.find((r) => r.id === session.roomId);

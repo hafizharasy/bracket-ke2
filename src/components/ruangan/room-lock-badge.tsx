@@ -6,6 +6,7 @@ import { getPengawasSession } from "@/lib/pengawas-session";
 /** Penanda di header: akun ini terkunci ke satu ruangan. */
 export async function RoomLockBadge() {
   const session = await getPengawasSession();
+  if (!session) return null;
   const room = (await getBracket()).rooms.find((r) => r.id === session.roomId);
   return (
     <span
