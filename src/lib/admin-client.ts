@@ -71,3 +71,40 @@ export async function savePairings(payload: PairingPayload): Promise<AdminAction
   console.info("[simulasi] simpan pasangan", payload);
   return { ok: true, simulated: true };
 }
+
+export type AccountFormValues = { name: string; email: string; roomId: string; password: string };
+
+export function validateAccount(values: AccountFormValues, isNew: boolean) {
+  const errors: Partial<Record<keyof AccountFormValues, string>> = {};
+  if (values.name.trim().length < 2) errors.name = "Nama minimal 2 karakter.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Email tidak valid.";
+  if (!values.roomId) errors.roomId = "Pengawas wajib punya ruangan.";
+  if (isNew || values.password) {
+    if (values.password.length < 8) errors.password = "Sandi minimal 8 karakter.";
+  }
+  return errors;
+}
+
+/** Sandi acak mudah dibaca (tanpa karakter mirip seperti 0/O, 1/l). */
+export function generatePassword(length = 10) {
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint32Array(length));
+  return Array.from(bytes, (n) => chars[n % chars.length]).join("");
+}
+
+/** SEMENTARA (stub frontend): simpan akun pengawas (baru/ubah). */
+export async function saveAccount(id: string | null, values: AccountFormValues): Promise<AdminActionResult> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  console.info("[simulasi] simpan akun", id ?? "(baru)", { ...values, password: values.password ? "***" : "" });
+  return { ok: true, simulated: true };
+}
+
+/** SEMENTARA (stub frontend): aktif/nonaktifkan akun atau atur ulang sandinya. */
+export async function updateAccountStatus(
+  id: string,
+  change: { active: boolean } | { resetPassword: string },
+): Promise<AdminActionResult> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  console.info("[simulasi] ubah akun", id, "active" in change ? change : { resetPassword: "***" });
+  return { ok: true, simulated: true };
+}
