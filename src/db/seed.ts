@@ -3,6 +3,7 @@
 // struktur bagan: 63 laga per ruangan, semifinal, final round-robin. Belum ada hasil.
 //   npm run db:seed            → isi data yang belum ada (aman diulang)
 //   npm run db:seed -- --reset → kosongkan data turnamen dulu, lalu isi ulang
+//                               (di production wajib --yakin bila sudah ada data; dicadangkan dulu)
 //   npm run db:seed -- --dasar → hanya sesi, ruangan, & ruangan per sesi (untuk data peserta asli:
 //                               lanjut db:import-peserta lalu db:buat-bagan)
 // Data diambil dari data tiruan frontend supaya ID & pembagian sesi/ruangan sama.
@@ -10,6 +11,7 @@
 import { eq, sql } from "drizzle-orm";
 
 import { DATABASE_PATH, db } from "@/db";
+import { CONFIRM_FLAG, guardDestructive } from "@/db/destructive-guard";
 import {
   authAccounts,
   matches,
@@ -139,6 +141,7 @@ const count = (table: typeof sessions | typeof rooms | typeof participants | typ
     .get()!.n;
 
 async function main() {
+  if (reset) guardDestructive(`npm run db:seed -- ${process.argv.slice(2).filter((a) => a !== CONFIRM_FLAG).join(" ")}`);
   const devHashes: DevHashes =
     process.env.NODE_ENV === "production"
       ? null
