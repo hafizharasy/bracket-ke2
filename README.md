@@ -75,7 +75,7 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 
 | Endpoint | Fungsi |
 | --- | --- |
-| `POST /api/login/ruangan` · `POST /api/login/admin` | Login `{ email, password }` → cookie sesi + `{ user, room }`; 401 salah, 403 peran salah/nonaktif, 423 dikunci (Retry-After) |
+| `POST /api/login/ruangan` · `POST /api/login/admin` | Login `{ email, password }` → cookie sesi + `{ user, room, previousLoginAt }`; 401 salah, 403 peran salah/nonaktif, 423 dikunci (Retry-After). Login/logout admin dicatat di `audit_logs` |
 | `GET /api/session` · `DELETE /api/session?semua=1` | Sesi saat ini `{ user, room, expiresAt }` (401 bila tidak ada) / keluar (hapus cookie; `semua=1` juga mengakhiri sesi di perangkat lain) |
 | `GET /api/bracket?sesi=&ruangan=` | Bagan (opsional difilter), ETag/304 |
 | `GET /api/bracket/version` | Versi data bagan (ringan) |

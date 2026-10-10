@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { authAccounts, rooms, users, USER_ROLES } from "@/db/schema";
+import { recordAudit } from "@/server/audit";
 import { auth } from "@/server/better-auth";
 import { purgeExpiredSessions, revokeSessions } from "@/server/credentials";
 import { getLockout, recordLoginAttempt } from "@/server/login-attempts";
@@ -26,6 +27,8 @@ export type LoginSuccess = {
   ok: true;
   user: { id: string; name: string; role: Role; roomId: string | null };
   room: { id: string; name: string } | null;
+  /** Login berhasil sebelumnya (untuk dicek pemilik akun), null bila pertama kali. */
+  previousLoginAt: string | null;
 };
 
 const timeFormat = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
@@ -39,6 +42,7 @@ async function checkCredentials(email: string, password: string) {
       role: users.role,
       roomId: users.roomId,
       active: users.active,
+      lastLoginAt: users.lastLoginAt,
       hash: authAccounts.password,
     })
     .from(users)
@@ -118,10 +122,18 @@ export async function loginWithPassword(
   }
   recordLoginAttempt({ email, role, success: true, ipAddress });
   purgeExpiredSessions();
+  if (role === "admin") {
+    recordAudit({ actorId: account.id, action: "auth.login", entity: "user", entityId: account.id, summary: `Login admin${ipAddress ? ` dari ${ipAddress}` : ""}` });
+  }
   const room = account.roomId
     ? (db.select({ id: rooms.id, name: rooms.name }).from(rooms).where(eq(rooms.id, account.roomId)).get() ?? null)
     : null;
-  return { ok: true, user: { id: account.id, name: account.name, role: account.role, roomId: account.roomId }, room };
+  return {
+    ok: true,
+    user: { id: account.id, name: account.name, role: account.role, roomId: account.roomId },
+    room,
+    previousLoginAt: account.lastLoginAt?.toISOString() ?? null,
+  };
 }
 
 /** Status HTTP untuk kegagalan login. */
@@ -154,9 +166,16 @@ export async function getCurrentSession(headers: Headers) {
  */
 export async function logout(headers: Headers, { everywhere = false } = {}) {
   let revoked = 0;
-  if (everywhere) {
-    const session = await auth.api.getSession({ headers }).catch(() => null);
-    if (session) revoked = revokeSessions(db, session.user.id) - 1;
+  const session = await auth.api.getSession({ headers }).catch(() => null);
+  if (session && everywhere) revoked = revokeSessions(db, session.user.id) - 1;
+  if (session && (session.user as { role?: string }).role === "admin") {
+    recordAudit({
+      actorId: session.user.id,
+      action: "auth.logout",
+      entity: "user",
+      entityId: session.user.id,
+      summary: everywhere ? "Logout admin dari semua perangkat" : "Logout admin",
+    });
   }
   await auth.api.signOut({ headers }).catch(() => undefined);
   return { revokedOthers: Math.max(0, revoked) };
