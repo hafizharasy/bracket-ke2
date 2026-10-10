@@ -13,7 +13,6 @@ export type PengawasAccount = {
 /**
  * Daftar akun pengawas. Dari tabel users (role pengawas); saat
  * BRACKET_DATA_SOURCE=mock memakai contoh satu akun per ruangan.
- * Status aktif & login terakhir menyusul di backend (sementara: aktif, null).
  */
 export async function getPengawasAccounts(): Promise<PengawasAccount[]> {
   // Perubahan dari form admin (state tiruan) ditimpakan di atas daftar dasar.
@@ -25,12 +24,19 @@ async function getBaseAccounts(): Promise<PengawasAccount[]> {
   if (bracketSource() === "db") {
     const [{ db }, { users }, { asc, eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
     return db
-      .select({ id: users.id, name: users.name, email: users.email, roomId: users.roomId })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        roomId: users.roomId,
+        active: users.active,
+        lastLoginAt: users.lastLoginAt,
+      })
       .from(users)
       .where(eq(users.role, "pengawas"))
       .orderBy(asc(users.email))
       .all()
-      .map((u) => ({ ...u, active: true, lastLoginAt: null }));
+      .map((u) => ({ ...u, lastLoginAt: u.lastLoginAt?.toISOString() ?? null }));
   }
   const { rooms } = await getBracket();
   return rooms.map((room, i) => ({

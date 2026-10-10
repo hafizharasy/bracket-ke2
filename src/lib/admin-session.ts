@@ -26,12 +26,16 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 
 export type AdminAccount = { id: string; name: string; email: string };
 
-/** Akun admin utama: dari tabel users (role admin), atau akun contoh saat mode mock. */
+/** Akun admin utama yang aktif: dari tabel users (role admin), atau akun contoh saat mode mock. */
 export async function getAdminAccounts(): Promise<AdminAccount[]> {
   const { bracketSource } = await import("@/server/live");
   if (bracketSource() === "db") {
-    const [{ db }, { users }, { eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
-    return db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.role, "admin")).all();
+    const [{ db }, { users }, { and, eq }] = await Promise.all([import("@/db"), import("@/db/schema"), import("drizzle-orm")]);
+    return db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(and(eq(users.role, "admin"), eq(users.active, true)))
+      .all();
   }
   return [{ id: "u-admin", name: "Admin Utama", email: "admin@lrp.local" }];
 }

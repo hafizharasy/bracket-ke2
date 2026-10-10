@@ -28,6 +28,8 @@ export const sessions = sqliteTable(
     name: text("name").notNull(),
     orderIndex: integer("order_index").notNull(),
     startTime: integer("start_time", { mode: "timestamp" }),
+    /** Terakhir diubah admin (nama / jam mulai); null bila belum pernah. */
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (t) => [uniqueIndex("sessions_name_idx").on(t.name), uniqueIndex("sessions_order_idx").on(t.orderIndex)],
 );
@@ -39,6 +41,8 @@ export const rooms = sqliteTable(
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     location: text("location"),
+    /** Terakhir diubah admin (nama / lokasi); null bila belum pernah. */
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (t) => [uniqueIndex("rooms_name_idx").on(t.name)],
 );
@@ -54,7 +58,11 @@ export const users = sqliteTable(
     role: text("role", { enum: USER_ROLES }).notNull(),
     // Ruangan yang masih punya pengawas tidak bisa dihapus (pindahkan akunnya dulu).
     roomId: text("room_id").references(() => rooms.id, { onDelete: "restrict" }),
+    /** Akun nonaktif tidak bisa login dan tidak bisa menulis hasil. */
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    lastLoginAt: integer("last_login_at", { mode: "timestamp" }),
     createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (t) => [
     check("users_role_check", sql`${t.role} in ('admin', 'pengawas')`),
@@ -64,6 +72,7 @@ export const users = sqliteTable(
       sql`(${t.role} = 'pengawas' and ${t.roomId} is not null) or (${t.role} = 'admin' and ${t.roomId} is null)`,
     ),
     index("users_room_idx").on(t.roomId),
+    check("users_active_check", sql`${t.active} in (0, 1)`),
   ],
 );
 

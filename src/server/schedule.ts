@@ -32,7 +32,7 @@ export function updateSessionSchedule(id: string, input: z.infer<typeof sessionS
   const shiftSeconds = old ? Math.round((start.getTime() - old.getTime()) / 1000) : 0;
 
   return db.transaction((tx) => {
-    tx.update(sessions).set({ name: input.name, startTime: start }).where(eq(sessions.id, id)).run();
+    tx.update(sessions).set({ name: input.name, startTime: start, updatedAt: new Date() }).where(eq(sessions.id, id)).run();
     let shifted = 0;
     if (shiftSeconds !== 0) {
       // Laga yang sudah selesai tetap pada jamnya.
@@ -55,7 +55,7 @@ export function updateRoom(id: string, input: z.infer<typeof roomInput>) {
     throw new ApiError(409, "Nama ruangan sudah dipakai.");
   }
   return db.transaction((tx) => {
-    tx.update(rooms).set({ name: input.name, location: input.location || null }).where(eq(rooms.id, id)).run();
+    tx.update(rooms).set({ name: input.name, location: input.location || null, updatedAt: new Date() }).where(eq(rooms.id, id)).run();
     bumpBracketVersion(tx);
     return { id };
   });
@@ -70,7 +70,7 @@ const iso = (d: Date | null) => (d ? d.toISOString() : null);
  */
 export function getSchedule(filter: { sesi?: string; ruangan?: string } = {}) {
   const sessionRows = db.select().from(sessions).orderBy(asc(sessions.orderIndex)).all();
-  const roomRows = db.select().from(rooms).all();
+  const roomRows = db.select({ id: rooms.id, name: rooms.name, location: rooms.location }).from(rooms).all();
   const names = new Map(db.select({ id: participants.id, name: participants.name }).from(participants).all().map((p) => [p.id, p.name]));
   const matchRows = db
     .select()

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -13,7 +13,8 @@ export type SessionUser = Pick<typeof users.$inferSelect, "id" | "name" | "role"
  * SEMENTARA, sampai login (Better Auth) dibuat: di luar production, pengguna
  * dibaca dari header `x-dev-user-id` (ID akun di tabel users) untuk pengujian,
  * atau dari sesi stub pengawas (untuk panggilan dari browser).
- * Di production selalu null → semua endpoint tulis menolak dengan 401.
+ * Akun nonaktif dianggap belum login. Di production selalu null → semua
+ * endpoint tulis menolak dengan 401.
  */
 export async function getSessionUser(request: Request): Promise<SessionUser | null> {
   if (process.env.NODE_ENV === "production") return null;
@@ -22,7 +23,7 @@ export async function getSessionUser(request: Request): Promise<SessionUser | nu
   const user = db
     .select({ id: users.id, name: users.name, role: users.role, roomId: users.roomId })
     .from(users)
-    .where(eq(users.id, id))
+    .where(and(eq(users.id, id), eq(users.active, true)))
     .get();
   return user ?? null;
 }
@@ -42,7 +43,7 @@ export async function getActingUser(): Promise<SessionUser | null> {
   const user = db
     .select({ id: users.id, name: users.name, role: users.role, roomId: users.roomId })
     .from(users)
-    .where(eq(users.id, session.userId))
+    .where(and(eq(users.id, session.userId), eq(users.active, true)))
     .get();
   return user ?? null;
 }
