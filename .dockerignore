@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+data
+*.db
+*.db-*
+.ngodingpakeai
+.claude
+.env*
+!.env.example
+npm-debug.log*

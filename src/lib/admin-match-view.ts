@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { buildAdvanceMap, roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { getRoomViolations } from "@/lib/room-violations";
@@ -42,6 +43,8 @@ export type AdminMatchView = {
  * data simulasi (tanpa bukti & jejak audit).
  */
 export async function getAdminMatchView(matchId: string): Promise<AdminMatchView | null> {
+  // Data live dari database: selalu dibaca saat request, bukan saat build.
+  await connection();
   const data = await getBracket();
   const match = data.matches.find((m) => m.id === matchId);
   if (!match) return null;

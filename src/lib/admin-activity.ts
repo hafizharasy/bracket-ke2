@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { getRoomViolations } from "@/lib/room-violations";
@@ -13,6 +14,8 @@ export type ActivityItem =
  * dari jadwal laga + 10 menit.
  */
 export async function getRecentActivity(limit = 10): Promise<ActivityItem[]> {
+  // Data live dari database: selalu dibaca saat request, bukan saat build.
+  await connection();
   const data = await getBracket();
   const name = (id: string | null) => (id ? data.participants.find((p) => p.id === id)?.name : undefined) ?? "—";
   const roomName = (id: string) => data.rooms.find((r) => r.id === id)?.name ?? id;

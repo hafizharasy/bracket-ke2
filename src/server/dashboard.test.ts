@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { mockBracket } from "@/lib/mock/bracket-data";
 import { attentionItems } from "@/server/dashboard";
 import { clearUsers } from "@/test/db";
+
+// Di luar request Next: connection() tidak perlu menunggu apa pun.
+vi.mock("next/server", () => ({ connection: async () => undefined }));
 
 const allRooms = mockBracket.rooms.map((r) => ({ active: true, roomId: r.id }));
 

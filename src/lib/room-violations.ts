@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getBracket } from "@/lib/get-bracket";
 import { bracketSource } from "@/server/live";
 import { listLocalViolations } from "@/lib/mock/violation-store";
@@ -10,6 +11,8 @@ import { VIOLATION_TYPES, type Violation } from "@/lib/violations";
  * form (daftar lokal di memori) + contoh data deterministik.
  */
 export async function getRoomViolations(roomId: string): Promise<Violation[]> {
+  // Data live dari database: selalu dibaca saat request, bukan saat build.
+  await connection();
   if (bracketSource() === "db") {
     const { listRoomViolations } = await import("@/server/violations");
     return listRoomViolations(roomId);

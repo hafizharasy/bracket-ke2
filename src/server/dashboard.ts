@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { count, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -36,6 +37,8 @@ export function attentionItems(
  * Satu sumber untuk halaman /admin dan GET /api/admin/summary.
  */
 export async function getDashboardSummary({ activityLimit = 8 } = {}) {
+  // Data live dari database: selalu dibaca saat request, bukan saat build.
+  await connection();
   const [data, violations, violationsByRoom, activity, accounts] = await Promise.all([
     getBracket(),
     getTotalViolations(),
@@ -65,6 +68,8 @@ export type DashboardSummary = Awaited<ReturnType<typeof getDashboardSummary>>;
  * ruangan. Satu sumber untuk /admin/pantau dan GET /api/admin/rooms.
  */
 export async function getRoomsMonitor(sessionId?: string) {
+  // Data live dari database: selalu dibaca saat request, bukan saat build.
+  await connection();
   const [data, violationsByRoom, accounts] = await Promise.all([
     getBracket(),
     getViolationCountsByRoom(),
@@ -96,6 +101,8 @@ export async function getRoomsMonitor(sessionId?: string) {
  * membandingkan string ini (polling ringan) sebelum memuat ulang ringkasan.
  */
 export async function getDashboardRevision() {
+  // Data live dari database: selalu dibaca saat request, bukan saat build.
+  await connection();
   const [{ version }, violations] = await Promise.all([getBracketVersion(), getTotalViolations()]);
   const accounts = db
     .select({ n: count(), changed: sql<number>`coalesce(max(max(coalesce(${users.updatedAt}, 0)), max(coalesce(${users.lastLoginAt}, 0))), 0)` })

@@ -11,6 +11,12 @@ npm run db:setup   # migrasi + seed (4 sesi, 10 ruangan, 640 peserta)
 npm run dev        # http://localhost:3000
 ```
 
+## Deploy
+
+Siap deploy ke Railway (Dockerfile + `railway.json`, volume `/app/data`).
+Langkahnya di [docs/DEPLOY-RAILWAY.md](docs/DEPLOY-RAILWAY.md). Variabel lingkungan:
+lihat [.env.example](.env.example).
+
 ## Pengecekan
 
 ```bash
@@ -82,6 +88,7 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/bracket?sesi=&ruangan=` | Bagan (opsional difilter), ETag/304 |
 | `GET /api/bracket/version` | Versi data bagan (ringan) |
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
+| `GET /api/health` | Cek server & database (healthcheck Railway) |
 | `GET /api/schedule?sesi=&ruangan=` | Jadwal publik: jam mulai & rentang laga tiap sesi, laga terurut jam beserta nama peserta |
 | `GET /api/sessions` · `GET /api/rooms` | Daftar sesi / ruangan beserta jumlah peserta, laga (dan akun pengawas) |
 | `POST /api/sessions` · `PATCH/DELETE /api/sessions/:id` | Tambah / ubah `{ name?, startTime? }` (jadwal laga ikut bergeser) / hapus sesi yang belum dipakai — admin |

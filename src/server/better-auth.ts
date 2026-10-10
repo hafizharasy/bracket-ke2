@@ -7,8 +7,10 @@ import { db } from "@/db";
 import { authAccounts, authSessions, authVerifications, users } from "@/db/schema";
 
 const isProduction = process.env.NODE_ENV === "production";
+/** Sedang `next build`: modul dimuat untuk mengumpulkan data halaman, belum melayani login. */
+const isBuild = process.env.NEXT_PHASE === "phase-production-build";
 
-if (isProduction && !process.env.BETTER_AUTH_SECRET) {
+if (isProduction && !isBuild && !process.env.BETTER_AUTH_SECRET) {
   console.warn("[auth] BETTER_AUTH_SECRET belum diatur; login tidak aman di production.");
 }
 
@@ -19,8 +21,14 @@ if (isProduction && !process.env.BETTER_AUTH_SECRET) {
  */
 export const auth = betterAuth({
   appName: "Bracket LRP 2026",
-  secret: process.env.BETTER_AUTH_SECRET ?? (isProduction ? undefined : "dev-only-secret-bracket-lrp-2026-ganti-di-production"),
-  baseURL: process.env.BETTER_AUTH_URL,
+  // Saat runtime production, scripts/start.mjs menolak berjalan tanpa BETTER_AUTH_SECRET.
+  secret:
+    process.env.BETTER_AUTH_SECRET ??
+    (isProduction && !isBuild ? undefined : "dev-only-secret-bracket-lrp-2026-ganti-di-production"),
+  // URL publik; di Railway otomatis dari domain layanan bila BETTER_AUTH_URL kosong.
+  baseURL:
+    process.env.BETTER_AUTH_URL ??
+    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined),
   database: drizzleAdapter(db, {
     provider: "sqlite",
     schema: { users, auth_sessions: authSessions, auth_accounts: authAccounts, auth_verifications: authVerifications },
