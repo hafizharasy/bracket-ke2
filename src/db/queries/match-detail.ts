@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { matches } from "@/db/schema";
+import { matches, matchResultHistory, users } from "@/db/schema";
 import { buildAdvanceMap, roundLabel } from "@/lib/bracket";
 
 const iso = (date: Date | null | undefined) => (date ? date.toISOString() : null);
@@ -86,3 +86,24 @@ export async function getMatchDetail(matchId: string) {
 }
 
 export type MatchDetail = NonNullable<Awaited<ReturnType<typeof getMatchDetail>>>;
+
+/** Jejak audit hasil satu laga (input, koreksi, pembatalan), terlama dulu, dengan nama pencatat. */
+export function getMatchResultHistory(matchId: string) {
+  return db
+    .select({
+      id: matchResultHistory.id,
+      action: matchResultHistory.action,
+      scoreA: matchResultHistory.scoreA,
+      scoreB: matchResultHistory.scoreB,
+      winnerId: matchResultHistory.winnerId,
+      proofPhotoUrl: matchResultHistory.proofPhotoUrl,
+      recordedAt: matchResultHistory.recordedAt,
+      recordedBy: users.name,
+    })
+    .from(matchResultHistory)
+    .leftJoin(users, eq(users.id, matchResultHistory.recordedBy))
+    .where(eq(matchResultHistory.matchId, matchId))
+    .orderBy(asc(matchResultHistory.recordedAt))
+    .all()
+    .map((h) => ({ ...h, recordedAt: h.recordedAt.toISOString() }));
+}

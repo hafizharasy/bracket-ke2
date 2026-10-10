@@ -7,12 +7,13 @@ export type RoomMonitor = {
   roomId: string;
   name: string;
   location: string | null;
+  sessionId: string | null;
   sessionName: string | null;
   status: RoomStatus;
   done: number;
   total: number;
   live: { matchId: string; label: string; a: string; b: string; scoreA: number | null; scoreB: number | null }[];
-  next: { label: string; scheduledAt: string | null } | null;
+  next: { matchId: string; label: string; scheduledAt: string | null } | null;
   champion: string | null;
   violations: number;
 };
@@ -50,6 +51,7 @@ export function monitorRooms(
         roomId: room.id,
         name: room.name,
         location: room.location,
+        sessionId: active?.id ?? null,
         sessionName: active?.name ?? null,
         status,
         done,
@@ -62,7 +64,9 @@ export function monitorRooms(
           scoreA: m.scoreA,
           scoreB: m.scoreB,
         })),
-        next: ready[0] ? { label: `${roundLabel(ready[0].round)} #${ready[0].matchNumber}`, scheduledAt: ready[0].scheduledAt } : null,
+        next: ready[0]
+          ? { matchId: ready[0].id, label: `${roundLabel(ready[0].round)} #${ready[0].matchNumber}`, scheduledAt: ready[0].scheduledAt }
+          : null,
         champion: final?.winnerId ? name(final.winnerId) : null,
         violations: violationsByRoom.get(room.id) ?? 0,
       };

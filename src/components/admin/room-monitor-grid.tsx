@@ -1,4 +1,5 @@
 import { CrownIcon, ShieldAlertIcon } from "lucide-react";
+import Link from "next/link";
 
 import type { RoomMonitor, RoomStatus } from "@/lib/room-monitor";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,9 @@ export function RoomMonitorGrid({ rooms, compact = false }: { rooms: RoomMonitor
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="font-medium">{room.name}</div>
+                <Link href={`/admin/pantau/${room.roomId}${room.sessionId ? `?sesi=${room.sessionId}` : ""}`} className="font-medium hover:underline">
+                  {room.name}
+                </Link>
                 {!compact && room.location && <div className="truncate text-xs text-muted-foreground">{room.location}</div>}
               </div>
               <span className={cn("flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", status.className)}>
@@ -51,11 +54,11 @@ export function RoomMonitorGrid({ rooms, compact = false }: { rooms: RoomMonitor
 
             {!compact &&
               room.live.map((m) => (
-                <div key={m.matchId} className="rounded-lg bg-red-500/5 p-2 text-sm">
+                <Link key={m.matchId} href={`/admin/laga/${m.matchId}`} className="block rounded-lg bg-red-500/5 p-2 text-sm hover:bg-red-500/10">
                   <div className="text-xs text-muted-foreground">{m.label}</div>
                   <div className="flex justify-between gap-2"><span className="truncate">{m.a}</span><span className="font-semibold tabular-nums">{m.scoreA ?? 0}</span></div>
                   <div className="flex justify-between gap-2"><span className="truncate">{m.b}</span><span className="font-semibold tabular-nums">{m.scoreB ?? 0}</span></div>
-                </div>
+                </Link>
               ))}
             {compact && room.live.length > 0 && (
               <div className="truncate text-xs">
@@ -70,10 +73,10 @@ export function RoomMonitorGrid({ rooms, compact = false }: { rooms: RoomMonitor
             ) : (
               !compact &&
               room.next && (
-                <div className="text-xs text-muted-foreground">
+                <Link href={`/admin/laga/${room.next.matchId}`} className="text-xs text-muted-foreground hover:text-foreground">
                   Berikutnya: {room.next.label}
                   {room.next.scheduledAt && ` · ${time.format(new Date(room.next.scheduledAt))}`}
-                </div>
+                </Link>
               )
             )}
           </li>
