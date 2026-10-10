@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { ResultForm } from "@/components/ruangan/result-form";
+import { type NextPreview, ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
-import { roundLabel } from "@/lib/bracket";
+import { buildAdvanceMap, buildSlotLabels, LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { getPengawasSession } from "@/lib/pengawas-session";
 
@@ -13,6 +13,12 @@ export const metadata = { title: "Input hasil · Bracket LRP 2026" };
 
 const timeFormat = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Asia/Jakarta",
+});
+
+const shortTime = new Intl.DateTimeFormat("id-ID", {
   hour: "2-digit",
   minute: "2-digit",
   timeZone: "Asia/Jakarta",
@@ -61,6 +67,28 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
   const session_ = data.sessions.find((s) => s.id === match.sessionId);
 
+  // Pratinjau babak lanjut: laga tujuan, slot, dan calon lawan pemenang.
+  let next: NextPreview = { kind: match.round === LAST_ROOM_ROUND ? "final-stage" : "champion" };
+  const nextMatch = match.nextMatchId ? data.matches.find((m) => m.id === match.nextMatchId) : undefined;
+  if (nextMatch) {
+    const side = buildAdvanceMap(data.matches).get(match.id)?.side ?? "B";
+    const opponentId = side === "A" ? nextMatch.participantBId : nextMatch.participantAId;
+    const labels = buildSlotLabels(data.matches, {
+      sessions: new Map(data.sessions.map((s) => [s.id, s])),
+      rooms: new Map(data.rooms.map((r) => [r.id, r])),
+    }).get(nextMatch.id);
+    const opponent = opponentId ? participants.get(opponentId) : undefined;
+    next = {
+      kind: "match",
+      label: `${roundLabel(nextMatch.round)} #${nextMatch.matchNumber}`,
+      roomName: data.rooms.find((r) => r.id === nextMatch.roomId)?.name ?? null,
+      time: nextMatch.scheduledAt ? shortTime.format(new Date(nextMatch.scheduledAt)) : null,
+      status: nextMatch.status,
+      opponent: opponent?.name ?? (side === "A" ? labels?.b.text : labels?.a.text) ?? "Belum diketahui",
+      opponentKnown: !!opponent,
+    };
+  }
+
   return (
     <>
       {back}
@@ -81,7 +109,7 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
       </div>
 
       {a && b ? (
-        <ResultForm key={match.id} match={match} participantA={a} participantB={b} />
+        <ResultForm key={match.id} match={match} participantA={a} participantB={b} next={next} />
       ) : (
         <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
           Peserta laga ini belum lengkap. Hasil bisa diisi setelah pemenang babak sebelumnya
