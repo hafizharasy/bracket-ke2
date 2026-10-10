@@ -74,7 +74,10 @@ Migrasi berjalan otomatis saat start. Data lama (bagan 16 peserta) tidak cocok
 dengan format baru, jadi kosongkan dan isi ulang lewat shell: `npm run db:seed -- --reset`
 (data contoh) atau `npm run db:seed -- --reset --dasar` lalu impor peserta asli.
 
-Untuk membawa CSV ke server, buat berkasnya lewat shell (`cat > peserta.csv`,
+Peserta bisa juga ditambah langsung dari website: **Peserta & Jadwal → Unggah CSV**
+(pilih berkas, periksa daftar masalah, lalu Simpan) atau **Tambah peserta** satu per satu.
+
+Untuk membawa CSV ke server lewat shell, buat berkasnya (`cat > peserta.csv`,
 tempel isinya, lalu Ctrl+D). Jangan memakai `railway run` dari komputer lokal:
 perintah itu berjalan di komputer Anda, bukan di volume server.
 

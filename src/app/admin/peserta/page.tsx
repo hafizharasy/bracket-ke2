@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { ParticipantFormDialog } from "@/components/admin/participant-form-dialog";
 import { BracketStructureCard } from "@/components/admin/bracket-structure-card";
+import { CsvImportDialog } from "@/components/admin/csv-import-dialog";
 import { CompletenessPanel } from "@/components/admin/completeness-panel";
 import { ParticipantTable } from "@/components/admin/participant-table";
 import { PLAYERS_PER_ROOM } from "@/lib/bracket";
@@ -52,7 +53,8 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
         started={data.matches.some((m) => m.status !== "scheduled")}
         placementReady={checks.filter((c) => ["session", "room", "cells"].includes(c.key)).every((c) => c.ok)}
       />
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <CsvImportDialog />
         <ParticipantFormDialog sessions={sessions} rooms={rooms} sessionRooms={data.sessionRooms} />
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

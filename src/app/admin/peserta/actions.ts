@@ -6,6 +6,7 @@ import { assignInput, assignParticipants, autoAssign, autoAssignInput } from "@/
 import { generateBracketStructure } from "@/server/bracket-structure";
 import { ApiError } from "@/server/errors";
 import { bracketSource, notifyBracketChanged } from "@/server/live";
+import { importParticipantsCsv } from "@/server/participant-import";
 import { pairingInput, savePairings } from "@/server/pairings";
 import { semifinalPairsInput, setSemifinalPairs } from "@/server/semifinal-pairs";
 import {
@@ -108,4 +109,24 @@ export async function saveSemifinalPairsAction(pairs: [string, string][]): Promi
   if (!parsed.success) return { ok: false, error: "Pasangan semifinal tidak valid." };
   const admin = await getAdminSession();
   return run(() => void setSemifinalPairs(parsed.data.pairs, admin?.userId ?? null));
+}
+
+export type ImportPreview = ReturnType<typeof importParticipantsCsv>;
+export type ImportActionResult = ({ ok: true; simulated: boolean } & Partial<ImportPreview>) | { ok: false; error: string };
+
+/** Unggah CSV peserta dari halaman admin: periksa dulu (`dryRun`), lalu simpan. */
+export async function importParticipantsAction(text: string, options: { replace: boolean; dryRun: boolean }): Promise<ImportActionResult> {
+  const denied = await assertAdminAction();
+  if (denied) return denied;
+  if (text.length > 1_000_000) return { ok: false, error: "Berkas terlalu besar (maks. 1 MB)." };
+  if (bracketSource() === "mock") return { ok: true, simulated: true };
+  try {
+    const admin = await getAdminSession();
+    const result = importParticipantsCsv(text, options, admin?.userId ?? null);
+    if (result.saved) notifyBracketChanged();
+    return { ok: true, simulated: false, ...result };
+  } catch (error) {
+    if (error instanceof ApiError) return { ok: false, error: error.message };
+    throw error;
+  }
 }
