@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { matches, matchResults } from "@/db/schema";
+import { matches, matchResultHistory, matchResults } from "@/db/schema";
 import { assertRoomAccess, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
@@ -64,6 +64,22 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
       .onConflictDoUpdate({
         target: matchResults.matchId,
         set: { proofPhotoUrl: input.proofPhotoUrl, recordedBy: user.id, recordedAt: now },
+      })
+      .run();
+
+    // Jejak audit: setiap simpan tercatat, termasuk koreksi.
+    tx.insert(matchResultHistory)
+      .values({
+        id: crypto.randomUUID(),
+        matchId: match.id,
+        roomId: match.roomId,
+        action: match.status === "done" ? "correct" : "create",
+        scoreA: input.scoreA,
+        scoreB: input.scoreB,
+        winnerId,
+        proofPhotoUrl: input.proofPhotoUrl,
+        recordedBy: user.id,
+        recordedAt: now,
       })
       .run();
 

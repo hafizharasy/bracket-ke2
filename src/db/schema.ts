@@ -142,7 +142,49 @@ export const matchResults = sqliteTable(
       .notNull()
       .default(sql`(unixepoch())`),
   },
-  (t) => [uniqueIndex("match_results_match_idx").on(t.matchId)],
+  (t) => [
+    uniqueIndex("match_results_match_idx").on(t.matchId),
+    index("match_results_recorded_idx").on(t.recordedAt),
+  ],
+);
+
+export const RESULT_ACTIONS = ["create", "correct"] as const;
+
+/**
+ * Jejak audit setiap penyimpanan hasil (input pertama & koreksi). Satu baris
+ * per penyimpanan, tidak pernah diubah, supaya riwayat ruangan dan koreksi
+ * bisa ditelusuri. `roomId` disalin agar riwayat per ruangan cepat dibaca.
+ */
+export const matchResultHistory = sqliteTable(
+  "match_result_history",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    roomId: text("room_id")
+      .notNull()
+      .references(() => rooms.id),
+    action: text("action", { enum: RESULT_ACTIONS }).notNull(),
+    scoreA: integer("score_a").notNull(),
+    scoreB: integer("score_b").notNull(),
+    winnerId: text("winner_id")
+      .notNull()
+      .references(() => participants.id),
+    proofPhotoUrl: text("proof_photo_url").notNull(),
+    recordedBy: text("recorded_by")
+      .notNull()
+      .references(() => users.id),
+    recordedAt: integer("recorded_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    check("match_result_history_action_check", sql`${t.action} in ('create', 'correct')`),
+    check("match_result_history_score_check", sql`${t.scoreA} >= 0 and ${t.scoreB} >= 0`),
+    index("match_result_history_room_idx").on(t.roomId, t.recordedAt),
+    index("match_result_history_match_idx").on(t.matchId, t.recordedAt),
+  ],
 );
 
 /** Catatan pelanggaran peserta. */
@@ -244,6 +286,13 @@ export const matchesRelations = relations(matches, ({ one }) => ({
 export const matchResultsRelations = relations(matchResults, ({ one }) => ({
   match: one(matches, { fields: [matchResults.matchId], references: [matches.id] }),
   recorder: one(users, { fields: [matchResults.recordedBy], references: [users.id] }),
+}));
+
+export const matchResultHistoryRelations = relations(matchResultHistory, ({ one }) => ({
+  match: one(matches, { fields: [matchResultHistory.matchId], references: [matches.id] }),
+  room: one(rooms, { fields: [matchResultHistory.roomId], references: [rooms.id] }),
+  winner: one(participants, { fields: [matchResultHistory.winnerId], references: [participants.id] }),
+  recorder: one(users, { fields: [matchResultHistory.recordedBy], references: [users.id] }),
 }));
 
 export const violationsRelations = relations(violations, ({ one }) => ({
