@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { assertAdminAction } from "@/lib/admin-session";
 import type { AccountFormValues, AdminActionResult } from "@/lib/admin-client";
 import { createMockAccount, updateMockAccount } from "@/lib/mock/account-store";
 import { getBracket } from "@/lib/get-bracket";
@@ -16,6 +17,8 @@ const accountInput = z.object({
 
 /** Simpan akun pengawas ke state tiruan (validasi sama dengan form + email unik). */
 export async function saveAccountAction(id: string | null, values: AccountFormValues): Promise<AdminActionResult> {
+  const denied = await assertAdminAction();
+  if (denied) return denied;
   const parsed = accountInput.safeParse(values);
   if (!parsed.success) return { ok: false, error: "Data akun tidak valid." };
   const input = parsed.data;
@@ -42,6 +45,8 @@ export async function updateAccountStatusAction(
   id: string,
   change: { active: boolean } | { resetPassword: string },
 ): Promise<AdminActionResult> {
+  const denied = await assertAdminAction();
+  if (denied) return denied;
   const accounts = await getPengawasAccounts();
   if (!accounts.some((a) => a.id === id)) return { ok: false, error: "Akun tidak ditemukan." };
   if ("active" in change) updateMockAccount(id, { active: change.active });

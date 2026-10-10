@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { assertAdminAction } from "@/lib/admin-session";
 import type { AdminActionResult, RoomFormValues, SessionFormValues } from "@/lib/admin-client";
 import { getBracket } from "@/lib/get-bracket";
 import { updateMockRoom, updateMockSession } from "@/lib/mock/structure-store";
@@ -10,6 +11,8 @@ const name = z.string().trim().min(2).max(50);
 
 /** Simpan nama & lokasi ruangan ke state tiruan (nama harus unik). */
 export async function saveRoomAction(id: string, values: RoomFormValues): Promise<AdminActionResult> {
+  const denied = await assertAdminAction();
+  if (denied) return denied;
   const parsed = z.object({ name, location: z.string().trim().max(100) }).safeParse(values);
   if (!parsed.success) return { ok: false, error: "Data ruangan tidak valid." };
   const { rooms } = await getBracket();
@@ -23,6 +26,8 @@ export async function saveRoomAction(id: string, values: RoomFormValues): Promis
 
 /** Simpan nama & jam mulai sesi ke state tiruan (nama unik, urutan jam tetap naik). */
 export async function saveSessionAction(id: string, values: SessionFormValues): Promise<AdminActionResult> {
+  const denied = await assertAdminAction();
+  if (denied) return denied;
   const parsed = z.object({ name, startTime: z.iso.datetime() }).safeParse(values);
   if (!parsed.success) return { ok: false, error: "Data sesi tidak valid." };
   const { sessions } = await getBracket();

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdminSidebar, AdminTabs } from "@/components/admin/admin-nav";
-import { getAdminSession } from "@/lib/admin-session";
+import { getAdminSession, requireAdmin } from "@/lib/admin-session";
 
 export const metadata = { title: { template: "%s · Admin LRP 2026", default: "Admin LRP 2026" } };
 
@@ -37,13 +37,23 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
             <AdminSidebar />
           </Suspense>
         </aside>
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Pembatas akses: konten admin hanya dirender untuk admin utama. */}
+          <Suspense fallback={<div className="m-6 h-64 animate-pulse rounded-xl bg-muted" />}>
+            <AdminGuard>{children}</AdminGuard>
+          </Suspense>
+        </div>
       </div>
     </div>
   );
 }
 
+async function AdminGuard({ children }: { children: React.ReactNode }) {
+  await requireAdmin();
+  return children;
+}
+
 async function AdminName() {
   const session = await getAdminSession();
-  return <span className="hidden text-xs text-muted-foreground sm:inline">· {session.name}</span>;
+  return session ? <span className="hidden text-xs text-muted-foreground sm:inline">· {session.name}</span> : null;
 }
