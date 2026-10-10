@@ -21,19 +21,27 @@ const createdAt = () =>
     .default(sql`(unixepoch())`);
 
 /** 4 sesi pertandingan. */
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  orderIndex: integer("order_index").notNull(),
-  startTime: integer("start_time", { mode: "timestamp" }),
-});
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    orderIndex: integer("order_index").notNull(),
+    startTime: integer("start_time", { mode: "timestamp" }),
+  },
+  (t) => [uniqueIndex("sessions_name_idx").on(t.name), uniqueIndex("sessions_order_idx").on(t.orderIndex)],
+);
 
 /** 10 ruangan pertandingan. */
-export const rooms = sqliteTable("rooms", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  location: text("location"),
-});
+export const rooms = sqliteTable(
+  "rooms",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    location: text("location"),
+  },
+  (t) => [uniqueIndex("rooms_name_idx").on(t.name)],
+);
 
 /** Akun admin utama & pengawas ruangan. Pengawas terikat ke satu ruangan. */
 export const users = sqliteTable(
@@ -69,6 +77,8 @@ export const participants = sqliteTable(
     sessionId: text("session_id").references(() => sessions.id, { onDelete: "set null" }),
     roomId: text("room_id").references(() => rooms.id, { onDelete: "set null" }),
     createdAt: createdAt(),
+    /** Terakhir diubah admin (nama, klub, sesi, ruangan); null bila belum pernah. */
+    updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (t) => [
     index("participants_session_room_idx").on(t.sessionId, t.roomId),
@@ -123,6 +133,8 @@ export const matches = sqliteTable(
     index("matches_room_status_idx").on(t.roomId, t.status),
     index("matches_next_idx").on(t.nextMatchId),
     index("matches_round_idx").on(t.round, t.matchNumber),
+    // Satu posisi bagan = satu laga (mencegah laga ganda saat menyusun pasangan).
+    uniqueIndex("matches_slot_idx").on(t.sessionId, t.roomId, t.round, t.matchNumber),
   ],
 );
 
