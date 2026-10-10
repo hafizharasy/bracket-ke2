@@ -93,3 +93,28 @@ describe("sesi login akun", () => {
     await expectApiError(() => logoutPengawasEverywhere("u-x"), 404);
   });
 });
+
+describe("jejak & pembuatan massal", () => {
+  it("mencatat perubahan akun di audit_logs", async () => {
+    const { auditLogs } = await import("@/db/schema");
+    db.delete(auditLogs).run();
+    const { id } = await createPengawas({ ...base, email: "satu@lrp.id" });
+    await updatePengawas(id, { roomId: "ruangan-2" });
+    await updatePengawas(id, { active: false });
+    await updatePengawas(id, { name: "Pengawas Satu" }); // tidak berubah → tidak dicatat
+    deletePengawas(id);
+    const log = db.select().from(auditLogs).all();
+    expect(log.map((e) => e.action)).toEqual(["account.create", "account.update", "account.deactivate", "account.delete"]);
+    expect(log[1].summary).toBe("satu@lrp.id: ruangan → Ruangan 2");
+  });
+
+  it("membuat akun hanya untuk ruangan tanpa pengawas aktif, dengan sandi yang bisa dipakai", async () => {
+    const { generateMissingPengawas } = await import("@/server/pengawas-accounts");
+    await createPengawas({ ...base, email: "satu@lrp.id", roomId: "ruangan-1" });
+    const created = await generateMissingPengawas("lrp.id");
+    expect(created).toEqual([expect.objectContaining({ email: "ruangan-2@lrp.id", roomId: "ruangan-2", roomName: "Ruangan 2" })]);
+    const credential = db.select().from(authAccounts).where(eq(authAccounts.userId, created[0].id)).get()!;
+    expect(await verifyPassword({ hash: credential.password!, password: created[0].password })).toBe(true);
+    expect(await generateMissingPengawas("lrp.id")).toEqual([]);
+  });
+});

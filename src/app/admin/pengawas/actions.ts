@@ -1,6 +1,6 @@
 "use server";
 
-import { assertAdminAction } from "@/lib/admin-session";
+import { getAdminSession } from "@/lib/admin-session";
 import type { AccountFormValues, AdminActionResult } from "@/lib/admin-client";
 import { ApiError } from "@/server/errors";
 import {
@@ -11,11 +11,11 @@ import {
   updatePengawas,
 } from "@/server/pengawas-accounts";
 
-async function run(write: () => Promise<{ id: string }>): Promise<AdminActionResult> {
-  const denied = await assertAdminAction();
-  if (denied) return denied;
+async function run(write: (actorId: string) => Promise<{ id: string }>): Promise<AdminActionResult> {
+  const admin = await getAdminSession();
+  if (!admin) return { ok: false, error: "Hanya admin utama yang boleh melakukan ini." };
   try {
-    const { id } = await write();
+    const { id } = await write(admin.userId);
     return { ok: true, simulated: false, id };
   } catch (error) {
     if (error instanceof ApiError) return { ok: false, error: error.message };
@@ -30,11 +30,11 @@ export async function saveAccountAction(id: string | null, values: AccountFormVa
   if (id === null) {
     const parsed = pengawasCreateInput.safeParse(values);
     if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
-    return run(() => createPengawas(parsed.data));
+    return run((actor) => createPengawas(parsed.data, actor));
   }
   const parsed = pengawasUpdateInput.safeParse({ ...values, password: values.password || undefined });
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
-  return run(() => updatePengawas(id, parsed.data));
+  return run((actor) => updatePengawas(id, parsed.data, actor));
 }
 
 /**
@@ -45,8 +45,8 @@ export async function updateAccountStatusAction(
   id: string,
   change: { active: boolean } | { resetPassword: string } | { logout: true },
 ): Promise<AdminActionResult> {
-  if ("logout" in change) return run(async () => (logoutPengawasEverywhere(id), { id }));
+  if ("logout" in change) return run(async (actor) => (logoutPengawasEverywhere(id, actor), { id }));
   const parsed = pengawasUpdateInput.safeParse("active" in change ? { active: change.active } : { password: change.resetPassword });
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
-  return run(() => updatePengawas(id, parsed.data));
+  return run((actor) => updatePengawas(id, parsed.data, actor));
 }

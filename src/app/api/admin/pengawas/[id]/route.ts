@@ -15,16 +15,16 @@ export const GET = withAdmin<{ id: string }>((_request, params) => {
  * PATCH /api/admin/pengawas/:id — ubah { name?, email?, roomId?, password?, active? }
  * (admin). Pindah ruangan, ganti sandi, atau nonaktif mengakhiri sesi login akun itu.
  */
-export const PATCH = withAdmin<{ id: string }>(async (request, params) => {
+export const PATCH = withAdmin<{ id: string }>(async (request, params, admin) => {
   const parsed = pengawasUpdateInput.safeParse(await readJson(request));
   if (!parsed.success) {
     return Response.json({ error: "Data akun tidak valid.", issues: z.flattenError(parsed.error).fieldErrors }, { status: 422 });
   }
-  return Response.json(await updatePengawas(params.id, parsed.data));
+  return Response.json(await updatePengawas(params.id, parsed.data, admin.id));
 });
 
 /** DELETE /api/admin/pengawas/:id — hapus akun tanpa jejak hasil/pelanggaran (admin). */
-export const DELETE = withAdmin<{ id: string }>((_request, params) => {
-  deletePengawas(params.id);
+export const DELETE = withAdmin<{ id: string }>((_request, params, admin) => {
+  deletePengawas(params.id, admin.id);
   return new Response(null, { status: 204 });
 });

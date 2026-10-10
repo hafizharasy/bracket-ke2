@@ -9,10 +9,10 @@ export const GET = withAdmin(() => {
 });
 
 /** POST /api/admin/pengawas — buat akun { name, email, roomId, password } (admin). */
-export const POST = withAdmin(async (request) => {
+export const POST = withAdmin(async (request, _params, admin) => {
   const parsed = pengawasCreateInput.safeParse(await readJson(request));
   if (!parsed.success) {
     return Response.json({ error: "Data akun tidak valid.", issues: z.flattenError(parsed.error).fieldErrors }, { status: 422 });
   }
-  return Response.json(await createPengawas(parsed.data), { status: 201 });
+  return Response.json(await createPengawas(parsed.data, admin.id), { status: 201 });
 });

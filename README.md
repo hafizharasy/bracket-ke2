@@ -107,4 +107,6 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/admin/matches/:id` | Detail laga untuk admin: hasil & foto bukti, asal slot, laga berikutnya, jejak audit hasil, pelanggaran di laga itu — admin |
 | `GET/POST /api/admin/pengawas` · `GET/PATCH/DELETE /api/admin/pengawas/:id` | Akun pengawas `{ name, email, roomId, password, active? }`; pindah ruangan / ganti sandi / nonaktif mengakhiri sesi login; hapus ditolak 409 bila sudah punya jejak — admin |
 | `POST /api/admin/pengawas/:id/logout` | Keluarkan akun pengawas dari semua perangkat → `{ revoked }` — admin |
+| `POST /api/admin/pengawas/generate` | `{ domain? }` buat akun (sandi acak, ditampilkan sekali) untuk tiap ruangan tanpa pengawas aktif — admin |
+| `GET /api/admin/audit?batas=` | Jejak aksi admin: login/logout, buat/ubah/nonaktif/hapus akun, keluarkan sesi — admin |
 | `GET /api/admin/session` · `DELETE /api/admin/session[?semua=1 \| ?id=<sesi>]` | Perangkat tempat admin login / logout admin (semua perangkat, atau akhiri satu sesi lain); tercatat di `audit_logs` — admin |
