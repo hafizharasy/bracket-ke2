@@ -8,7 +8,7 @@
 import { sql } from "drizzle-orm";
 
 import { DATABASE_PATH, db } from "@/db";
-import { matches, matchResults, participants, rooms, sessions, violations } from "@/db/schema";
+import { matches, matchResults, participants, rooms, sessions, users, violations } from "@/db/schema";
 import { championSlots, mockBracket } from "@/lib/mock/bracket-data";
 import { bumpBracketVersion } from "@/server/live";
 
@@ -60,6 +60,25 @@ db.transaction((tx) => {
     .sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
   for (let i = 0; i < structure.length; i += BATCH) {
     tx.insert(matches).values(structure.slice(i, i + BATCH)).onConflictDoNothing().run();
+  }
+
+  // Akun contoh untuk pengembangan (admin + pengawas tiap ruangan). Sandi
+  // placeholder "!" tidak bisa dipakai login; tidak dibuat di production.
+  if (process.env.NODE_ENV !== "production") {
+    tx.insert(users)
+      .values([
+        { id: "u-admin", name: "Admin Utama", email: "admin@lrp.local", passwordHash: "!", role: "admin" as const },
+        ...mockBracket.rooms.map((room, i) => ({
+          id: `u-pengawas-${i + 1}`,
+          name: `Pengawas ${room.name}`,
+          email: `ruangan${i + 1}@lrp.local`,
+          passwordHash: "!",
+          role: "pengawas" as const,
+          roomId: room.id,
+        })),
+      ])
+      .onConflictDoNothing()
+      .run();
   }
 
   bumpBracketVersion(tx);

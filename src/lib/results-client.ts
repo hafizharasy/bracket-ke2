@@ -1,4 +1,7 @@
-// Pemanggil API hasil laga dari sisi klien (form pengawas).
+// Pemanggil penyimpanan dari sisi klien (form pengawas) lewat Server Actions.
+
+import { saveMatchResult } from "@/app/ruangan/laga/actions";
+import { recordViolation } from "@/app/ruangan/pelanggaran/actions";
 
 export type ResultPayload = {
   scoreA: number;
@@ -9,17 +12,16 @@ export type ResultPayload = {
 
 export type SubmitResult = { ok: true; simulated: boolean } | { ok: false; error: string };
 
-/**
- * SEMENTARA (stub frontend): mensimulasikan penyimpanan tanpa memanggil
- * server. Akan diganti PUT /api/matches/:id/result saat backend dihubungkan.
- */
+/** Simpan hasil laga lewat Server Action (skor, pemenang, bukti, status selesai). */
 export async function submitMatchResult(
   matchId: string,
   payload: ResultPayload,
 ): Promise<SubmitResult> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  console.info("[simulasi] simpan hasil", matchId, payload);
-  return { ok: true, simulated: true };
+  try {
+    return await saveMatchResult(matchId, payload);
+  } catch {
+    return { ok: false, error: "Gagal menyimpan. Periksa koneksi lalu coba lagi." };
+  }
 }
 
 /** Batas ukuran berkas asli yang diterima sebelum dikompres. */
@@ -65,7 +67,6 @@ export type ViolationPayload = {
  * Action, belum database); nanti diganti penyimpanan ke tabel violations.
  */
 export async function submitViolation(payload: ViolationPayload): Promise<SubmitResult> {
-  const { recordViolation } = await import("@/app/ruangan/pelanggaran/actions");
   try {
     return await recordViolation(payload);
   } catch {

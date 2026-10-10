@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRightIcon, CheckCircle2Icon, Loader2Icon, TrophyIcon, TriangleAlertIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { type ProofPhoto, ProofPhotoInput } from "@/components/ruangan/proof-photo-input";
@@ -53,6 +54,7 @@ export function ResultForm({
   const [photo, setPhoto] = useState<ProofPhoto | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const saving = status.kind === "saving";
+  const router = useRouter();
 
   const isTie = scoreA === scoreB;
   const winnerId = isTie ? tieWinnerId : scoreA > scoreB ? participantA.id : participantB.id;
@@ -79,6 +81,8 @@ export function ResultForm({
     setStatus(
       result.ok ? { kind: "saved", simulated: result.simulated } : { kind: "error", message: result.error },
     );
+    // Muat ulang data halaman (status laga, babak lanjut) dari server.
+    if (result.ok) router.refresh();
   }
 
   const sides = [
