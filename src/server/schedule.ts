@@ -2,7 +2,7 @@ import { and, asc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { matches, participants, rooms, sessions } from "@/db/schema";
+import { matches, participants, rooms, sessions, users } from "@/db/schema";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
 
@@ -116,4 +116,118 @@ export function getSchedule(filter: { sesi?: string; ruangan?: string } = {}) {
       participantB: m.participantBId ? { id: m.participantBId, name: names.get(m.participantBId) ?? null } : null,
     })),
   };
+}
+
+/** Sesi terurut beserta jumlah peserta & laga (untuk daftar admin / API). */
+export function listSessions() {
+  const counts = (table: typeof participants | typeof matches) =>
+    new Map(
+      db
+        .select({ id: table.sessionId, n: sql<number>`count(*)` })
+        .from(table)
+        .groupBy(table.sessionId)
+        .all()
+        .map((r) => [r.id, r.n]),
+    );
+  const people = counts(participants);
+  const games = counts(matches);
+  return db
+    .select()
+    .from(sessions)
+    .orderBy(asc(sessions.orderIndex))
+    .all()
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      orderIndex: s.orderIndex,
+      startTime: iso(s.startTime),
+      updatedAt: iso(s.updatedAt),
+      participants: people.get(s.id) ?? 0,
+      matches: games.get(s.id) ?? 0,
+    }));
+}
+
+/** Ruangan beserta jumlah peserta, laga, dan pengawas. */
+export function listRooms() {
+  const count = (rows: { id: string | null }[]) => {
+    const map = new Map<string | null, number>();
+    for (const r of rows) map.set(r.id, (map.get(r.id) ?? 0) + 1);
+    return map;
+  };
+  const people = count(db.select({ id: participants.roomId }).from(participants).all());
+  const games = count(db.select({ id: matches.roomId }).from(matches).all());
+  const supervisors = count(db.select({ id: users.roomId }).from(users).where(eq(users.role, "pengawas")).all());
+  return db
+    .select()
+    .from(rooms)
+    .all()
+    .sort((a, b) => a.id.localeCompare(b.id, "id", { numeric: true }))
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      location: r.location,
+      updatedAt: iso(r.updatedAt),
+      participants: people.get(r.id) ?? 0,
+      matches: games.get(r.id) ?? 0,
+      pengawas: supervisors.get(r.id) ?? 0,
+    }));
+}
+
+/** ID berikutnya dengan awalan, mis. "ruangan-11" setelah "ruangan-10". */
+function nextId(prefix: string, ids: string[]) {
+  const max = Math.max(0, ...ids.map((id) => Number(id.slice(prefix.length + 1))).filter(Number.isFinite));
+  return `${prefix}-${max + 1}`;
+}
+
+/** Tambah sesi di akhir urutan; jam mulai harus setelah sesi terakhir. */
+export function createSession(input: z.infer<typeof sessionScheduleInput>) {
+  const all = db.select().from(sessions).orderBy(asc(sessions.orderIndex)).all();
+  if (all.some((s) => s.name.toLowerCase() === input.name.toLowerCase())) throw new ApiError(409, "Nama sesi sudah dipakai.");
+  const start = new Date(input.startTime);
+  const last = all.at(-1);
+  if (last?.startTime && start <= last.startTime) throw new ApiError(422, "Jam mulai harus setelah sesi terakhir.");
+  const id = nextId("sesi", all.map((s) => s.id));
+  db.transaction((tx) => {
+    tx.insert(sessions).values({ id, name: input.name, orderIndex: (last?.orderIndex ?? 0) + 1, startTime: start }).run();
+    bumpBracketVersion(tx);
+  });
+  return listSessions().find((s) => s.id === id)!;
+}
+
+/** Tambah ruangan (nama unik). */
+export function createRoom(input: z.infer<typeof roomInput>) {
+  const all = db.select().from(rooms).all();
+  if (all.some((r) => r.name.toLowerCase() === input.name.toLowerCase())) throw new ApiError(409, "Nama ruangan sudah dipakai.");
+  const id = nextId("ruangan", all.map((r) => r.id));
+  db.transaction((tx) => {
+    tx.insert(rooms).values({ id, name: input.name, location: input.location || null }).run();
+    bumpBracketVersion(tx);
+  });
+  return listRooms().find((r) => r.id === id)!;
+}
+
+/** Hapus sesi yang belum dipakai peserta maupun laga. */
+export function deleteSession(id: string) {
+  const session = listSessions().find((s) => s.id === id);
+  if (!session) throw new ApiError(404, "Sesi tidak ditemukan.");
+  if (session.participants || session.matches) {
+    throw new ApiError(409, `Sesi masih dipakai ${session.participants} peserta dan ${session.matches} laga.`);
+  }
+  db.transaction((tx) => {
+    tx.delete(sessions).where(eq(sessions.id, id)).run();
+    bumpBracketVersion(tx);
+  });
+}
+
+/** Hapus ruangan yang belum dipakai peserta, laga, maupun akun pengawas. */
+export function deleteRoom(id: string) {
+  const room = listRooms().find((r) => r.id === id);
+  if (!room) throw new ApiError(404, "Ruangan tidak ditemukan.");
+  if (room.participants || room.matches || room.pengawas) {
+    throw new ApiError(409, `Ruangan masih dipakai ${room.participants} peserta, ${room.matches} laga, dan ${room.pengawas} akun pengawas.`);
+  }
+  db.transaction((tx) => {
+    tx.delete(rooms).where(eq(rooms.id, id)).run();
+    bumpBracketVersion(tx);
+  });
 }

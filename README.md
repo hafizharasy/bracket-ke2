@@ -72,6 +72,9 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/bracket/version` | Versi data bagan (ringan) |
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
 | `GET /api/schedule?sesi=&ruangan=` | Jadwal publik: jam mulai & rentang laga tiap sesi, laga terurut jam beserta nama peserta |
+| `GET /api/sessions` · `GET /api/rooms` | Daftar sesi / ruangan beserta jumlah peserta, laga (dan akun pengawas) |
+| `POST /api/sessions` · `PATCH/DELETE /api/sessions/:id` | Tambah / ubah `{ name?, startTime? }` (jadwal laga ikut bergeser) / hapus sesi yang belum dipakai — admin |
+| `POST /api/rooms` · `PATCH/DELETE /api/rooms/:id` | Tambah / ubah `{ name?, location? }` / hapus ruangan yang belum dipakai — admin |
 | `GET /api/matches/:id` | Detail satu pertandingan |
 | `POST /api/matches/:id/proof` | Unggah foto bukti (multipart `photo`, JPEG/PNG/WebP ≤ 5 MB) |
 | `DELETE /api/matches/:id/result` | Batalkan hasil (salah input) selama laga berikutnya belum dimulai |

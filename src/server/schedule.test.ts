@@ -5,7 +5,17 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { matches, participants, rooms, sessions } from "@/db/schema";
 import { ApiError } from "@/server/errors";
-import { getSchedule, updateRoom, updateSessionSchedule } from "@/server/schedule";
+import {
+  createRoom,
+  createSession,
+  deleteRoom,
+  deleteSession,
+  getSchedule,
+  listRooms,
+  listSessions,
+  updateRoom,
+  updateSessionSchedule,
+} from "@/server/schedule";
 
 function expectApiError(fn: () => unknown, status: number) {
   try {
@@ -68,5 +78,28 @@ describe("updateRoom & getSchedule", () => {
     expect(schedule.matches.map((m) => m.id)).toEqual(["m1", "m2"]);
     expect(schedule.matches[0].participantA).toEqual({ id: "p1", name: "Budi" });
     expect(getSchedule({ ruangan: "ruangan-1" }).rooms).toEqual([{ id: "ruangan-1", name: "Ruang Utama", location: "Gedung A" }]);
+  });
+});
+
+describe("CRUD sesi & ruangan", () => {
+  it("menghitung pemakaian dan menambah dengan ID & urutan berikutnya", () => {
+    expect(listSessions()[0]).toMatchObject({ id: "sesi-1", matches: 2, participants: 0 });
+    expect(listRooms()[0]).toMatchObject({ id: "ruangan-1", matches: 3, pengawas: 0 });
+
+    expect(createSession({ name: "Sesi 3", startTime: at("13:00").toISOString() })).toMatchObject({ id: "sesi-3", orderIndex: 3 });
+    expectApiError(() => createSession({ name: "Sesi 4", startTime: at("09:00").toISOString() }), 422);
+    expect(createRoom({ name: "Ruangan 3", location: "" })).toMatchObject({ id: "ruangan-3", location: null });
+    expectApiError(() => createRoom({ name: "ruangan 3", location: "" }), 409);
+  });
+
+  it("hanya menghapus sesi/ruangan yang belum dipakai", () => {
+    expectApiError(() => deleteSession("sesi-1"), 409);
+    expectApiError(() => deleteRoom("ruangan-1"), 409);
+    deleteRoom("ruangan-2");
+    db.delete(matches).where(eq(matches.sessionId, "sesi-2")).run();
+    deleteSession("sesi-2");
+    expect(listSessions().map((s) => s.id)).toEqual(["sesi-1"]);
+    expect(listRooms().map((r) => r.id)).toEqual(["ruangan-1"]);
+    expectApiError(() => deleteRoom("ruangan-9"), 404);
   });
 });
