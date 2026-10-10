@@ -86,3 +86,4 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `POST /api/participants/auto-assign` | Bagi rata otomatis `{ kind: "sesi", mode }` / `{ kind: "ruangan", mode, sessionId }`, mode `unassigned`/`all`; klub disebar — admin |
 | `GET /api/pairings?sesi=&ruangan=` · `PUT /api/pairings` | Baca/simpan pasangan babak 1 `{ sessionId, roomId, order }` (indeks 2k vs 2k+1; dikunci setelah laga ruangan dimulai) — admin |
 | `GET /api/participants/summary` | Ringkasan kelengkapan: isi tiap sesi × ruangan, belum ditempatkan, status pasangan babak 1, `checks` & `ready` — admin |
+| `GET /api/admin/summary?aktivitas=` | Ringkasan dashboard admin: progres laga per sesi, juara ruangan, laga berikutnya, total pelanggaran, perlu perhatian, aktivitas terbaru, status ruangan — admin |

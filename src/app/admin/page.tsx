@@ -2,18 +2,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { TournamentSummaryCards } from "@/components/admin/tournament-summary-cards";
-import { getBracket } from "@/lib/get-bracket";
-import { summarizeTournament } from "@/lib/tournament-summary";
-import { getTotalViolations } from "@/lib/violation-totals";
 import { RoomMonitorGrid } from "@/components/admin/room-monitor-grid";
-import { monitorRooms } from "@/lib/room-monitor";
-import { getViolationCountsByRoom } from "@/lib/room-violation-counts";
 import { ActivityFeed } from "@/components/admin/activity-feed";
 import { AttentionPanel } from "@/components/admin/attention-panel";
-import { getRecentActivity } from "@/lib/admin-activity";
 import { getAdminSession } from "@/lib/admin-session";
-import { getPengawasAccounts } from "@/lib/pengawas-accounts";
-import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
+import { getDashboardSummary } from "@/server/dashboard";
 
 export const metadata = { title: "Dashboard" };
 
@@ -47,24 +40,10 @@ export default function AdminDashboardPage() {
 }
 
 async function QuickStats() {
-  const [data, violations, counts, activity, accounts] = await Promise.all([
-    getBracket(),
-    getTotalViolations(),
-    getViolationCountsByRoom(),
-    getRecentActivity(8),
-    getPengawasAccounts(),
-  ]);
-  const attention = [
-    ...checkScheduleCompleteness(data)
-      .filter((c) => !c.ok)
-      .map((c) => ({ text: `${c.label}: ${c.detail}`, href: c.href })),
-    ...data.rooms
-      .filter((r) => !accounts.some((a) => a.active && a.roomId === r.id))
-      .map((r) => ({ text: `${r.name} belum punya pengawas aktif`, href: "/admin/pengawas" })),
-  ];
+  const { summary, violations, attention, activity, monitor } = await getDashboardSummary();
   return (
     <>
-      <TournamentSummaryCards summary={summarizeTournament(data)} violations={violations} />
+      <TournamentSummaryCards summary={summary} violations={violations} />
       <div className="grid gap-5 lg:grid-cols-2">
         <section aria-label="Perlu perhatian" className="flex flex-col gap-2">
           <h2 className="font-semibold">Perlu perhatian</h2>
@@ -80,7 +59,7 @@ async function QuickStats() {
           <h2 className="font-semibold">Ruangan</h2>
           <Link href="/admin/pantau" className="text-sm text-muted-foreground hover:text-foreground">Lihat detail →</Link>
         </div>
-        <RoomMonitorGrid rooms={monitorRooms(data, counts).rooms} compact />
+        <RoomMonitorGrid rooms={monitor.rooms} compact />
       </section>
     </>
   );
