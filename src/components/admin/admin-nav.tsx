@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ClipboardListIcon,
   DoorOpenIcon,
   LayoutDashboardIcon,
   MonitorIcon,
@@ -19,6 +20,7 @@ export const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon; exact
   { href: "/admin/peserta", label: "Peserta & Jadwal", icon: UsersIcon },
   { href: "/admin/ruangan", label: "Ruangan & Sesi", icon: DoorOpenIcon },
   { href: "/admin/pengawas", label: "Akun Pengawas", icon: UserCogIcon },
+  { href: "/admin/rekap", label: "Rekap & Ekspor", icon: ClipboardListIcon },
 ];
 
 function useActive() {
