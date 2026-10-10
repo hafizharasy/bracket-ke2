@@ -58,3 +58,5 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 | `GET /api/participants/:id/violations` | Riwayat pelanggaran peserta (pengawas: ruangannya; admin: semua) |
 | `GET /api/rooms/:id/matches?sesi=` · `GET /api/rooms/:id/history?sesi=` | Laga & riwayat hasil ruangan |
 | `POST /api/violations` | Catat pelanggaran (`participantId`, `matchId?`, `roomId?`, `type`, `note?`, `occurredAt?`) |
+| `GET /api/participants?q=&sesi=&ruangan=&hal=&per=` | Cari peserta (nama/ID/klub), filter sesi/ruangan (`none` = belum ditempatkan), berhalaman — admin |
+| `POST /api/participants` · `GET/PATCH/DELETE /api/participants/:id` | Tambah/lihat/ubah/hapus peserta (hapus ditolak 409 bila sudah masuk bagan) — admin |

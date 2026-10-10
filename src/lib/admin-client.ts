@@ -1,5 +1,6 @@
 // Pemanggil aksi admin dari sisi klien.
 
+import { saveParticipantAction } from "@/app/admin/peserta/actions";
 import { saveAccountAction, updateAccountStatusAction } from "@/app/admin/pengawas/actions";
 import { saveRoomAction, saveSessionAction } from "@/app/admin/ruangan/actions";
 
@@ -23,17 +24,9 @@ export function validateParticipant(values: ParticipantFormValues) {
   return errors;
 }
 
-/**
- * SEMENTARA (stub frontend): mensimulasikan simpan peserta. Akan diganti
- * endpoint tambah/ubah peserta di backend.
- */
-export async function saveParticipant(
-  id: string | null,
-  values: ParticipantFormValues,
-): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  console.info("[simulasi] simpan peserta", id ?? "(baru)", values);
-  return { ok: true, simulated: true, id: id ?? "p-baru" };
+/** Simpan peserta baru (id null) atau perubahan peserta. */
+export function saveParticipant(id: string | null, values: ParticipantFormValues): Promise<AdminActionResult> {
+  return saveParticipantAction(id, values);
 }
 
 export type AssignMode = "unassigned" | "all";
