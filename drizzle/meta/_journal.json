@@ -64,6 +64,13 @@
       "when": 1791597793999,
       "tag": "0008_hapus_password_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791599078800,
+      "tag": "0009_login_attempts",
+      "breakpoints": true
     }
   ]
 }

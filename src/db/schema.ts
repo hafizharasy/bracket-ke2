@@ -121,6 +121,28 @@ export const authAccounts = sqliteTable(
   (t) => [index("auth_accounts_user_idx").on(t.userId)],
 );
 
+/**
+ * Jejak percobaan login (admin & pengawas) untuk membatasi tebakan sandi:
+ * terlalu banyak gagal untuk satu email dalam jangka waktu → dikunci sementara.
+ */
+export const loginAttempts = sqliteTable(
+  "login_attempts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** Email yang dicoba (huruf kecil), walau akunnya tidak ada. */
+    email: text("email").notNull(),
+    /** Halaman login yang dipakai. */
+    role: text("role", { enum: USER_ROLES }).notNull(),
+    success: integer("success", { mode: "boolean" }).notNull(),
+    ipAddress: text("ip_address"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("login_attempts_email_idx").on(t.email, t.createdAt),
+    check("login_attempts_role_check", sql`${t.role} in ('admin', 'pengawas')`),
+  ],
+);
+
 /** Token verifikasi (Better Auth), mis. reset sandi. */
 export const authVerifications = sqliteTable(
   "auth_verifications",
