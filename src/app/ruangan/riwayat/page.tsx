@@ -112,7 +112,10 @@ function HistoryRow({ item, sessionName }: { item: RoomHistoryItem; sessionName?
           </span>
         )}
         {item.recordedBy && <span className="text-muted-foreground">oleh {item.recordedBy}</span>}
-        <Link href={`/ruangan/laga/${item.matchId}`} className="ml-auto flex items-center gap-1 font-medium hover:underline">
+        <Link href={`/ruangan/riwayat/${item.matchId}`} className="ml-auto font-medium hover:underline">
+          Detail
+        </Link>
+        <Link href={`/ruangan/laga/${item.matchId}`} className="flex items-center gap-1 font-medium hover:underline">
           <PencilIcon className="size-3.5" /> Koreksi
         </Link>
       </div>
