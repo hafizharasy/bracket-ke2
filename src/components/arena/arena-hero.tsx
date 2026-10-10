@@ -2,7 +2,8 @@ import { ArrowRightIcon, CalendarDaysIcon, Clock3Icon, MapPinIcon, ShieldCheckIc
 import type { ReactNode } from "react";
 
 import { SectionBadge } from "@/components/arena/arena-chrome";
-import { roundLabel } from "@/lib/bracket";
+import { FINAL_ROUND, roundLabel } from "@/lib/bracket";
+import { finalistsOf, finalStandings, formatPoints, winPoints, type StandingRow } from "@/lib/final-standings";
 import type { BracketData, Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,12 @@ const initials = (name: string) =>
 export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }) {
   const featured = featuredMatch(data.matches);
   const people = new Map(data.participants.map((p) => [p.id, p]));
+  // Semua laga final selesai → tampilkan juara 1–3 & harapan 1–2 dari klasemen poin.
+  const finals = data.matches.filter((m) => m.round === FINAL_ROUND);
+  const finalDone = finals.length > 0 && finals.every((m) => m.status === "done");
+  const podium = finalDone
+    ? finalStandings(finals, finalistsOf(data.matches).filter((id): id is string => !!id)).slice(0, 5)
+    : null;
 
   return (
     <section className="relative overflow-hidden bg-[linear-gradient(110deg,#1a1a2e_0%,#2a1730_45%,#4a1424_100%)] text-white">
@@ -61,7 +68,11 @@ export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }
           </div>
         </div>
 
-        {featured && <SpotlightCard {...featured} data={data} people={people} />}
+        {podium && podium.length > 0 ? (
+          <WinnersCard rows={podium} people={people} />
+        ) : (
+          featured && <SpotlightCard {...featured} data={data} people={people} />
+        )}
       </div>
     </section>
   );
@@ -79,9 +90,12 @@ function SpotlightCard({
   people: Map<string, Participant>;
 }) {
   const room = data.rooms.find((r) => r.id === match.roomId);
+  // Laga final tanpa skor: tampilkan poin dari jenis kemenangan.
+  const shown = (id: string | null, score: number | null) =>
+    match.round === FINAL_ROUND && match.winnerId ? (id === match.winnerId ? `+${formatPoints(winPoints(match.winType))}` : "0") : score;
   const sides = [
-    { p: match.participantAId ? people.get(match.participantAId) : undefined, score: match.scoreA, avatar: "bg-ink text-white" },
-    { p: match.participantBId ? people.get(match.participantBId) : undefined, score: match.scoreB, avatar: "bg-gold text-ink" },
+    { p: match.participantAId ? people.get(match.participantAId) : undefined, score: shown(match.participantAId, match.scoreA), avatar: "bg-ink text-white" },
+    { p: match.participantBId ? people.get(match.participantBId) : undefined, score: shown(match.participantBId, match.scoreB), avatar: "bg-gold text-ink" },
   ];
   const heading = kind === "live" ? "Sedang berlangsung" : kind === "next" ? "Laga berikutnya" : "Hasil terakhir";
 
@@ -147,6 +161,77 @@ function SpotlightCard({
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-ink/55">
             <ShieldCheckIcon className="size-3.5" aria-hidden /> Hasil diverifikasi pengawas ruangan
+          </div>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+const PLACES = [
+  { label: "Juara 1", medal: "bg-gold text-ink", row: "border-gold bg-gold-soft" },
+  { label: "Juara 2", medal: "bg-[#cfd6e0] text-ink", row: "border-ink/10 bg-[#f6e9c4]" },
+  { label: "Juara 3", medal: "bg-[#d99a5b] text-white", row: "border-ink/10 bg-[#f6e9c4]" },
+  { label: "Harapan 1", medal: "bg-ink text-gold", row: "border-ink/10 bg-[#f6e9c4]" },
+  { label: "Harapan 2", medal: "bg-ink text-gold", row: "border-ink/10 bg-[#f6e9c4]" },
+];
+
+/** Kartu juara setelah final selesai: juara 1–3 dan harapan 1–2 sesuai urutan klasemen poin. */
+function WinnersCard({ rows, people }: { rows: StandingRow[]; people: Map<string, Participant> }) {
+  const tied = rows.some((r) => r.tied);
+  return (
+    <a
+      href="#final"
+      className="group relative block rounded-3xl bg-gold p-2 shadow-[8px_8px_0_0_rgb(0_0_0/0.3)] transition-transform hover:-translate-y-1"
+    >
+      <div className="rounded-[1.25rem] border-4 border-crimson bg-[#fbf1d8] p-1">
+        <div className="arena-marquee h-2.5 rounded-t-xl bg-crimson" aria-hidden />
+        <div className="flex flex-col gap-3 p-5 text-ink sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="inline-block border-b-2 border-ink/20 pb-1 text-[10px] font-bold tracking-[0.15em] text-ink/60 uppercase">
+                Turnamen selesai
+              </div>
+              <div className="mt-2 font-display text-xl text-crimson">Para juara</div>
+            </div>
+            <TrophyIcon className="size-8 text-crimson" aria-hidden />
+          </div>
+          <ol className="flex flex-col gap-2">
+            {rows.map((row, i) => {
+              const p = people.get(row.participantId);
+              const place = PLACES[i];
+              return (
+                <li key={row.participantId} className={cn("flex items-center gap-3 rounded-xl border p-2.5", place.row, i === 0 && "py-3.5")}>
+                  <span
+                    className={cn(
+                      "flex shrink-0 items-center justify-center rounded-lg font-display",
+                      i === 0 ? "size-12 text-2xl" : "size-10 text-lg",
+                      place.medal,
+                    )}
+                    aria-hidden
+                  >
+                    {place.label.split(" ")[1]}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={cn("block font-display text-[10px] tracking-wide uppercase", i < 3 ? "text-crimson" : "text-ink/55")}>
+                      {place.label}
+                    </span>
+                    <span className={cn("block truncate font-bold", i === 0 ? "text-base" : "text-sm")}>{p?.name ?? row.participantId}</span>
+                    <span className="block truncate text-[11px] text-ink/55">
+                      {p?.teamOrClub ?? "—"} · {row.wins} menang
+                    </span>
+                  </span>
+                  <span className={cn("shrink-0 text-right font-display text-crimson tabular-nums", i === 0 ? "text-2xl" : "text-lg")}>
+                    {formatPoints(row.points)}
+                    <span className="ml-0.5 font-body text-[10px] font-semibold text-ink/45">poin</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+          <div className="flex items-center gap-1.5 text-[11px] text-ink/55">
+            <ShieldCheckIcon className="size-3.5" aria-hidden />
+            {tied ? "Ada poin yang masih seri — urutan akhir ditetapkan panitia." : "Urutan sesuai klasemen poin final."}
           </div>
         </div>
       </div>
