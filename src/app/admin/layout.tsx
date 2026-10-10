@@ -2,28 +2,48 @@ import { ArrowLeftIcon, LayoutDashboardIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminSidebar, AdminTabs } from "@/components/admin/admin-nav";
+import { getAdminSession } from "@/lib/admin-session";
 
 export const metadata = { title: { template: "%s · Admin LRP 2026", default: "Admin LRP 2026" } };
 
+/**
+ * Kerangka area admin: header + tab di layar kecil, sidebar di layar lebar
+ * (lg). Konten tiap halaman mengatur lebarnya sendiri.
+ */
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-2 px-4">
+        <div className="flex h-12 items-center gap-2 px-4">
           <LayoutDashboardIcon className="size-4 text-primary" aria-hidden />
-          <span className="text-sm font-semibold">Admin Utama</span>
+          <span className="text-sm font-semibold">Admin Bracket LRP 2026</span>
+          <Suspense>
+            <AdminName />
+          </Suspense>
           <Link href="/" className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             <ArrowLeftIcon className="size-3" />
             Bracket publik
           </Link>
         </div>
         {/* Tab aktif dibaca dari URL → perlu Suspense pada rute dinamis. */}
-        <Suspense fallback={<div className="h-9" />}>
-          <AdminNav />
+        <Suspense fallback={<div className="h-9 lg:hidden" />}>
+          <AdminTabs />
         </Suspense>
       </header>
-      {children}
+      <div className="flex flex-1">
+        <aside className="sticky top-12 hidden h-[calc(100dvh-3rem)] w-56 shrink-0 border-r p-3 lg:block">
+          <Suspense>
+            <AdminSidebar />
+          </Suspense>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      </div>
     </div>
   );
+}
+
+async function AdminName() {
+  const session = await getAdminSession();
+  return <span className="hidden text-xs text-muted-foreground sm:inline">· {session.name}</span>;
 }
