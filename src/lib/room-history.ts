@@ -1,5 +1,6 @@
 import { roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
+import { bracketSource } from "@/server/live";
 import type { Participant } from "@/lib/types";
 
 export type RoomHistoryItem = {
@@ -16,16 +17,20 @@ export type RoomHistoryItem = {
   recordedAt: string | null;
   recordedBy: string | null;
   proofPhotoUrl: string | null;
+  /** Berapa kali hasil dikoreksi setelah input pertama. */
+  corrections: number;
 };
 
 /**
- * Riwayat hasil laga di satu ruangan, terbaru dulu.
- *
- * SEMENTARA (stub frontend): diturunkan dari data bagan; waktu catat
- * diperkirakan dari jadwal + 10 menit dan foto bukti belum tersedia.
- * Akan diganti endpoint riwayat dari tabel match_results.
+ * Riwayat hasil laga di satu ruangan, terbaru dulu: dari database, atau
+ * diturunkan dari data simulasi saat BRACKET_DATA_SOURCE=mock.
  */
 export async function getRoomHistory(roomId: string): Promise<RoomHistoryItem[]> {
+  if (bracketSource() === "db") {
+    const { getRoomHistoryFromDb } = await import("@/db/queries/room");
+    return getRoomHistoryFromDb(roomId);
+  }
+  // Mode simulasi: waktu catat diperkirakan dari jadwal + 10 menit, tanpa bukti.
   const data = await getBracket();
   const participants = new Map(data.participants.map((p) => [p.id, p]));
   return data.matches
@@ -45,6 +50,7 @@ export async function getRoomHistory(roomId: string): Promise<RoomHistoryItem[]>
         : null,
       recordedBy: null,
       proofPhotoUrl: null,
+      corrections: 0,
     }))
     .sort((a, b) => (b.recordedAt ?? "").localeCompare(a.recordedAt ?? "") || b.matchNumber - a.matchNumber);
 }

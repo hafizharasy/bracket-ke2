@@ -112,6 +112,9 @@ function HistoryRow({ item, sessionName }: { item: RoomHistoryItem; sessionName?
           </span>
         )}
         {item.recordedBy && <span className="text-muted-foreground">oleh {item.recordedBy}</span>}
+        {item.corrections > 0 && (
+          <span className="text-amber-700 dark:text-amber-400">dikoreksi {item.corrections}×</span>
+        )}
         <Link href={`/ruangan/riwayat/${item.matchId}`} className="ml-auto font-medium hover:underline">
           Detail
         </Link>
