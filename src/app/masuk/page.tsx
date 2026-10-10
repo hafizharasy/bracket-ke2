@@ -36,9 +36,6 @@ export default function MasukPengawasPage({ searchParams }: PageProps<"/masuk">)
       )}
 
       <div className="flex flex-col items-center gap-1 text-sm">
-        <Link href="/masuk/admin" className="text-muted-foreground underline underline-offset-2 hover:text-foreground">
-          Masuk sebagai admin utama
-        </Link>
         <Link href="/" className="text-muted-foreground hover:text-foreground">
           Lihat bracket publik
         </Link>
