@@ -63,7 +63,7 @@ export function ParticipantTable({
             name="q"
             type="search"
             defaultValue={query.q}
-            placeholder="Cari nama, ID, atau klub…"
+            placeholder="Cari nama, ID, atau sekolah…"
             className={cn(selectClass, "w-full pl-9")}
           />
         </label>
@@ -105,7 +105,7 @@ export function ParticipantTable({
               <tr>
                 <th className="px-3 py-2 font-medium">ID</th>
                 <th className="px-3 py-2 font-medium">Nama</th>
-                <th className="px-3 py-2 font-medium">Tim / klub</th>
+                <th className="px-3 py-2 font-medium">Sekolah</th>
                 <th className="px-3 py-2 font-medium">Sesi</th>
                 <th className="px-3 py-2 font-medium">Ruangan</th>
                 <th className="px-3 py-2"><span className="sr-only">Aksi</span></th>

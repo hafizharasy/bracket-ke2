@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/peserta/sesi", label: "Pembagian Sesi" },
   { href: "/admin/peserta/ruangan", label: "Penempatan Ruangan" },
   { href: "/admin/peserta/pasangan", label: "Pasangan Tanding" },
+  { href: "/admin/peserta/semifinal", label: "Pasangan Semifinal" },
 ];
 
 /** Sub-navigasi fitur Atur Peserta & Jadwal. */

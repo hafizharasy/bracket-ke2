@@ -1,6 +1,7 @@
 import { CheckIcon, HourglassIcon } from "lucide-react";
 
 import type { SlotLabel, SlotLabels } from "@/lib/bracket";
+import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,10 @@ export function MatchCard({
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
   const winner = match.winnerId ? participants.get(match.winnerId) : undefined;
   const hasScore = match.scoreA !== null && match.scoreB !== null;
+  // Final round-robin: tampilkan poin dari jenis kemenangan, bukan skor.
+  const points = match.winType && match.winnerId ? formatPoints(winPoints(match.winType)) : null;
+  const display = (id: string | null, score: number | null) =>
+    points !== null ? (id === match.winnerId ? `+${points}` : "0") : score;
   const leader =
     isLive && hasScore && match.scoreA !== match.scoreB
       ? match.scoreA! > match.scoreB! ? "a" : "b"
@@ -44,6 +49,7 @@ export function MatchCard({
     `Laga #${match.matchNumber}`,
     `${a?.name ?? slotLabels?.a.text ?? "TBD"} lawan ${b?.name ?? slotLabels?.b.text ?? "TBD"}`,
     hasScore ? `skor ${match.scoreA}–${match.scoreB}` : null,
+    points !== null ? `${points} poin untuk pemenang` : null,
     winner ? `pemenang ${winner.name}` : isLive ? "sedang berlangsung" : null,
   ]
     .filter(Boolean)
@@ -85,7 +91,7 @@ export function MatchCard({
       </div>
       <ParticipantRow
         participant={a}
-        score={match.scoreA}
+        score={display(match.participantAId, match.scoreA)}
         placeholder={slotLabels?.a}
         isLeading={leader === "a"}
         isWinner={!!match.winnerId && match.winnerId === match.participantAId}
@@ -93,7 +99,7 @@ export function MatchCard({
       />
       <ParticipantRow
         participant={b}
-        score={match.scoreB}
+        score={display(match.participantBId, match.scoreB)}
         placeholder={slotLabels?.b}
         isLeading={leader === "b"}
         isWinner={!!match.winnerId && match.winnerId === match.participantBId}
@@ -114,7 +120,7 @@ function ParticipantRow({
   className,
 }: {
   participant?: Participant;
-  score: number | null;
+  score: number | string | null;
   placeholder?: SlotLabel;
   isWinner: boolean;
   isLoser: boolean;

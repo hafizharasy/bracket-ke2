@@ -18,14 +18,16 @@ export type AttentionItem = { text: string; href: string };
 
 /** Hal yang perlu ditindak admin: jadwal belum lengkap & ruangan tanpa pengawas aktif. */
 export function attentionItems(
-  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "matches">,
+  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "sessionRooms" | "matches">,
   accounts: { active: boolean; roomId: string | null }[],
 ): AttentionItem[] {
   return [
     ...checkScheduleCompleteness(data)
       .filter((c) => !c.ok)
       .map((c) => ({ text: `${c.label}: ${c.detail}`, href: c.href })),
+    // Hanya ruangan yang dipakai di salah satu sesi.
     ...data.rooms
+      .filter((r) => data.sessionRooms.some((c) => c.roomId === r.id))
       .filter((r) => !accounts.some((a) => a.active && a.roomId === r.id))
       .map((r) => ({ text: `${r.name} belum punya pengawas aktif`, href: "/admin/pengawas" })),
   ];

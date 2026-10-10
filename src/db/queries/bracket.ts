@@ -1,7 +1,7 @@
 import { and, asc, eq, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
-import { bracketState, matches, participants, rooms, sessions } from "@/db/schema";
+import { bracketState, matches, participants, rooms, sessionRooms, sessions } from "@/db/schema";
 import type { BracketData } from "@/lib/types";
 
 const iso = (date: Date | null) => (date ? date.toISOString() : null);
@@ -48,11 +48,13 @@ export function getBracketFromDb(filter: BracketFilter = {}): BracketData {
     .orderBy(asc(matches.round), asc(matches.matchNumber), asc(matches.id))
     .all();
   const state = db.select().from(bracketState).where(eq(bracketState.id, 1)).get();
+  const sessionRoomRows = db.select().from(sessionRooms).all();
 
   return {
     sessions: sessionRows.map((s) => ({ ...s, startTime: iso(s.startTime) })),
     // Urut natural: Ruangan 2 sebelum Ruangan 10.
     rooms: roomRows.sort((a, b) => a.name.localeCompare(b.name, "id", { numeric: true })),
+    sessionRooms: sessionRoomRows,
     participants: participantRows,
     matches: matchRows.map((m) => ({ ...m, scheduledAt: iso(m.scheduledAt) })),
     version: state?.version ?? 0,

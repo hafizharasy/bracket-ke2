@@ -40,7 +40,7 @@ describe("getDbRecap", () => {
       expect.objectContaining({ matchId: "a", status: "done", scoreA: 1, scoreB: 3, winner: { id: "p2", name: "Nama p2" }, recordedBy: "Pengawas R1", corrections: 1, hasProof: true }),
     ]);
     expect(recap.summary).toMatchObject({ matches: { total: 1, done: 1 }, corrections: 1, violations: { total: 1 } });
-    expect(recap.violations[0]).toMatchObject({ participant: { name: "Nama p1" }, recordedBy: "Pengawas R1", matchLabel: "16 Besar Ruangan #1" });
+    expect(recap.violations[0]).toMatchObject({ participant: { name: "Nama p1" }, recordedBy: "Pengawas R1", matchLabel: "64 Besar Ruangan #1" });
     expect(getDbRecap({}).results.find((r) => r.matchId === "b")).toMatchObject({ status: "scheduled", recordedBy: null, corrections: 0 });
   });
 });

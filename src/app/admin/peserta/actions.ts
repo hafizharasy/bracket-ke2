@@ -7,6 +7,7 @@ import { generateBracketStructure } from "@/server/bracket-structure";
 import { ApiError } from "@/server/errors";
 import { bracketSource, notifyBracketChanged } from "@/server/live";
 import { pairingInput, savePairings } from "@/server/pairings";
+import { semifinalPairsInput, setSemifinalPairs } from "@/server/semifinal-pairs";
 import {
   createParticipant,
   participantCreateInput,
@@ -94,9 +95,17 @@ export async function generateBracketAction(replace: boolean): Promise<GenerateB
   try {
     const result = generateBracketStructure({ replace }, admin.userId);
     notifyBracketChanged();
-    return { ok: true, simulated: false, summary: `${result.roomMatches} laga ruangan + ${result.finalMatches} laga final dibuat.` };
+    return { ok: true, simulated: false, summary: `${result.rooms} ruangan (${result.roomMatches} laga), ${result.semifinalMatches} semifinal, dan ${result.finalMatches} laga final dibuat.` };
   } catch (error) {
     if (!(error instanceof ApiError)) throw error;
     return { ok: false, error: error.message, problems: error.details?.errors as string[] | undefined };
   }
+}
+
+/** Atur pasangan semifinal: pairs[k] = dua laga final ruangan untuk semifinal ke-(k+1). */
+export async function saveSemifinalPairsAction(pairs: [string, string][]): Promise<AdminActionResult> {
+  const parsed = semifinalPairsInput.safeParse({ pairs });
+  if (!parsed.success) return { ok: false, error: "Pasangan semifinal tidak valid." };
+  const admin = await getAdminSession();
+  return run(() => void setSemifinalPairs(parsed.data.pairs, admin?.userId ?? null));
 }

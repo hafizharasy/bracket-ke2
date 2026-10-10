@@ -37,8 +37,10 @@ describe("summarizePlacement", () => {
     const summary = summarizePlacement(mockBracket);
     expect(summary).toMatchObject({ total: 640, withoutSession: 0, withoutRoom: 0, ready: true });
     expect(summary.sessions).toHaveLength(4);
-    expect(summary.sessions[0]).toMatchObject({ count: 160 });
-    expect(summary.sessions[0].rooms.every((r) => r.count === 16 && r.pairsComplete)).toBe(true);
+    expect(summary.sessions[0]).toMatchObject({ count: 192 });
+    expect(summary.sessions[0].rooms).toHaveLength(3);
+    expect(summary.sessions[2].rooms).toHaveLength(2);
+    expect(summary.sessions[0].rooms.every((r) => r.count === 64 && r.pairsComplete)).toBe(true);
   });
 
   it("melaporkan peserta belum ditempatkan dan pasangan kosong", () => {
@@ -46,6 +48,6 @@ describe("summarizePlacement", () => {
     const matches = mockBracket.matches.map((m) => (m.id === "m-s1-r1-b1-1" ? { ...m, participantAId: null } : m));
     const summary = summarizePlacement({ ...mockBracket, participants, matches });
     expect(summary).toMatchObject({ withoutSession: 1, withoutRoom: 1, ready: false });
-    expect(summary.sessions[0].rooms[0]).toMatchObject({ id: "ruangan-1", count: 15, pairsComplete: false });
+    expect(summary.sessions[0].rooms[0]).toMatchObject({ id: "ruangan-1", count: 63, pairsComplete: false });
   });
 });

@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { RefereeEditor } from "@/components/admin/referee-editor";
 import { Badge } from "@/components/ui/badge";
+import { loadReferees } from "@/lib/admin-referees";
 import { roundLabel, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,7 @@ async function RoomMatches({ params, searchParams }: Pick<PageProps<"/admin/pant
   const session = data.sessions.find((s) => s.id === query.sesi) ?? data.sessions[0];
   const name = (id: string | null) => (id ? data.participants.find((p) => p.id === id)?.name : null);
   const list = data.matches.filter((m) => m.roomId === room.id && m.sessionId === session.id).sort(sortMatches);
+  const referees = await loadReferees(list.map((m) => m.id), `/admin/pantau/${room.id}`);
 
   return (
     <>
@@ -54,6 +57,7 @@ async function RoomMatches({ params, searchParams }: Pick<PageProps<"/admin/pant
               <span className="w-40 shrink-0 text-xs text-muted-foreground">
                 {roundLabel(m.round)} #{m.matchNumber}
                 {m.scheduledAt && ` · ${time.format(new Date(m.scheduledAt))}`}
+                <span className="block truncate">{referees[m.id] ? `Pengawas: ${referees[m.id]}` : <span className="text-amber-700 dark:text-amber-400">Pengawas belum diisi</span>}</span>
               </span>
               <span className="min-w-0 flex-1 truncate">
                 <span className={cn(m.winnerId === m.participantAId && m.winnerId && "font-semibold")}>{name(m.participantAId) ?? "—"}</span>
@@ -67,6 +71,17 @@ async function RoomMatches({ params, searchParams }: Pick<PageProps<"/admin/pant
           </li>
         ))}
       </ul>
+      {list.length > 0 && (
+        <RefereeEditor
+          key={`${session.id}-${JSON.stringify(referees)}`}
+          initial={referees}
+          rows={list.map((m) => ({
+            matchId: m.id,
+            label: `${roundLabel(m.round)} #${m.matchNumber}`,
+            detail: [name(m.participantAId), name(m.participantBId)].filter(Boolean).join(" vs ") || undefined,
+          }))}
+        />
+      )}
     </>
   );
 }

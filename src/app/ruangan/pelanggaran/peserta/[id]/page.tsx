@@ -67,7 +67,7 @@ async function ParticipantViolations({ params }: Pick<PageProps<"/ruangan/pelang
         <div className="min-w-0">
           <h1 className="truncate font-heading text-xl font-semibold">{participant.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {participant.teamOrClub ?? "Tanpa klub"} · {participant.id.toUpperCase()}
+            {participant.teamOrClub ?? "Tanpa sekolah"} · {participant.id.toUpperCase()}
           </p>
         </div>
         <Link

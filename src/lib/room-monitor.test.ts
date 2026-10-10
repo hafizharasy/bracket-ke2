@@ -7,8 +7,8 @@ describe("monitorRooms", () => {
   it("memakai sesi aktif (Sesi 3 berjalan) dan menandai ruangan berlangsung", () => {
     const { sessionId, rooms } = monitorRooms(mockBracket, new Map([["ruangan-1", 3]]));
     expect(sessionId).toBe("sesi-3");
-    expect(rooms).toHaveLength(10);
-    expect(rooms[0]).toMatchObject({ status: "berlangsung", total: 15, violations: 3 });
+    expect(rooms).toHaveLength(2); // Sesi 3 memakai Ruangan 1–2
+    expect(rooms[0]).toMatchObject({ status: "berlangsung", total: 63, violations: 3 });
     expect(rooms[0].live.length).toBeGreaterThan(0);
   });
 

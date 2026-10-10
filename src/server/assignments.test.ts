@@ -3,7 +3,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/db";
-import { matches, participants, rooms, sessions } from "@/db/schema";
+import { matches, participants, rooms, sessionRooms, sessions } from "@/db/schema";
 import { assignParticipants, autoAssign } from "@/server/assignments";
 import { ApiError } from "@/server/errors";
 
@@ -31,7 +31,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  for (const table of [matches, participants, rooms, sessions]) db.delete(table).run();
+  for (const table of [matches, participants, sessionRooms, rooms, sessions]) db.delete(table).run();
   db.insert(sessions).values([
     { id: "sesi-1", name: "Sesi 1", orderIndex: 1 },
     { id: "sesi-2", name: "Sesi 2", orderIndex: 2 },
@@ -39,10 +39,15 @@ beforeEach(() => {
   db.insert(rooms).values([
     { id: "ruangan-1", name: "Ruangan 1" },
     { id: "ruangan-2", name: "Ruangan 2" },
+    { id: "ruangan-3", name: "Ruangan 3" },
   ]).run();
-  // 40 peserta dari 4 klub, belum ditempatkan.
+  // Ruangan 1–2 dipakai di kedua sesi; Ruangan 3 tidak dipakai.
+  db.insert(sessionRooms).values(
+    ["sesi-1", "sesi-2"].flatMap((sessionId) => ["ruangan-1", "ruangan-2"].map((roomId) => ({ sessionId, roomId }))),
+  ).run();
+  // 160 peserta dari 4 sekolah, belum ditempatkan.
   db.insert(participants)
-    .values(Array.from({ length: 40 }, (_, i) => ({
+    .values(Array.from({ length: 160 }, (_, i) => ({
       id: `p-${String(i + 1).padStart(3, "0")}`,
       name: `Peserta ${i + 1}`,
       teamOrClub: `Klub ${(i % 4) + 1}`,
@@ -57,9 +62,10 @@ describe("assignParticipants", () => {
     expect(get("p-001")).toMatchObject({ sessionId: "sesi-2", roomId: null });
   });
 
-  it("menolak ruangan untuk peserta tanpa sesi dan ruangan yang penuh", () => {
+  it("menolak ruangan untuk peserta tanpa sesi, ruangan yang tidak dipakai sesi, dan ruangan yang penuh", () => {
     expectApiError(() => assignParticipants({ ids: ["p-001"], roomId: "ruangan-1" }), 422);
-    const ids = all().slice(0, 17).map((p) => p.id);
+    expectApiError(() => assignParticipants({ ids: ["p-001"], sessionId: "sesi-1", roomId: "ruangan-3" }), 422);
+    const ids = all().slice(0, 65).map((p) => p.id);
     expectApiError(() => assignParticipants({ ids, sessionId: "sesi-1", roomId: "ruangan-1" }), 409);
     expect(get("p-001").sessionId).toBeNull();
   });
@@ -78,12 +84,12 @@ describe("assignParticipants", () => {
 describe("autoAssign", () => {
   it("membagi rata ke sesi lalu ke ruangan dengan klub tersebar", () => {
     autoAssign({ kind: "sesi", mode: "unassigned" });
-    expect([...countBy("sessionId").values()]).toEqual([20, 20]);
+    expect([...countBy("sessionId").values()]).toEqual([80, 80]);
 
     autoAssign({ kind: "ruangan", mode: "unassigned", sessionId: "sesi-1" });
     const inSession = all().filter((p) => p.sessionId === "sesi-1");
-    expect([...countBy("roomId", inSession).values()].sort()).toEqual([10, 10]);
-    // Tiap klub (5 orang di sesi ini) tersebar ke dua ruangan.
+    expect([...countBy("roomId", inSession).values()].sort()).toEqual([40, 40]);
+    // Tiap sekolah (20 orang di sesi ini) tersebar ke dua ruangan.
     for (const room of ["ruangan-1", "ruangan-2"]) {
       const clubs = new Set(inSession.filter((p) => p.roomId === room).map((p) => p.teamOrClub));
       expect(clubs.size).toBe(4);
@@ -93,7 +99,7 @@ describe("autoAssign", () => {
   it("mode 'unassigned' hanya mengisi yang belum dan menghormati isi yang ada", () => {
     db.update(participants).set({ sessionId: "sesi-1" }).where(eq(participants.teamOrClub, "Klub 1")).run();
     autoAssign({ kind: "sesi", mode: "unassigned" });
-    expect(countBy("sessionId").get("sesi-1")).toBe(20);
+    expect(countBy("sessionId").get("sesi-1")).toBe(80);
     expect(all().filter((p) => p.teamOrClub === "Klub 1").every((p) => p.sessionId === "sesi-1")).toBe(true);
   });
 

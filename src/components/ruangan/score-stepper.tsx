@@ -13,14 +13,17 @@ export function ScoreStepper({
   value,
   onChange,
   disabled,
+  max = MAX_SCORE,
 }: {
   id: string;
   label: string;
   value: number;
   onChange: (value: number) => void;
   disabled?: boolean;
+  /** Nilai maksimum (mis. 2 untuk game semifinal best of 3). */
+  max?: number;
 }) {
-  const set = (next: number) => onChange(Math.min(MAX_SCORE, Math.max(0, next)));
+  const set = (next: number) => onChange(Math.min(max, Math.max(0, next)));
 
   return (
     <div className="flex items-center gap-2">
@@ -40,7 +43,7 @@ export function ScoreStepper({
         type="number"
         inputMode="numeric"
         min={0}
-        max={MAX_SCORE}
+        max={max}
         value={value}
         disabled={disabled}
         onChange={(e) => set(Number.parseInt(e.target.value || "0", 10) || 0)}
@@ -54,7 +57,7 @@ export function ScoreStepper({
         size="icon-lg"
         className="size-11"
         onClick={() => set(value + 1)}
-        disabled={disabled || value >= MAX_SCORE}
+        disabled={disabled || value >= max}
         aria-label={`Tambah skor ${label}`}
       >
         <PlusIcon />

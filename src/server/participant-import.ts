@@ -4,7 +4,7 @@ import type { Room, Session } from "@/lib/types";
 
 export const participantFields = z.object({
   name: z.string().trim().min(1, "Nama wajib diisi.").max(100, "Nama maksimal 100 karakter."),
-  teamOrClub: z.string().trim().max(100, "Klub maksimal 100 karakter.").nullable(),
+  teamOrClub: z.string().trim().max(100, "Nama sekolah maksimal 100 karakter.").nullable(),
   sessionId: z.string().nullable(),
   roomId: z.string().nullable(),
 });
@@ -47,7 +47,7 @@ export type ImportError = { line: number; message: string };
 
 /**
  * Ubah CSV peserta menjadi data siap simpan. Header wajib kolom `nama`;
- * opsional `klub`, `sesi`, `ruangan` (berisi ID atau nama, mis. "Sesi 2" /
+ * opsional `sekolah` (atau `klub`), `sesi`, `ruangan` (berisi ID atau nama, mis. "Sesi 2" /
  * "Ruangan 3" / "sesi-2"). Mengembalikan baris valid dan galat per baris.
  */
 export function parseParticipantCsv(text: string, sessions: Session[], rooms: Room[]) {
@@ -57,7 +57,7 @@ export function parseParticipantCsv(text: string, sessions: Session[], rooms: Ro
   const cols = header.map((h) => h.trim().toLowerCase());
   const col = (...names: string[]) => cols.findIndex((c) => names.includes(c));
   const iName = col("nama", "name", "nama peserta");
-  const iClub = col("klub", "tim", "tim/klub", "team", "club");
+  const iClub = col("sekolah", "asal sekolah", "asal_sekolah", "school", "klub", "tim", "tim/klub", "team", "club");
   const iSession = col("sesi", "session");
   const iRoom = col("ruangan", "room");
   if (iName < 0) return { rows: [] as ImportRow[], errors: [{ line: 1, message: 'Header wajib punya kolom "nama".' }] };

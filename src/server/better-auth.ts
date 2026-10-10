@@ -15,6 +15,21 @@ if (isProduction && !isBuild && !process.env.BETTER_AUTH_SECRET) {
 }
 
 /**
+ * URL publik aplikasi (origin saja). Menerima BETTER_AUTH_URL dengan atau tanpa
+ * "https://" dan path; bila kosong, di Railway memakai RAILWAY_PUBLIC_DOMAIN.
+ */
+export function publicBaseUrl(env: Record<string, string | undefined> = process.env): string | undefined {
+  const raw = env.BETTER_AUTH_URL?.trim() || env.RAILWAY_PUBLIC_DOMAIN?.trim();
+  if (!raw) return undefined;
+  try {
+    return new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).origin;
+  } catch {
+    console.warn(`[auth] BETTER_AUTH_URL tidak valid (${raw}); memakai host dari request.`);
+    return undefined;
+  }
+}
+
+/**
  * Better Auth: login email + sandi untuk admin utama & pengawas ruangan.
  * Pendaftaran publik dimatikan — akun dibuat admin (atau skrip
  * db:create-admin). Peran, ruangan, dan status aktif disimpan di tabel users.
@@ -25,10 +40,7 @@ export const auth = betterAuth({
   secret:
     process.env.BETTER_AUTH_SECRET ??
     (isProduction && !isBuild ? undefined : "dev-only-secret-bracket-lrp-2026-ganti-di-production"),
-  // URL publik; di Railway otomatis dari domain layanan bila BETTER_AUTH_URL kosong.
-  baseURL:
-    process.env.BETTER_AUTH_URL ??
-    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined),
+  baseURL: publicBaseUrl(),
   database: drizzleAdapter(db, {
     provider: "sqlite",
     schema: { users, auth_sessions: authSessions, auth_accounts: authAccounts, auth_verifications: authVerifications },

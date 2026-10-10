@@ -57,7 +57,9 @@ export async function getAdminMatchView(matchId: string): Promise<AdminMatchView
   const feeders = data.matches.filter((m) => m.nextMatchId === match.id);
   const advance = buildAdvanceMap(data.matches);
   const source = (side: "A" | "B") => {
-    const f = feeders.find((m) => advance.get(m.id)?.side === side);
+    // Laga final round-robin diisi pemenang semifinal tertentu (feedAId/feedBId).
+    const feedId = side === "A" ? match.feedAId : match.feedBId;
+    const f = feedId ? data.matches.find((m) => m.id === feedId) : feeders.find((m) => advance.get(m.id)?.side === side);
     return f ? `Pemenang ${roundLabel(f.round)} #${f.matchNumber}` : null;
   };
   const next = match.nextMatchId ? data.matches.find((m) => m.id === match.nextMatchId) : undefined;

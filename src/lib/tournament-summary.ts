@@ -1,4 +1,5 @@
 import { LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
+import { tournamentChampion } from "@/lib/final-standings";
 import type { BracketData, Match } from "@/lib/types";
 
 export type TournamentSummary = {
@@ -33,8 +34,8 @@ export function summarizeTournament(data: Pick<BracketData, "participants" | "se
         : null;
 
   const roomFinals = matches.filter((m) => m.round === LAST_ROOM_ROUND);
-  const grandFinal = matches.find((m) => !m.nextMatchId && m.round > LAST_ROOM_ROUND);
-  const champion = grandFinal?.winnerId ? participants.find((p) => p.id === grandFinal.winnerId)?.name ?? null : null;
+  const championId = tournamentChampion(matches);
+  const champion = championId ? (participants.find((p) => p.id === championId)?.name ?? null) : null;
 
   const next = matches
     .filter((m) => m.status === "scheduled" && m.participantAId && m.participantBId)

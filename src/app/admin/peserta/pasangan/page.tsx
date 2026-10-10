@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { PairingEditor, type PairingPlayer } from "@/components/admin/pairing-editor";
-import { PLAYERS_PER_ROOM } from "@/lib/bracket";
+import { PLAYERS_PER_ROOM, roomsInSession } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
 
@@ -17,8 +17,11 @@ export default function PasanganPage({ searchParams }: PageProps<"/admin/peserta
 }
 
 async function Pairings({ searchParams }: Pick<PageProps<"/admin/peserta/pasangan">, "searchParams">) {
-  const [{ participants, sessions, rooms, matches }, params] = await Promise.all([getBracket(), searchParams]);
+  const [data, params] = await Promise.all([getBracket(), searchParams]);
+  const { participants, sessions, matches } = data;
   const session = sessions.find((s) => s.id === params.sesi) ?? sessions[0];
+  // Hanya ruangan yang dipakai di sesi terpilih.
+  const rooms = session ? roomsInSession(data, session.id) : [];
   const room = rooms.find((r) => r.id === params.ruangan) ?? rooms[0];
   if (!session || !room) return <p className="text-sm text-muted-foreground">Sesi/ruangan belum ada.</p>;
 
@@ -41,7 +44,7 @@ async function Pairings({ searchParams }: Pick<PageProps<"/admin/peserta/pasanga
       <div className="flex flex-col gap-2">
         <nav aria-label="Pilih sesi" className="flex flex-wrap gap-1.5">
           {sessions.map((s) => (
-            <Link key={s.id} href={href(s.id, room.id)} scroll={false} aria-current={s.id === session.id ? "page" : undefined}
+            <Link key={s.id} href={`/admin/peserta/pasangan?sesi=${s.id}`} scroll={false} aria-current={s.id === session.id ? "page" : undefined}
               className={cn("rounded-lg border px-3 py-1.5 text-sm font-medium", s.id === session.id ? "border-primary bg-primary/10" : "text-muted-foreground hover:bg-muted")}>
               {s.name}
             </Link>

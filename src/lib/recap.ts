@@ -1,6 +1,8 @@
 // Rekap & Ekspor — bentuk data (kontrak) dan fungsi murni penyusunnya.
 
-import { LAST_ROOM_ROUND, roundLabel, sortMatches } from "@/lib/bracket";
+import { LAST_ROOM_ROUND, roundLabel, sortMatches, WIN_TYPES, type WinType } from "@/lib/bracket";
+import { formatPoints } from "@/lib/final-standings";
+import { tournamentChampion } from "@/lib/final-standings";
 import type { BracketData, MatchStatus } from "@/lib/types";
 import type { Violation } from "@/lib/violations";
 
@@ -23,6 +25,8 @@ export type ResultRecapRow = {
   scoreA: number | null;
   scoreB: number | null;
   winner: { id: string; name: string } | null;
+  /** Final round-robin: jenis kemenangan & poinnya, mis. "Menang telak (4 pion berjajar) · +3". */
+  finalResult: string | null;
   /** Waktu hasil dicatat & pencatat (null bila belum ada hasil). */
   recordedAt: string | null;
   recordedBy: string | null;
@@ -105,6 +109,7 @@ export function buildRecap(
         scoreA: m.scoreA,
         scoreB: m.scoreB,
         winner: person(m.winnerId),
+        finalResult: m.winType && m.winType in WIN_TYPES ? `${WIN_TYPES[m.winType as WinType].label} · +${formatPoints(WIN_TYPES[m.winType as WinType].points)}` : null,
         recordedAt: extra?.recordedAt ?? null,
         recordedBy: extra?.recordedBy ?? null,
         corrections: extra?.corrections ?? 0,
@@ -141,7 +146,7 @@ export function buildRecap(
   const done = count("done");
   const byType = new Map<string, number>();
   for (const v of violationRows) byType.set(v.type, (byType.get(v.type) ?? 0) + 1);
-  const final = data.matches.reduce<(typeof data.matches)[number] | undefined>((top, m) => (!top || m.round > top.round ? m : top), undefined);
+  const championId = tournamentChampion(data.matches);
 
   return {
     filters,
@@ -161,7 +166,7 @@ export function buildRecap(
       roomChampions: results
         .filter((r) => r.round === LAST_ROOM_ROUND)
         .map((r) => ({ sessionName: r.sessionName, roomName: r.roomName, champion: r.winner?.name ?? null })),
-      champion: final?.status === "done" ? (person(final.winnerId)?.name ?? null) : null,
+      champion: person(championId)?.name ?? null,
       violations: {
         total: violationRows.length,
         participants: new Set(violationRows.map((v) => v.participant.id)).size,

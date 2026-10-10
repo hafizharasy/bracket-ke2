@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 import type { Db } from "@/db";
 import { matches } from "@/db/schema";
@@ -9,7 +9,7 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Match = typeof matches.$inferSelect;
 type Side = "A" | "B";
 
-const slotColumn = (side: Side) => (side === "A" ? "participantAId" : "participantBId");
+const slotColumn = (side: Side): "participantAId" | "participantBId" => (side === "A" ? "participantAId" : "participantBId");
 
 /** Slot (A/B) di laga berikutnya yang menjadi milik pemenang `match`. */
 export function advanceSide(tx: Tx, match: Pick<Match, "id" | "nextMatchId">): Side {
@@ -74,6 +74,46 @@ export function retractWinner(tx: Tx, match: Match) {
   return tx.update(matches).set({ [slot]: null }).where(eq(matches.id, next.id)).returning().get();
 }
 
+/** Laga final round-robin yang slot A/B-nya diisi pemenang `match` (semifinal). */
+function feedTargets(tx: Tx, matchId: string) {
+  return tx
+    .select()
+    .from(matches)
+    .where(or(eq(matches.feedAId, matchId), eq(matches.feedBId, matchId)))
+    .all()
+    .map((target) => ({ target, slot: slotColumn(target.feedAId === matchId ? "A" : "B") }));
+}
+
+/**
+ * Isi pemenang semifinal ke semua laga final round-robin miliknya. Pergantian
+ * pemenang ditolak bila salah satu laga final itu sudah dimulai.
+ */
+export function advanceToFeeds(tx: Tx, match: Match, previousWinnerId: string | null) {
+  if (!match.winnerId) return;
+  for (const { target, slot } of feedTargets(tx, match.id)) {
+    if (target[slot] === match.winnerId) continue;
+    if (target.status !== "scheduled" && target[slot] !== null) {
+      throw new ApiError(409, "Laga final sudah dimulai; pemenang semifinal tidak bisa diubah lagi.");
+    }
+    if (target[slot] !== null && target[slot] !== previousWinnerId) {
+      throw new ApiError(409, "Slot di laga final sudah terisi peserta lain.");
+    }
+    tx.update(matches).set({ [slot]: match.winnerId }).where(eq(matches.id, target.id)).run();
+  }
+}
+
+/** Tarik pemenang semifinal dari laga final round-robin (hasil dibatalkan). */
+export function retractFromFeeds(tx: Tx, match: Match) {
+  if (!match.winnerId) return;
+  for (const { target, slot } of feedTargets(tx, match.id)) {
+    if (target[slot] !== match.winnerId) continue;
+    if (target.status !== "scheduled") {
+      throw new ApiError(409, "Laga final sudah dimulai; hasil semifinal ini tidak bisa dibatalkan.");
+    }
+    tx.update(matches).set({ [slot]: null }).where(eq(matches.id, target.id)).run();
+  }
+}
+
 export type RepropagateReport = { filled: number; unchanged: number; conflicts: string[] };
 
 /**
@@ -107,6 +147,21 @@ export function repropagateAll(tx: Tx): RepropagateReport {
       report.conflicts.push(
         `${next.id} slot ${target.side}: berisi ${next[slot]}, seharusnya ${match.winnerId} (dari ${match.id})`,
       );
+    }
+  }
+  // Semifinal → laga final round-robin (lewat feedAId/feedBId).
+  for (const target of all.filter((m) => m.feedAId || m.feedBId)) {
+    for (const side of ["A", "B"] as const) {
+      const source = byId.get((side === "A" ? target.feedAId : target.feedBId) ?? "");
+      if (!source || source.status !== "done" || !source.winnerId) continue;
+      const slot = slotColumn(side);
+      if (target[slot] === source.winnerId) report.unchanged++;
+      else if (target[slot] === null) {
+        tx.update(matches).set({ [slot]: source.winnerId }).where(eq(matches.id, target.id)).run();
+        report.filled++;
+      } else {
+        report.conflicts.push(`${target.id} slot ${side}: berisi ${target[slot]}, seharusnya ${source.winnerId} (dari ${source.id})`);
+      }
     }
   }
   return report;

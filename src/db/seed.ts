@@ -1,9 +1,9 @@
-// Seed data dasar turnamen: 4 sesi, 10 ruangan, 640 peserta (16 per sesi × ruangan),
-// plus struktur bagan awal: semua laga terjadwal, pasangan babak 1 tiap ruangan,
-// dan tautan next_match_id (termasuk juara ruangan → babak final). Belum ada hasil.
+// Seed data contoh turnamen: 4 sesi, 3 ruangan (Sesi 1–2 memakai 3 ruangan,
+// Sesi 3–4 memakai 2 → 10 ruangan-sesi), 640 peserta (64 per ruangan), plus
+// struktur bagan: 63 laga per ruangan, semifinal, final round-robin. Belum ada hasil.
 //   npm run db:seed            → isi data yang belum ada (aman diulang)
 //   npm run db:seed -- --reset → kosongkan data turnamen dulu, lalu isi ulang
-//   npm run db:seed -- --dasar → hanya 4 sesi & 10 ruangan (untuk data peserta asli:
+//   npm run db:seed -- --dasar → hanya sesi, ruangan, & ruangan per sesi (untuk data peserta asli:
 //                               lanjut db:import-peserta lalu db:buat-bagan)
 // Data diambil dari data tiruan frontend supaya ID & pembagian sesi/ruangan sama.
 
@@ -13,15 +13,18 @@ import { DATABASE_PATH, db } from "@/db";
 import {
   authAccounts,
   matches,
+  matchOfficials,
   matchResultHistory,
   matchResults,
   participants,
   rooms,
+  sessionRooms,
   sessions,
   users,
   violations,
 } from "@/db/schema";
-import { championSlots, mockBracket } from "@/lib/mock/bracket-data";
+import { FINAL_ROUND, SEMIFINAL_ROUND } from "@/lib/bracket";
+import { mockBracket } from "@/lib/mock/bracket-data";
 import { hashUserPassword, storePasswordHash } from "@/server/credentials";
 import { bumpBracketVersion } from "@/server/live";
 
@@ -36,7 +39,7 @@ function seed(devHashes: DevHashes) {
   db.transaction((tx) => {
     if (reset) {
       // Urutan mengikuti foreign key. Akun (users) tidak disentuh.
-      for (const table of [violations, matchResultHistory, matchResults, matches, participants]) tx.delete(table).run();
+      for (const table of [violations, matchResultHistory, matchResults, matchOfficials, matches, participants, sessionRooms]) tx.delete(table).run();
       tx.delete(sessions).run();
       tx.delete(rooms)
         .where(sql`${rooms.id} not in (select room_id from users where room_id is not null)`)
@@ -54,6 +57,7 @@ function seed(devHashes: DevHashes) {
       .run();
 
     tx.insert(rooms).values(mockBracket.rooms).onConflictDoNothing().run();
+    tx.insert(sessionRooms).values(mockBracket.sessionRooms).onConflictDoNothing().run();
 
     // Data contoh peserta & bagan (dilewati dengan --dasar).
     if (!baseOnly) {
@@ -66,8 +70,9 @@ function seed(devHashes: DevHashes) {
           .run();
       }
 
-      // Struktur bagan tanpa hasil. Babak tertinggi lebih dulu supaya laga tujuan
-      // next_match_id selalu sudah ada saat laga asalnya disisipkan.
+      // Struktur bagan tanpa hasil (pasangan babak 1 saja). Laga tujuan disisipkan
+      // lebih dulu: semifinal, final (feed ke semifinal), lalu babak ruangan menurun.
+      const rank = (round: number) => (round === SEMIFINAL_ROUND ? 0 : round === FINAL_ROUND ? 1 : 2 + (SEMIFINAL_ROUND - round));
       const structure = mockBracket.matches
         .map((m) => ({
           ...m,
@@ -76,11 +81,11 @@ function seed(devHashes: DevHashes) {
           winnerId: null,
           scoreA: null,
           scoreB: null,
+          winType: null,
           status: "scheduled" as const,
-          nextMatchId: m.nextMatchId ?? championSlots.get(m.id)?.matchId ?? null,
           scheduledAt: m.scheduledAt ? new Date(m.scheduledAt) : null,
         }))
-        .sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
+        .sort((a, b) => rank(a.round) - rank(b.round) || a.matchNumber - b.matchNumber);
       for (let i = 0; i < structure.length; i += BATCH) {
         tx.insert(matches)
           .values(structure.slice(i, i + BATCH))

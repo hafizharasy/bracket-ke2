@@ -1,4 +1,4 @@
-import { LAST_ROOM_ROUND, roundLabel, sortMatches } from "@/lib/bracket";
+import { LAST_ROOM_ROUND, roomsInSession, roundLabel, sortMatches } from "@/lib/bracket";
 import type { BracketData, Match } from "@/lib/types";
 
 export type RoomStatus = "berlangsung" | "siap" | "menunggu" | "selesai" | "kosong";
@@ -23,7 +23,7 @@ export type RoomMonitor = {
  * berjalan, atau sesi pertama yang belum selesai). Fungsi murni.
  */
 export function monitorRooms(
-  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "matches">,
+  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "sessionRooms" | "matches">,
   violationsByRoom: Map<string, number> = new Map(),
   sessionId?: string,
 ): { sessionId: string | null; rooms: RoomMonitor[] } {
@@ -39,7 +39,8 @@ export function monitorRooms(
 
   return {
     sessionId: active?.id ?? null,
-    rooms: rooms.map((room) => {
+    // Hanya ruangan yang dipakai di sesi ini (bila daftar ruangan per sesi sudah diatur).
+    rooms: (active && data.sessionRooms.length ? roomsInSession(data, active.id) : rooms).map((room) => {
       const list = matches.filter((m) => m.roomId === room.id && m.sessionId === active?.id && roomRound(m)).sort(sortMatches);
       const live = list.filter((m) => m.status === "ongoing");
       const ready = list.filter((m) => m.status === "scheduled" && m.participantAId && m.participantBId);

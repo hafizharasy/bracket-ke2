@@ -26,7 +26,7 @@ export type ParticipantQuery = {
   pageSize?: number;
 };
 
-/** Cari peserta (nama/ID/klub) + filter sesi & ruangan, dengan halaman. */
+/** Cari peserta (nama/ID/sekolah) + filter sesi & ruangan, dengan halaman. */
 export function searchParticipants(query: ParticipantQuery) {
   const pageSize = Math.min(Math.max(query.pageSize ?? 50, 1), 200);
   const page = Math.max(query.page ?? 1, 1);

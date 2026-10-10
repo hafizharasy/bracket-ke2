@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { buildSlotLabels, LAST_ROOM_ROUND, roundLabel, type SlotLabel } from "@/lib/bracket";
+import { buildSlotLabels, FINAL_ROUND, roundLabel, SEMIFINAL_ROUND, type SlotLabel } from "@/lib/bracket";
+import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { BracketData, Match, MatchStatus, Participant, Room, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -108,10 +109,14 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
   if (next) {
     const nextRoom = lookup.rooms.get(next.roomId);
     advance = `${roundLabel(next.round)} #${next.matchNumber}${nextRoom ? ` · ${nextRoom.name}` : ""}`;
-  } else if (match.round === LAST_ROOM_ROUND) {
-    advance = "Babak Final (sebagai juara ruangan)";
+  } else if (match.round === SEMIFINAL_ROUND) {
+    advance = "Final (kompetisi penuh antar finalis)";
+  } else if (match.round === FINAL_ROUND) {
+    advance = match.winType
+      ? `+${formatPoints(winPoints(match.winType))} poin klasemen final`
+      : "Poin klasemen final";
   } else {
-    advance = "Juara LRP 2026";
+    advance = "—";
   }
 
   return (
@@ -148,8 +153,14 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
         </dd>
         <dt className="text-muted-foreground">Jadwal</dt>
         <dd>{match.scheduledAt ? `${dateTimeFormat.format(new Date(match.scheduledAt))} WIB` : "–"}</dd>
-        <dt className="text-muted-foreground">Durasi</dt>
-        <dd>7 menit + 3 menit injury time</dd>
+        <dt className="text-muted-foreground">Format</dt>
+        <dd>
+          {match.round === SEMIFINAL_ROUND
+            ? "Best of 3 (menang 2 game)"
+            : match.round === FINAL_ROUND
+              ? "Kompetisi penuh — A tuan rumah (jalan pertama)"
+              : "7 menit + 3 menit injury time"}
+        </dd>
         <dt className="text-muted-foreground">Pemenang maju ke</dt>
         <dd>{advance}</dd>
       </dl>
@@ -188,7 +199,7 @@ function Contender({
       <span className="text-3xl font-bold tabular-nums">{score ?? "–"}</span>
       <span className="font-medium leading-tight">{participant.name}</span>
       <span className="text-xs text-muted-foreground">
-        {participant.teamOrClub ?? "Tanpa klub"} · {participant.id.toUpperCase()}
+        {participant.teamOrClub ?? "Tanpa sekolah"} · {participant.id.toUpperCase()}
       </span>
       {isWinner && (
         <Badge className="mt-1 bg-emerald-600 text-white">

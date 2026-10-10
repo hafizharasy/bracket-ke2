@@ -6,6 +6,7 @@ import {
   type AnySQLiteColumn,
   check,
   index,
+  primaryKey,
   integer,
   sqliteTable,
   text,
@@ -14,6 +15,8 @@ import {
 
 export const USER_ROLES = ["admin", "pengawas"] as const;
 export const MATCH_STATUSES = ["scheduled", "ongoing", "done"] as const;
+/** Jenis kemenangan final round-robin (poin: lihat WIN_TYPES di lib/bracket). */
+export const WIN_TYPE_VALUES = ["empat", "tiga", "tiga_tercepat", "dua_terbanyak"] as const;
 
 const createdAt = () =>
   integer("created_at", { mode: "timestamp" })
@@ -45,6 +48,20 @@ export const rooms = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (t) => [uniqueIndex("rooms_name_idx").on(t.name)],
+);
+
+/** Ruangan yang dipakai pada tiap sesi (admin bisa menambah/mengurangi per sesi). */
+export const sessionRooms = sqliteTable(
+  "session_rooms",
+  {
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    roomId: text("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.roomId] }), index("session_rooms_room_idx").on(t.roomId)],
 );
 
 /**
@@ -187,7 +204,7 @@ export const participants = sqliteTable(
     sessionId: text("session_id").references(() => sessions.id, { onDelete: "set null" }),
     roomId: text("room_id").references(() => rooms.id, { onDelete: "set null" }),
     createdAt: createdAt(),
-    /** Terakhir diubah admin (nama, klub, sesi, ruangan); null bila belum pernah. */
+    /** Terakhir diubah admin (nama, sekolah, sesi, ruangan); null bila belum pernah. */
     updatedAt: integer("updated_at", { mode: "timestamp" }),
   },
   (t) => [
@@ -227,9 +244,18 @@ export const matches = sqliteTable(
       onDelete: "set null",
     }),
     scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+    /** Final round-robin: slot A/B diisi pemenang laga semifinal ini. */
+    feedAId: text("feed_a_id").references((): AnySQLiteColumn => matches.id, { onDelete: "set null" }),
+    feedBId: text("feed_b_id").references((): AnySQLiteColumn => matches.id, { onDelete: "set null" }),
+    /** Final round-robin: jenis kemenangan (menentukan poin klasemen). */
+    winType: text("win_type", { enum: WIN_TYPE_VALUES }),
   },
   (t) => [
     check("matches_status_check", sql`${t.status} in ('scheduled', 'ongoing', 'done')`),
+    check(
+      "matches_win_type_check",
+      sql`${t.winType} is null or ${t.winType} in ('empat', 'tiga', 'tiga_tercepat', 'dua_terbanyak')`,
+    ),
     check("matches_score_check", sql`coalesce(${t.scoreA}, 0) >= 0 and coalesce(${t.scoreB}, 0) >= 0`),
     check(
       "matches_winner_check",
@@ -247,6 +273,20 @@ export const matches = sqliteTable(
     uniqueIndex("matches_slot_idx").on(t.sessionId, t.roomId, t.round, t.matchNumber),
   ],
 );
+
+/**
+ * Nama pengawas (wasit) tiap laga, diisi admin. RAHASIA: hanya dibaca di
+ * halaman/endpoint admin — sengaja di tabel terpisah supaya tidak ikut
+ * terbaca oleh query bagan publik.
+ */
+export const matchOfficials = sqliteTable("match_officials", {
+  matchId: text("match_id")
+    .primaryKey()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  refereeName: text("referee_name").notNull(),
+  updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
 
 /** Hasil yang diinput pengawas: foto bukti & siapa yang mencatat (maks. 1 per laga). */
 export const matchResults = sqliteTable(

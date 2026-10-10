@@ -41,11 +41,11 @@ export function toCsv(header: string[], rows: (string | number | null | undefine
 export function reportCsv(recap: RecapData, kind: ReportKind, separator: CsvSeparator = ";") {
   if (kind === "hasil") {
     return toCsv(
-      ["ID laga", "Sesi", "Ruangan", "Babak", "No", "Jadwal (WIB)", "Peserta A", "ID A", "Skor A", "Skor B", "Peserta B", "ID B", "Pemenang", "Status", "Dicatat (WIB)", "Pencatat", "Koreksi", "Bukti"],
+      ["ID laga", "Sesi", "Ruangan", "Babak", "No", "Jadwal (WIB)", "Peserta A", "ID A", "Skor A", "Skor B", "Peserta B", "ID B", "Pemenang", "Status", "Dicatat (WIB)", "Pencatat", "Koreksi", "Bukti", "Hasil final"],
       recap.results.map((r) => [
         r.matchId, r.sessionName, r.roomName, r.roundLabel, r.matchNumber, time(r.scheduledAt),
         r.participantA?.name, r.participantA?.id.toUpperCase(), r.scoreA, r.scoreB, r.participantB?.name, r.participantB?.id.toUpperCase(),
-        r.winner?.name, STATUS[r.status], time(r.recordedAt), r.recordedBy, r.corrections, r.hasProof ? "Ada" : "",
+        r.winner?.name, STATUS[r.status], time(r.recordedAt), r.recordedBy, r.corrections, r.hasProof ? "Ada" : "", r.finalResult,
       ]),
       separator,
     );

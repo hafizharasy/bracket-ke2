@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { type ParticipantFormValues, saveParticipant, validateParticipant } from "@/lib/admin-client";
-import type { Participant, Room, Session } from "@/lib/types";
+import type { Participant, Room, Session, SessionRoom } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const empty: ParticipantFormValues = { name: "", teamOrClub: "", sessionId: "", roomId: "" };
@@ -27,6 +27,7 @@ export function ParticipantFormDialog({
   participant,
   sessions,
   rooms,
+  sessionRooms,
   open: controlledOpen,
   onOpenChange,
   showTrigger = !participant,
@@ -34,6 +35,8 @@ export function ParticipantFormDialog({
   participant?: Participant;
   sessions: Session[];
   rooms: Room[];
+  /** Ruangan aktif per sesi; bila diisi, pilihan ruangan dibatasi ke sesi terpilih. */
+  sessionRooms?: SessionRoom[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   showTrigger?: boolean;
@@ -125,9 +128,9 @@ export function ParticipantFormDialog({
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium">
-                Tim / klub <span className="font-normal text-muted-foreground">(opsional)</span>
+                Asal sekolah <span className="font-normal text-muted-foreground">(opsional)</span>
               </span>
-              <input {...field("teamOrClub")} maxLength={100} className={inputClass} placeholder="mis. LRP Bandung" />
+              <input {...field("teamOrClub")} maxLength={100} className={inputClass} placeholder="mis. SMAN 3 Bandung" />
               {touched && errors.teamOrClub && <span className="text-xs text-destructive">{errors.teamOrClub}</span>}
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -145,9 +148,17 @@ export function ParticipantFormDialog({
                 <span className="font-medium">Ruangan</span>
                 <select {...field("roomId")} className={inputClass}>
                   <option value="">— Belum —</option>
-                  {rooms.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
+                  {rooms
+                    .filter(
+                      (r) =>
+                        !sessionRooms ||
+                        !values.sessionId ||
+                        r.id === values.roomId ||
+                        sessionRooms.some((c) => c.sessionId === values.sessionId && c.roomId === r.id),
+                    )
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
                 </select>
               </label>
             </div>
