@@ -3,11 +3,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/server/better-auth";
+import { logout } from "@/server/login";
 
 async function signOut() {
-  // Sesi yang sudah kedaluwarsa tetap dianggap berhasil keluar.
-  await auth.api.signOut({ headers: await headers() }).catch(() => undefined);
+  await logout(await headers());
 }
 
 /** Keluar dari akun pengawas: hapus sesi lalu kembali ke halaman masuk. */

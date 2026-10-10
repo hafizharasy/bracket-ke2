@@ -26,6 +26,20 @@ export const auth = betterAuth({
     schema: { users, auth_sessions: authSessions, auth_accounts: authAccounts, auth_verifications: authVerifications },
   }),
   emailAndPassword: { enabled: true, disableSignUp: true, minPasswordLength: 8 },
+  // Login hanya lewat aksi/endpoint aplikasi (cek peran, status, & penguncian
+  // tebakan sandi); profil & sandi hanya diubah admin. Rute HTTP bawaan ini
+  // dimatikan — pemanggilan auth.api.* dari server tetap berjalan.
+  disabledPaths: [
+    "/sign-in/email",
+    "/sign-up/email",
+    "/update-user",
+    "/change-email",
+    "/change-password",
+    "/delete-user",
+    "/request-password-reset",
+    "/reset-password",
+    "/set-password",
+  ],
   user: {
     modelName: "users",
     additionalFields: {

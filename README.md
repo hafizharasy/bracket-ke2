@@ -46,6 +46,9 @@ di `/admin/pengawas`.
 - **Pengawas ruangan** (`/masuk`) — hanya ruangannya sendiri (`/ruangan`, hasil,
   bukti, pelanggaran); aturan di `src/lib/policy.ts`.
 - Akun nonaktif (`users.active = 0`) tidak bisa login dan sesinya tidak berlaku lagi.
+- 5 kali gagal berturut-turut untuk satu email → login email itu dikunci 15 menit
+  (tabel `login_attempts`). Rute HTTP bawaan Better Auth untuk sign-in, sign-up,
+  dan ubah profil/sandi dimatikan; login hanya lewat halaman `/masuk` atau `/api/login/*`.
 
 | Env | Fungsi |
 | --- | --- |
@@ -70,6 +73,8 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 
 | Endpoint | Fungsi |
 | --- | --- |
+| `POST /api/login/ruangan` · `POST /api/login/admin` | Login `{ email, password }` → cookie sesi + `{ user, room }`; 401 salah, 403 peran salah/nonaktif, 423 dikunci (Retry-After) |
+| `GET /api/session` · `DELETE /api/session` | Sesi saat ini `{ user, room, expiresAt }` (401 bila tidak ada) / keluar |
 | `GET /api/bracket?sesi=&ruangan=` | Bagan (opsional difilter), ETag/304 |
 | `GET /api/bracket/version` | Versi data bagan (ringan) |
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
