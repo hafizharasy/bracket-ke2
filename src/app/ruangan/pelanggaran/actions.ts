@@ -1,65 +1,47 @@
 "use server";
 
-import { z } from "zod";
-
-import { getBracket } from "@/lib/get-bracket";
-import { addLocalViolation } from "@/lib/mock/violation-store";
-import { getPengawasSession } from "@/lib/pengawas-session";
-import { can } from "@/lib/policy";
 import type { SubmitResult, ViolationPayload } from "@/lib/results-client";
+import { getActingUser } from "@/server/auth";
+import { ApiError } from "@/server/errors";
+import { bracketSource } from "@/server/live";
+import { recordViolation as recordViolationService, violationInput } from "@/server/violations";
 
-const violationInput = z.object({
-  participantId: z.string().min(1),
-  matchId: z.string().min(1).nullable(),
-  type: z.string().trim().min(1).max(100),
-  note: z.string().trim().max(500).nullable(),
-  occurredAt: z.iso.datetime(),
-});
-
-/**
- * Simpan catatan pelanggaran ke daftar lokal (memori server) setelah
- * memastikan peserta & laga berada di ruangan pengawas.
- */
+/** Simpan catatan pelanggaran dari form pengawas (layanan yang sama dengan POST /api/violations). */
 export async function recordViolation(payload: ViolationPayload): Promise<SubmitResult> {
   const parsed = violationInput.safeParse(payload);
-  if (!parsed.success) return { ok: false, error: "Data pelanggaran tidak valid." };
-  const input = parsed.data;
-  if (input.type === "Lainnya" && !input.note) {
-    return { ok: false, error: "Isi catatan untuk jenis Lainnya." };
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Data pelanggaran tidak valid." };
   }
 
+  if (bracketSource() === "mock") return recordMockViolation(parsed.data);
+
+  const user = await getActingUser();
+  if (!user) return { ok: false, error: "Sesi berakhir. Silakan login kembali." };
+  try {
+    recordViolationService(parsed.data, user);
+    return { ok: true, simulated: false };
+  } catch (error) {
+    if (error instanceof ApiError) return { ok: false, error: error.message };
+    console.error(error);
+    return { ok: false, error: "Gagal menyimpan pelanggaran. Coba lagi." };
+  }
+}
+
+/** Mode simulasi (BRACKET_DATA_SOURCE=mock): simpan ke daftar lokal di memori. */
+async function recordMockViolation(input: ReturnType<typeof violationInput.parse>): Promise<SubmitResult> {
+  const [{ addLocalViolation }, { getPengawasSession }] = await Promise.all([
+    import("@/lib/mock/violation-store"),
+    import("@/lib/pengawas-session"),
+  ]);
   const session = await getPengawasSession();
-  const actor = { role: "pengawas" as const, roomId: session.roomId };
-  const mayWrite = (roomId: string) => can(actor, "violation:write", { roomId });
-  const data = await getBracket();
-  const participant = data.participants.find((p) => p.id === input.participantId);
-  if (!participant) return { ok: false, error: "Peserta tidak ditemukan." };
-
-  if (input.matchId) {
-    const match = data.matches.find((m) => m.id === input.matchId);
-    if (!match || !mayWrite(match.roomId)) {
-      return { ok: false, error: "Laga tidak ada di ruangan Anda." };
-    }
-    if (match.participantAId !== participant.id && match.participantBId !== participant.id) {
-      return { ok: false, error: "Peserta tidak bertanding di laga itu." };
-    }
-  } else {
-    const playsHere = data.matches.some(
-      (m) => mayWrite(m.roomId) && (m.participantAId === participant.id || m.participantBId === participant.id),
-    );
-    if (!(participant.roomId && mayWrite(participant.roomId)) && !playsHere) {
-      return { ok: false, error: "Peserta tidak terdaftar di ruangan Anda." };
-    }
-  }
-
   addLocalViolation({
     id: crypto.randomUUID(),
-    participantId: participant.id,
-    matchId: input.matchId,
+    participantId: input.participantId,
+    matchId: input.matchId ?? null,
     roomId: session.roomId,
     type: input.type,
     note: input.note || null,
-    occurredAt: input.occurredAt,
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
     recordedBy: session.name,
   });
   return { ok: true, simulated: true };
