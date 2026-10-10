@@ -51,3 +51,34 @@ export async function getDashboardSummary({ activityLimit = 8 } = {}) {
 }
 
 export type DashboardSummary = Awaited<ReturnType<typeof getDashboardSummary>>;
+
+/**
+ * Pantau semua ruangan untuk satu sesi (default: sesi aktif): status, laga
+ * berjalan, laga berikutnya, juara, pelanggaran, dan pengawas aktif tiap
+ * ruangan. Satu sumber untuk /admin/pantau dan GET /api/admin/rooms.
+ */
+export async function getRoomsMonitor(sessionId?: string) {
+  const [data, violationsByRoom, accounts] = await Promise.all([
+    getBracket(),
+    getViolationCountsByRoom(),
+    getPengawasAccounts(),
+  ]);
+  const monitor = monitorRooms(data, violationsByRoom, sessionId);
+  const rooms = monitor.rooms.map((room) => ({
+    ...room,
+    pengawas: accounts
+      .filter((a) => a.active && a.roomId === room.roomId)
+      .map((a) => ({ id: a.id, name: a.name, lastLoginAt: a.lastLoginAt })),
+  }));
+  return {
+    version: data.version,
+    updatedAt: data.updatedAt,
+    sessionId: monitor.sessionId,
+    sessions: data.sessions.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime })),
+    counts: {
+      live: rooms.filter((r) => r.status === "berlangsung").length,
+      done: rooms.filter((r) => r.status === "selesai").length,
+    },
+    rooms,
+  };
+}

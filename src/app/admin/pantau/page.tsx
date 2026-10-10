@@ -3,10 +3,8 @@ import { Suspense } from "react";
 
 import { RoomMonitorGrid } from "@/components/admin/room-monitor-grid";
 import { LiveUpdater } from "@/components/bracket/live-updater";
-import { getBracket } from "@/lib/get-bracket";
-import { monitorRooms } from "@/lib/room-monitor";
-import { getViolationCountsByRoom } from "@/lib/room-violation-counts";
 import { cn } from "@/lib/utils";
+import { getRoomsMonitor } from "@/server/dashboard";
 
 export const metadata = { title: "Pantau Ruangan" };
 
@@ -25,19 +23,15 @@ export default function PantauPage({ searchParams }: PageProps<"/admin/pantau">)
 }
 
 async function Monitor({ searchParams }: Pick<PageProps<"/admin/pantau">, "searchParams">) {
-  const [data, counts, params] = await Promise.all([getBracket(), getViolationCountsByRoom(), searchParams]);
+  const params = await searchParams;
   const requested = typeof params.sesi === "string" ? params.sesi : undefined;
-  const { sessionId, rooms } = monitorRooms(data, counts, requested);
-  const summary = {
-    live: rooms.filter((r) => r.status === "berlangsung").length,
-    done: rooms.filter((r) => r.status === "selesai").length,
-  };
+  const { sessionId, sessions, rooms, counts: summary, version, updatedAt } = await getRoomsMonitor(requested);
 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Pilih sesi" className="flex flex-wrap gap-1.5">
-          {data.sessions.map((s) => (
+          {sessions.map((s) => (
             <Link
               key={s.id}
               href={`/admin/pantau?sesi=${s.id}`}
@@ -52,7 +46,7 @@ async function Monitor({ searchParams }: Pick<PageProps<"/admin/pantau">, "searc
             </Link>
           ))}
         </nav>
-        <LiveUpdater version={data.version} updatedAt={data.updatedAt} />
+        <LiveUpdater version={version} updatedAt={updatedAt} />
       </div>
       <p className="text-sm text-muted-foreground">
         {summary.live} ruangan sedang bertanding · {summary.done} ruangan selesai
