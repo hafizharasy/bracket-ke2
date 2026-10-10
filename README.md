@@ -43,6 +43,8 @@ dimatikan: akun admin dibuat dengan `db:create-admin`, akun pengawas dibuat admi
 di `/admin/pengawas`.
 
 - **Admin utama** (`/masuk/admin`) — akses penuh ke `/admin` dan semua endpoint admin.
+  Endpoint admin dibungkus `withAdmin` (`src/server/admin-api.ts`): 401 belum login /
+  akun nonaktif, 403 bukan admin.
 - **Pengawas ruangan** (`/masuk`) — hanya ruangannya sendiri (`/ruangan`, hasil,
   bukti, pelanggaran); aturan di `src/lib/policy.ts`. Endpoint yang terikat ruangan
   dibungkus `withRoomAccess` (`src/server/room-guard.ts`): 401 belum login,
