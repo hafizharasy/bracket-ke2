@@ -46,3 +46,19 @@ describe("queryResults", () => {
     expect(page.items).toHaveLength(39);
   });
 });
+
+describe("ringkasan pelanggaran", () => {
+  it("menghitung peserta berulang, per jenis, per ruangan, dan mengelompokkan per peserta", async () => {
+    const { filterViolations, groupViolationsByParticipant, summarizeViolations } = await import("@/lib/recap");
+    const rows = getMockRecap({}).violations;
+    const summary = summarizeViolations(rows);
+    expect(summary.total).toBe(rows.length);
+    expect(summary.byType.reduce((n, t) => n + t.count, 0)).toBe(rows.length);
+    expect(summary.byRoom.reduce((n, r) => n + r.count, 0)).toBe(rows.length);
+    const groups = groupViolationsByParticipant(rows);
+    expect(groups.filter((g) => g.count > 1)).toHaveLength(summary.repeatParticipants);
+    expect(groups[0].types.reduce((n, t) => n + t.count, 0)).toBe(groups[0].count);
+    const late = filterViolations(rows, { type: "Terlambat hadir", roomName: "Ruangan 1" });
+    expect(late.every((v) => v.type === "Terlambat hadir" && v.roomName === "Ruangan 1")).toBe(true);
+  });
+});

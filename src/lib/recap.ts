@@ -206,3 +206,58 @@ export function queryResults(rows: ResultRecapRow[], query: ResultQuery) {
   const page = Math.min(Math.max(query.page ?? 1, 1), pages);
   return { items: filtered.slice((page - 1) * pageSize, page * pageSize), total: filtered.length, page, pageSize, pages };
 }
+
+export type ViolationQuery = { type?: string; roomName?: string; q?: string };
+
+/** Saring baris rekap pelanggaran (jenis, ruangan, nama/ID peserta). */
+export function filterViolations(rows: ViolationRecapRow[], query: ViolationQuery) {
+  const q = query.q?.trim().toLowerCase();
+  return rows.filter(
+    (v) =>
+      (!query.type || v.type === query.type) &&
+      (!query.roomName || v.roomName === query.roomName) &&
+      (!q || v.participant.name.toLowerCase().includes(q) || v.participant.id.toLowerCase().includes(q)),
+  );
+}
+
+/** Hitung per kunci, terurut terbanyak (seri: abjad). */
+export function tally<T>(rows: T[], key: (row: T) => string) {
+  const counts = new Map<string, number>();
+  for (const row of rows) counts.set(key(row), (counts.get(key(row)) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "id", { numeric: true }));
+}
+
+export type ParticipantViolations = {
+  id: string;
+  name: string;
+  roomName: string;
+  count: number;
+  types: { type: string; count: number }[];
+  items: ViolationRecapRow[];
+};
+
+/** Kelompokkan pelanggaran per peserta, terbanyak dulu. */
+export function groupViolationsByParticipant(rows: ViolationRecapRow[]): ParticipantViolations[] {
+  const groups = new Map<string, ParticipantViolations>();
+  for (const v of rows) {
+    const g = groups.get(v.participant.id) ?? { ...v.participant, roomName: v.roomName, count: 0, types: [], items: [] };
+    g.items.push(v);
+    g.count++;
+    groups.set(v.participant.id, g);
+  }
+  return [...groups.values()]
+    .map((g) => ({ ...g, types: tally(g.items, (v) => v.type).map(([type, count]) => ({ type, count })) }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/** Ringkasan pelanggaran: jumlah, peserta, peserta berulang, per jenis & per ruangan. */
+export function summarizeViolations(rows: ViolationRecapRow[]) {
+  const participants = groupViolationsByParticipant(rows);
+  return {
+    total: rows.length,
+    participants: participants.length,
+    repeatParticipants: participants.filter((p) => p.count > 1).length,
+    byType: tally(rows, (v) => v.type).map(([type, count]) => ({ type, count })),
+    byRoom: tally(rows, (v) => v.roomName).map(([roomName, count]) => ({ roomName, count })),
+  };
+}

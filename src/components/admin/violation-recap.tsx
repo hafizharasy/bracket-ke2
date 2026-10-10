@@ -4,18 +4,11 @@ import { SearchIcon, ShieldAlertIcon, UsersIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { ViolationRecapRow } from "@/lib/recap";
+import { filterViolations, groupViolationsByParticipant, tally, type ViolationRecapRow } from "@/lib/recap";
 import { cn } from "@/lib/utils";
 
 const PAGE = 50;
 const dateTime = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
-
-/** Hitung per kunci, terurut terbanyak. */
-function tally<T>(rows: T[], key: (row: T) => string) {
-  const counts = new Map<string, number>();
-  for (const row of rows) counts.set(key(row), (counts.get(key(row)) ?? 0) + 1);
-  return [...counts].sort((a, b) => b[1] - a[1]);
-}
 
 /**
  * Rekap pelanggaran: ringkasan (total, peserta, per jenis, per ruangan,
@@ -29,28 +22,15 @@ export function ViolationRecap({ rows }: { rows: ViolationRecapRow[] }) {
   const [view, setView] = useState<"list" | "participant">("list");
   const [shown, setShown] = useState(PAGE);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter(
-      (v) =>
-        (!type || v.type === type) &&
-        (!room || v.roomName === room) &&
-        (!q || v.participant.name.toLowerCase().includes(q) || v.participant.id.toLowerCase().includes(q)),
-    );
-  }, [rows, type, room, query]);
+  const filtered = useMemo(
+    () => filterViolations(rows, { type: type ?? undefined, roomName: room ?? undefined, q: query }),
+    [rows, type, room, query],
+  );
 
   const byType = useMemo(() => tally(rows.filter((v) => !room || v.roomName === room), (v) => v.type), [rows, room]);
   const byRoom = useMemo(() => tally(rows.filter((v) => !type || v.type === type), (v) => v.roomName), [rows, type]);
-  const byParticipant = useMemo(() => {
-    const groups = new Map<string, { name: string; id: string; roomName: string; items: ViolationRecapRow[] }>();
-    for (const v of filtered) {
-      const g = groups.get(v.participant.id) ?? { ...v.participant, roomName: v.roomName, items: [] };
-      g.items.push(v);
-      groups.set(v.participant.id, g);
-    }
-    return [...groups.values()].sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
-  }, [filtered]);
-  const repeat = byParticipant.filter((g) => g.items.length > 1).length;
+  const byParticipant = useMemo(() => groupViolationsByParticipant(filtered), [filtered]);
+  const repeat = byParticipant.filter((g) => g.count > 1).length;
   const reset = () => setShown(PAGE);
   const maxRoom = Math.max(1, ...byRoom.map(([, n]) => n));
 
@@ -161,10 +141,10 @@ export function ViolationRecap({ rows }: { rows: ViolationRecapRow[] }) {
                     <span className="font-medium">{g.name}</span>{" "}
                     <span className="text-xs text-muted-foreground">{g.id.toUpperCase()} · {g.roomName}</span>
                   </span>
-                  <span className={cn("rounded-full px-2 py-0.5 text-xs tabular-nums", g.items.length > 1 ? "bg-red-600 text-white" : "bg-muted")}>{g.items.length}×</span>
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs tabular-nums", g.count > 1 ? "bg-red-600 text-white" : "bg-muted")}>{g.count}×</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {tally(g.items, (v) => v.type).map(([t, n]) => (
+                  {g.types.map(({ type: t, count: n }) => (
                     <span key={t} className="rounded-full bg-orange-500/10 px-2 py-0.5 text-xs text-orange-800 dark:text-orange-300">{t}{n > 1 && ` ×${n}`}</span>
                   ))}
                 </div>
