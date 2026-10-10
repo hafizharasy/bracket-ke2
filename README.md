@@ -60,3 +60,5 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 | `POST /api/violations` | Catat pelanggaran (`participantId`, `matchId?`, `roomId?`, `type`, `note?`, `occurredAt?`) |
 | `GET /api/participants?q=&sesi=&ruangan=&hal=&per=` | Cari peserta (nama/ID/klub), filter sesi/ruangan (`none` = belum ditempatkan), berhalaman — admin |
 | `POST /api/participants` · `GET/PATCH/DELETE /api/participants/:id` | Tambah/lihat/ubah/hapus peserta (hapus ditolak 409 bila sudah masuk bagan) — admin |
+| `POST /api/participants/assign` | Pindahkan peserta `{ ids, sessionId?, roomId? }` (null = kosongkan; ganti sesi mengosongkan ruangan; maks. 16 per ruangan per sesi) — admin |
+| `POST /api/participants/auto-assign` | Bagi rata otomatis `{ kind: "sesi", mode }` / `{ kind: "ruangan", mode, sessionId }`, mode `unassigned`/`all`; klub disebar — admin |

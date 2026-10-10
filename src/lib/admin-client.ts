@@ -1,6 +1,6 @@
 // Pemanggil aksi admin dari sisi klien.
 
-import { saveParticipantAction } from "@/app/admin/peserta/actions";
+import { assignParticipantsAction, autoAssignAction, saveParticipantAction } from "@/app/admin/peserta/actions";
 import { saveAccountAction, updateAccountStatusAction } from "@/app/admin/pengawas/actions";
 import { saveRoomAction, saveSessionAction } from "@/app/admin/ruangan/actions";
 
@@ -31,31 +31,22 @@ export function saveParticipant(id: string | null, values: ParticipantFormValues
 
 export type AssignMode = "unassigned" | "all";
 
-/**
- * SEMENTARA (stub frontend): pindahkan peserta terpilih ke satu sesi /
- * ruangan (null = kosongkan). Akan diganti endpoint pembagian di backend.
- */
-export async function assignParticipants(
+/** Pindahkan peserta terpilih ke satu sesi / ruangan (null = kosongkan). */
+export function assignParticipants(
   ids: string[],
   target: { sessionId?: string | null; roomId?: string | null },
 ): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  console.info("[simulasi] pindahkan peserta", ids.length, target);
-  return { ok: true, simulated: true };
+  return assignParticipantsAction(ids, target);
 }
 
-/** SEMENTARA (stub frontend): bagi otomatis peserta rata ke semua sesi. */
-export async function autoAssignSessions(mode: AssignMode): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  console.info("[simulasi] bagi sesi otomatis", mode);
-  return { ok: true, simulated: true };
+/** Bagi otomatis peserta rata ke semua sesi. */
+export function autoAssignSessions(mode: AssignMode): Promise<AdminActionResult> {
+  return autoAssignAction("sesi", mode);
 }
 
-/** SEMENTARA (stub frontend): tempatkan peserta satu sesi rata ke semua ruangan. */
-export async function autoAssignRooms(mode: AssignMode, sessionId: string): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  console.info("[simulasi] tempatkan ruangan otomatis", mode, sessionId);
-  return { ok: true, simulated: true };
+/** Tempatkan peserta satu sesi rata ke semua ruangan. */
+export function autoAssignRooms(mode: AssignMode, sessionId: string): Promise<AdminActionResult> {
+  return autoAssignAction("ruangan", mode, sessionId);
 }
 
 /** Urutan peserta babak 1: indeks 2k & 2k+1 = laga ke-(k+1). */
