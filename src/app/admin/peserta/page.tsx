@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 
 import { ParticipantFormDialog } from "@/components/admin/participant-form-dialog";
+import { CompletenessPanel } from "@/components/admin/completeness-panel";
 import { ParticipantTable } from "@/components/admin/participant-table";
+import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
 import { getBracket } from "@/lib/get-bracket";
 
 export const metadata = { title: "Peserta & Jadwal" };
@@ -16,7 +18,8 @@ export default function PesertaPage({ searchParams }: PageProps<"/admin/peserta"
 
 /** Ringkasan pembagian peserta: matriks sesi × ruangan (target 16 per sel). */
 async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "searchParams">) {
-  const [{ participants, sessions, rooms }, params] = await Promise.all([getBracket(), searchParams]);
+  const [data, params] = await Promise.all([getBracket(), searchParams]);
+  const { participants, sessions, rooms } = data;
   const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
   const query = {
     q: str(params.q),
@@ -38,6 +41,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
 
   return (
     <div className="flex flex-col gap-5">
+      <CompletenessPanel checks={checkScheduleCompleteness(data)} />
       <div className="flex justify-end">
         <ParticipantFormDialog sessions={sessions} rooms={rooms} />
       </div>
