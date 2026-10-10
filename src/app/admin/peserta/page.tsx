@@ -1,21 +1,29 @@
 import { Suspense } from "react";
 
 import { ParticipantFormDialog } from "@/components/admin/participant-form-dialog";
+import { ParticipantTable } from "@/components/admin/participant-table";
 import { getBracket } from "@/lib/get-bracket";
 
 export const metadata = { title: "Peserta & Jadwal" };
 
-export default function PesertaPage() {
+export default function PesertaPage({ searchParams }: PageProps<"/admin/peserta">) {
   return (
     <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-muted" />}>
-      <Overview />
+      <Overview searchParams={searchParams} />
     </Suspense>
   );
 }
 
 /** Ringkasan pembagian peserta: matriks sesi × ruangan (target 16 per sel). */
-async function Overview() {
-  const { participants, sessions, rooms } = await getBracket();
+async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "searchParams">) {
+  const [{ participants, sessions, rooms }, params] = await Promise.all([getBracket(), searchParams]);
+  const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
+  const query = {
+    q: str(params.q),
+    sesi: str(params.sesi),
+    ruangan: str(params.ruangan),
+    page: Number.parseInt(str(params.hal), 10) || 1,
+  };
   const unassigned = participants.filter((p) => !p.sessionId || !p.roomId).length;
   const cell = (sessionId: string, roomId: string) =>
     participants.filter((p) => p.sessionId === sessionId && p.roomId === roomId).length;
@@ -87,6 +95,11 @@ async function Overview() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">Daftar peserta</h2>
+        <ParticipantTable participants={participants} sessions={sessions} rooms={rooms} query={query} />
       </section>
     </div>
   );
