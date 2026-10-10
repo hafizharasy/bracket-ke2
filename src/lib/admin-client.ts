@@ -1,6 +1,11 @@
 // Pemanggil aksi admin dari sisi klien.
 
-import { assignParticipantsAction, autoAssignAction, saveParticipantAction } from "@/app/admin/peserta/actions";
+import {
+  assignParticipantsAction,
+  autoAssignAction,
+  saveParticipantAction,
+  savePairingsAction,
+} from "@/app/admin/peserta/actions";
 import { saveAccountAction, updateAccountStatusAction } from "@/app/admin/pengawas/actions";
 import { saveRoomAction, saveSessionAction } from "@/app/admin/ruangan/actions";
 
@@ -52,11 +57,9 @@ export function autoAssignRooms(mode: AssignMode, sessionId: string): Promise<Ad
 /** Urutan peserta babak 1: indeks 2k & 2k+1 = laga ke-(k+1). */
 export type PairingPayload = { sessionId: string; roomId: string; order: string[] };
 
-/** SEMENTARA (stub frontend): simpan susunan pasangan babak 1 satu ruangan. */
-export async function savePairings(payload: PairingPayload): Promise<AdminActionResult> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  console.info("[simulasi] simpan pasangan", payload);
-  return { ok: true, simulated: true };
+/** Simpan susunan pasangan babak 1 satu ruangan. */
+export function savePairings(payload: PairingPayload): Promise<AdminActionResult> {
+  return savePairingsAction(payload);
 }
 
 export type AccountFormValues = { name: string; email: string; roomId: string; password: string };

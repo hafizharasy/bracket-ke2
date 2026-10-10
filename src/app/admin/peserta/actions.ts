@@ -1,10 +1,11 @@
 "use server";
 
 import { assertAdminAction } from "@/lib/admin-session";
-import type { AdminActionResult, AssignMode, ParticipantFormValues } from "@/lib/admin-client";
+import type { AdminActionResult, AssignMode, PairingPayload, ParticipantFormValues } from "@/lib/admin-client";
 import { assignInput, assignParticipants, autoAssign, autoAssignInput } from "@/server/assignments";
 import { ApiError } from "@/server/errors";
 import { bracketSource, notifyBracketChanged } from "@/server/live";
+import { pairingInput, savePairings } from "@/server/pairings";
 import {
   createParticipant,
   participantCreateInput,
@@ -71,4 +72,11 @@ export async function autoAssignAction(
   const parsed = autoAssignInput.safeParse({ kind, mode, sessionId });
   if (!parsed.success) return { ok: false, error: "Pilihan pembagian tidak valid." };
   return run(() => autoAssign(parsed.data));
+}
+
+/** Simpan susunan pasangan babak 1 satu ruangan. */
+export async function savePairingsAction(payload: PairingPayload): Promise<AdminActionResult> {
+  const parsed = pairingInput.safeParse(payload);
+  if (!parsed.success) return { ok: false, error: "Susunan pasangan tidak valid." };
+  return run(() => savePairings(parsed.data));
 }
