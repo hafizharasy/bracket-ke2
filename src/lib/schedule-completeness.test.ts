@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { mockBracket } from "@/lib/mock/bracket-data";
-import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
+import { checkScheduleCompleteness, summarizePlacement } from "@/lib/schedule-completeness";
 
 const byKey = (checks: ReturnType<typeof checkScheduleCompleteness>) => Object.fromEntries(checks.map((c) => [c.key, c]));
 
@@ -29,5 +29,23 @@ describe("checkScheduleCompleteness", () => {
     const checks = byKey(checkScheduleCompleteness({ ...mockBracket, matches }));
     expect(checks.pairs.ok).toBe(false);
     expect(checks.consistency.detail).toContain("muncul lebih dari sekali");
+  });
+});
+
+describe("summarizePlacement", () => {
+  it("menghitung isi sesi × ruangan dan status pasangan", () => {
+    const summary = summarizePlacement(mockBracket);
+    expect(summary).toMatchObject({ total: 640, withoutSession: 0, withoutRoom: 0, ready: true });
+    expect(summary.sessions).toHaveLength(4);
+    expect(summary.sessions[0]).toMatchObject({ count: 160 });
+    expect(summary.sessions[0].rooms.every((r) => r.count === 16 && r.pairsComplete)).toBe(true);
+  });
+
+  it("melaporkan peserta belum ditempatkan dan pasangan kosong", () => {
+    const participants = mockBracket.participants.map((p, i) => (i === 0 ? { ...p, sessionId: null, roomId: null } : p));
+    const matches = mockBracket.matches.map((m) => (m.id === "m-s1-r1-b1-1" ? { ...m, participantAId: null } : m));
+    const summary = summarizePlacement({ ...mockBracket, participants, matches });
+    expect(summary).toMatchObject({ withoutSession: 1, withoutRoom: 1, ready: false });
+    expect(summary.sessions[0].rooms[0]).toMatchObject({ id: "ruangan-1", count: 15, pairsComplete: false });
   });
 });

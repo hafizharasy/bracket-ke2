@@ -92,3 +92,57 @@ export function checkScheduleCompleteness(data: Pick<BracketData, "participants"
     ),
   ];
 }
+
+export type PlacementSummary = {
+  total: number;
+  withoutSession: number;
+  withoutRoom: number;
+  /** Isi tiap sesi dan ruangan di dalamnya; `pairsComplete` = 8 laga babak 1 terisi. */
+  sessions: {
+    id: string;
+    name: string;
+    count: number;
+    rooms: { id: string; name: string; count: number; pairsComplete: boolean }[];
+  }[];
+  checks: CompletenessCheck[];
+  /** Semua pemeriksaan lolos: jadwal siap dipakai. */
+  ready: boolean;
+};
+
+/** Ringkasan penempatan peserta per sesi × ruangan plus pemeriksaan kelengkapan. */
+export function summarizePlacement(
+  data: Pick<BracketData, "participants" | "sessions" | "rooms" | "matches">,
+): PlacementSummary {
+  const { participants, sessions, rooms, matches } = data;
+  const cellKey = (s: string, r: string) => `${s}|${r}`;
+  const counts = new Map<string, number>();
+  for (const p of participants) {
+    if (p.sessionId) counts.set(p.sessionId, (counts.get(p.sessionId) ?? 0) + 1);
+    if (p.sessionId && p.roomId) counts.set(cellKey(p.sessionId, p.roomId), (counts.get(cellKey(p.sessionId, p.roomId)) ?? 0) + 1);
+  }
+  const pairs = new Map<string, number>();
+  for (const m of matches) {
+    if (m.round === 1 && m.participantAId && m.participantBId) {
+      pairs.set(cellKey(m.sessionId, m.roomId), (pairs.get(cellKey(m.sessionId, m.roomId)) ?? 0) + 1);
+    }
+  }
+  const checks = checkScheduleCompleteness(data);
+  return {
+    total: participants.length,
+    withoutSession: participants.filter((p) => !p.sessionId).length,
+    withoutRoom: participants.filter((p) => !p.roomId).length,
+    sessions: sessions.map((s) => ({
+      id: s.id,
+      name: s.name,
+      count: counts.get(s.id) ?? 0,
+      rooms: rooms.map((r) => ({
+        id: r.id,
+        name: r.name,
+        count: counts.get(cellKey(s.id, r.id)) ?? 0,
+        pairsComplete: (pairs.get(cellKey(s.id, r.id)) ?? 0) === PLAYERS_PER_ROOM / 2,
+      })),
+    })),
+    checks,
+    ready: checks.every((c) => c.ok),
+  };
+}
