@@ -5,22 +5,28 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { type AssignMode, autoAssignSessions } from "@/lib/admin-client";
+import { type AssignMode, autoAssignRooms, autoAssignSessions } from "@/lib/admin-client";
 
-const RUNNERS = { sesi: autoAssignSessions } as const;
+const RUNNERS = {
+  sesi: (mode: AssignMode) => autoAssignSessions(mode),
+  ruangan: (mode: AssignMode, sessionId?: string) => autoAssignRooms(mode, sessionId!),
+} as const;
 
 /** Tombol "bagi otomatis" dengan pilihan cakupan dan konfirmasi untuk "semua". */
 export function AutoAssignButton({
   label,
   kind,
   unassignedCount,
+  sessionId,
 }: {
   label: string;
   /** Jenis pembagian; menentukan aksi yang dijalankan. */
   kind: keyof typeof RUNNERS;
   unassignedCount: number;
+  /** Untuk penempatan ruangan: sesi yang ditempatkan. */
+  sessionId?: string;
 }) {
-  const run = RUNNERS[kind];
+  const run = (mode: AssignMode) => RUNNERS[kind](mode, sessionId);
   const router = useRouter();
   const [mode, setMode] = useState<AssignMode>(unassignedCount > 0 ? "unassigned" : "all");
   const [busy, setBusy] = useState(false);

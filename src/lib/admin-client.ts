@@ -54,3 +54,10 @@ export async function autoAssignSessions(mode: AssignMode): Promise<AdminActionR
   console.info("[simulasi] bagi sesi otomatis", mode);
   return { ok: true, simulated: true };
 }
+
+/** SEMENTARA (stub frontend): tempatkan peserta satu sesi rata ke semua ruangan. */
+export async function autoAssignRooms(mode: AssignMode, sessionId: string): Promise<AdminActionResult> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  console.info("[simulasi] tempatkan ruangan otomatis", mode, sessionId);
+  return { ok: true, simulated: true };
+}
