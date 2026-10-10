@@ -5,7 +5,7 @@ import { LiveUpdater } from "@/components/bracket/live-updater";
 import { RoomMatchRow } from "@/components/ruangan/room-match-row";
 import { buildSlotLabels, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
 import { ROOM_MATCH_GROUPS, roomMatchGroup } from "@/lib/room-matches";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "search
     rooms: new Map(data.rooms.map((r) => [r.id, r])),
   });
   // Pengawas hanya melihat laga di ruangannya.
-  const roomMatches = data.matches.filter((m) => m.roomId === session.roomId).sort(sortMatches);
+  const roomMatches = data.matches.filter((m) => canAccessRoom(session, m.roomId)).sort(sortMatches);
 
   // Sesi aktif: dari URL, atau sesi pertama yang masih punya laga belum selesai.
   const sessionsWithMatches = data.sessions.filter((s) =>

@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { OtherRoomNotice } from "@/components/ruangan/other-room-notice";
 import { type NextPreview, ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
 import { buildAdvanceMap, buildSlotLabels, LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
-import { getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
 
 export const metadata = { title: "Input hasil · Bracket LRP 2026" };
 
@@ -50,14 +51,11 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
   );
 
   // Pengawas hanya boleh mengisi hasil di ruangannya sendiri.
-  if (match.roomId !== session.roomId) {
+  if (!canAccessRoom(session, match.roomId)) {
     return (
       <>
         {back}
-        <p className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
-          Laga ini berlangsung di {room?.name ?? "ruangan lain"}. Anda hanya bisa mengisi hasil
-          untuk ruangan Anda sendiri.
-        </p>
+        <OtherRoomNotice roomName={room?.name} />
       </>
     );
   }

@@ -2,6 +2,7 @@ import { ArrowLeftIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { RoomLockBadge } from "@/components/ruangan/room-lock-badge";
 import { RoomNav } from "@/components/ruangan/room-nav";
 
 export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
@@ -11,6 +12,9 @@ export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
         <div className="mx-auto flex h-12 w-full max-w-3xl items-center gap-2 px-4">
           <ShieldCheckIcon className="size-4 text-emerald-600" aria-hidden />
           <span className="text-sm font-semibold">Area Pengawas</span>
+          <Suspense>
+            <RoomLockBadge />
+          </Suspense>
           <Link
             href="/"
             className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"

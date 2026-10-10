@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { OtherRoomNotice } from "@/components/ruangan/other-room-notice";
 import { Badge } from "@/components/ui/badge";
 import { getMatchDetail, type MatchDetail } from "@/db/queries/match-detail";
-import { getPengawasSession } from "@/lib/pengawas-session";
+import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Detail hasil · Bracket LRP 2026" };
@@ -43,13 +44,11 @@ async function Detail({ params }: Pick<PageProps<"/ruangan/riwayat/[id]">, "para
       Riwayat hasil
     </Link>
   );
-  if (match.room.id !== session.roomId) {
+  if (!canAccessRoom(session, match.room.id)) {
     return (
       <>
         {back}
-        <p className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
-          Laga ini berlangsung di {match.room.name}. Anda hanya bisa melihat hasil ruangan Anda.
-        </p>
+        <OtherRoomNotice roomName={match.room.name} />
       </>
     );
   }

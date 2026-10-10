@@ -29,7 +29,7 @@ export async function getRoomHistory(roomId: string): Promise<RoomHistoryItem[]>
   const data = await getBracket();
   const participants = new Map(data.participants.map((p) => [p.id, p]));
   return data.matches
-    .filter((m) => m.roomId === roomId && m.status === "done" && m.winnerId)
+    .filter((m) => m.roomId === roomId && m.status === "done" && m.winnerId) // hanya ruangan ini
     .map((m) => ({
       matchId: m.id,
       sessionId: m.sessionId,
