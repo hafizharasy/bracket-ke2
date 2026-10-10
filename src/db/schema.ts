@@ -122,6 +122,26 @@ export const authAccounts = sqliteTable(
 );
 
 /**
+ * Jejak aksi admin utama (kelola peserta, jadwal, ruangan/sesi, akun, hasil)
+ * untuk akuntabilitas. Pencatat dikosongkan bila akunnya dihapus.
+ */
+export const auditLogs = sqliteTable(
+  "audit_logs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
+    /** Mis. "participant.create", "account.deactivate", "session.update". */
+    action: text("action").notNull(),
+    entity: text("entity").notNull(),
+    entityId: text("entity_id"),
+    /** Ringkasan untuk manusia, mis. "Ruangan 2 → Aula Utama". */
+    summary: text("summary").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("audit_logs_created_idx").on(t.createdAt), index("audit_logs_entity_idx").on(t.entity, t.entityId)],
+);
+
+/**
  * Jejak percobaan login (admin & pengawas) untuk membatasi tebakan sandi:
  * terlalu banyak gagal untuk satu email dalam jangka waktu → dikunci sementara.
  */

@@ -71,6 +71,20 @@
       "when": 1791599078800,
       "tag": "0009_login_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791599677267,
+      "tag": "0010_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1791599678056,
+      "tag": "0011_admin_terakhir",
+      "breakpoints": true
     }
   ]
 }

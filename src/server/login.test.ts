@@ -7,6 +7,7 @@ import { authAccounts, loginAttempts, rooms, users } from "@/db/schema";
 import { hashUserPassword, storePasswordHash } from "@/server/credentials";
 import { loginFailureStatus, loginWithPassword } from "@/server/login";
 import { MAX_FAILED_ATTEMPTS } from "@/server/login-attempts";
+import { clearUsers } from "@/test/db";
 
 const req = { headers: new Headers({ "x-forwarded-for": "10.0.0.7" }) };
 const attempt = (email: string, password: string, role: "admin" | "pengawas" = "pengawas") =>
@@ -17,7 +18,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of [loginAttempts, authAccounts, users, rooms]) db.delete(table).run();
+  for (const table of [loginAttempts, authAccounts]) db.delete(table).run();
+  clearUsers();
+  for (const table of [rooms]) db.delete(table).run();
   db.insert(rooms).values({ id: "ruangan-1", name: "Ruangan 1" }).run();
   db.insert(users).values([
     { id: "u-p", name: "P", email: "p@lrp.id", role: "pengawas", roomId: "ruangan-1" },

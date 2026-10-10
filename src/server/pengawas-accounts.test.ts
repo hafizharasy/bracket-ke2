@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { authAccounts, authSessions, rooms, sessions, users, violations, participants } from "@/db/schema";
 import { ApiError } from "@/server/errors";
 import { createPengawas, deletePengawas, listPengawas, updatePengawas } from "@/server/pengawas-accounts";
+import { clearUsers } from "@/test/db";
 
 async function expectApiError(fn: () => unknown, status: number) {
   try {
@@ -28,7 +29,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  for (const table of [violations, authSessions, authAccounts, users, participants, rooms, sessions]) db.delete(table).run();
+  for (const table of [violations, authSessions, authAccounts]) db.delete(table).run();
+  clearUsers();
+  for (const table of [participants, rooms, sessions]) db.delete(table).run();
   db.insert(rooms).values([{ id: "ruangan-1", name: "Ruangan 1" }, { id: "ruangan-2", name: "Ruangan 2" }]).run();
 });
 

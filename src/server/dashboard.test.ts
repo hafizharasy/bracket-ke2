@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { mockBracket } from "@/lib/mock/bracket-data";
 import { attentionItems } from "@/server/dashboard";
+import { clearUsers } from "@/test/db";
 
 const allRooms = mockBracket.rooms.map((r) => ({ active: true, roomId: r.id }));
 
@@ -26,7 +27,9 @@ describe("getDashboardRevision", () => {
     const { bracketState, participants, rooms, users, violations } = await import("@/db/schema");
     const { getDashboardRevision } = await import("@/server/dashboard");
     migrate(db, { migrationsFolder: "drizzle" });
-    for (const table of [violations, users, participants, rooms]) db.delete(table).run();
+    for (const table of [violations]) db.delete(table).run();
+    clearUsers();
+    for (const table of [participants, rooms]) db.delete(table).run();
     db.insert(rooms).values({ id: "ruangan-1", name: "Ruangan 1" }).run();
     db.insert(participants).values({ id: "p1", name: "P1" }).run();
 

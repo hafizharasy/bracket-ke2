@@ -5,6 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/db";
 import { authAccounts, rooms, users } from "@/db/schema";
 import { getSessionUser } from "@/server/auth";
+import { clearUsers } from "@/test/db";
 
 // Tanpa header, getSessionUser jatuh ke sesi stub pengawas (butuh cookies Next).
 vi.mock("@/lib/pengawas-session", () => ({ getPengawasSession: async () => null }));
@@ -17,7 +18,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   db.delete(authAccounts).run();
-  db.delete(users).run();
+  clearUsers();
   db.delete(rooms).run();
   db.insert(rooms).values({ id: "ruangan-1", name: "Ruangan 1" }).run();
   db.insert(users).values({ id: "u-p1", name: "P1", email: "p1@x", role: "pengawas", roomId: "ruangan-1" }).run();

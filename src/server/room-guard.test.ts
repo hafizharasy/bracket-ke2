@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/db";
 import { matches, rooms, sessions, users } from "@/db/schema";
 import { roomFromParam, roomOfMatchParam, withRoomAccess } from "@/server/room-guard";
+import { clearUsers } from "@/test/db";
 
 // Tanpa header dev, sesi dibaca dari cookie Better Auth (tidak ada di tes).
 vi.mock("@/server/better-auth", () => ({ auth: { api: { getSession: async () => null } } }));
@@ -19,7 +20,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  for (const table of [matches, users, rooms, sessions]) db.delete(table).run();
+  for (const table of [matches]) db.delete(table).run();
+  clearUsers();
+  for (const table of [rooms, sessions]) db.delete(table).run();
   db.insert(sessions).values({ id: "sesi-1", name: "Sesi 1", orderIndex: 1 }).run();
   db.insert(rooms).values([{ id: "ruangan-1", name: "R1" }, { id: "ruangan-2", name: "R2" }]).run();
   db.insert(users).values([

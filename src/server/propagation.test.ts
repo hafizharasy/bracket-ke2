@@ -16,6 +16,7 @@ import type { SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
 import { cancelMatchResult, recordMatchResult } from "@/server/match-results";
 import { repropagateAll } from "@/server/propagation";
+import { clearUsers } from "@/test/db";
 
 const admin: SessionUser = { id: "u-admin", name: "Admin", role: "admin", roomId: null };
 const pengawas2: SessionUser = { id: "u-p2", name: "P2", role: "pengawas", roomId: "ruangan-2" };
@@ -44,9 +45,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  for (const table of [matchResultHistory, matchResults, matches, users, participants, rooms, sessions]) {
-    db.delete(table).run();
-  }
+  for (const table of [matchResultHistory, matchResults, matches]) db.delete(table).run();
+  clearUsers();
+  for (const table of [participants, rooms, sessions]) db.delete(table).run();
   db.insert(sessions).values({ id: "sesi-1", name: "Sesi 1", orderIndex: 1 }).run();
   db.insert(rooms).values([
     { id: "ruangan-1", name: "Ruangan 1" },

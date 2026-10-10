@@ -7,6 +7,7 @@ import { GET as getParticipantViolations } from "@/app/api/participants/[id]/vio
 import { GET as getRoomViolations } from "@/app/api/rooms/[id]/violations/route";
 import { db } from "@/db";
 import { matches, participants, rooms, sessions, users, violations } from "@/db/schema";
+import { clearUsers } from "@/test/db";
 
 // Tanpa header x-dev-user-id, sesi stub menunjuk akun yang tidak ada → anonim.
 vi.mock("@/lib/pengawas-session", () => ({
@@ -24,7 +25,9 @@ const ctx = <T extends Record<string, string>>(params: T) => ({ params: Promise.
 beforeAll(() => migrate(db, { migrationsFolder: "drizzle" }));
 
 beforeEach(() => {
-  for (const table of [violations, matches, users, participants, rooms, sessions]) db.delete(table).run();
+  for (const table of [violations, matches]) db.delete(table).run();
+  clearUsers();
+  for (const table of [participants, rooms, sessions]) db.delete(table).run();
   db.insert(sessions).values({ id: "sesi-1", name: "Sesi 1", orderIndex: 1 }).run();
   db.insert(rooms).values([{ id: "ruangan-1", name: "Ruangan 1" }, { id: "ruangan-2", name: "Ruangan 2" }]).run();
   db.insert(participants).values([
