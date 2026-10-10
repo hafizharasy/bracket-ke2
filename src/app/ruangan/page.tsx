@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { LiveUpdater } from "@/components/bracket/live-updater";
+import { RoomHomeSummary } from "@/components/ruangan/room-home-summary";
 import { RoomMatchRow } from "@/components/ruangan/room-match-row";
 import { buildSlotLabels, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
@@ -53,12 +54,16 @@ async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "search
     <>
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-xl font-semibold">{room?.name ?? "Ruangan"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {session.name}
-          {room?.location ? ` · ${room.location}` : ""}
-        </p>
+        {room?.location && <p className="text-sm text-muted-foreground">{room.location}</p>}
         <LiveUpdater version={data.version} updatedAt={data.updatedAt} />
       </div>
+
+      <RoomHomeSummary
+        pengawasName={session.name}
+        sessionName={activeSession?.name ?? null}
+        matches={matches}
+        participants={participants}
+      />
 
       <nav aria-label="Pilih sesi" className="flex gap-1.5 overflow-x-auto pb-1">
         {sessionsWithMatches.map((s) => (
