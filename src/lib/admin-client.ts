@@ -61,3 +61,13 @@ export async function autoAssignRooms(mode: AssignMode, sessionId: string): Prom
   console.info("[simulasi] tempatkan ruangan otomatis", mode, sessionId);
   return { ok: true, simulated: true };
 }
+
+/** Urutan peserta babak 1: indeks 2k & 2k+1 = laga ke-(k+1). */
+export type PairingPayload = { sessionId: string; roomId: string; order: string[] };
+
+/** SEMENTARA (stub frontend): simpan susunan pasangan babak 1 satu ruangan. */
+export async function savePairings(payload: PairingPayload): Promise<AdminActionResult> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  console.info("[simulasi] simpan pasangan", payload);
+  return { ok: true, simulated: true };
+}
