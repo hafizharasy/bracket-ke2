@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/ruangan", label: "Laga" },
   { href: "/ruangan/riwayat", label: "Riwayat" },
+  { href: "/ruangan/pelanggaran", label: "Pelanggaran" },
 ];
 
 /** Tab navigasi area pengawas. */
