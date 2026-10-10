@@ -61,11 +61,14 @@ export type ViolationPayload = {
 };
 
 /**
- * SEMENTARA (stub frontend): mensimulasikan penyimpanan catatan
- * pelanggaran. Akan diganti POST /api/violations.
+ * Simpan catatan pelanggaran. Saat ini ke daftar lokal di server (Server
+ * Action, belum database); nanti diganti penyimpanan ke tabel violations.
  */
 export async function submitViolation(payload: ViolationPayload): Promise<SubmitResult> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  console.info("[simulasi] catat pelanggaran", payload);
-  return { ok: true, simulated: true };
+  const { recordViolation } = await import("@/app/ruangan/pelanggaran/actions");
+  try {
+    return await recordViolation(payload);
+  } catch {
+    return { ok: false, error: "Gagal menyimpan. Periksa koneksi lalu coba lagi." };
+  }
 }

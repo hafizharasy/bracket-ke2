@@ -1,11 +1,13 @@
 import { getBracket } from "@/lib/get-bracket";
+import { listLocalViolations } from "@/lib/mock/violation-store";
 import { VIOLATION_TYPES, type Violation } from "@/lib/violations";
 
 /**
  * Pelanggaran tercatat di satu ruangan, terbaru dulu.
  *
- * SEMENTARA (stub frontend): contoh data deterministik dari peserta di
- * ruangan itu. Akan diganti endpoint pelanggaran dari tabel `violations`.
+ * SEMENTARA (stub frontend): catatan dari form (daftar lokal di memori
+ * server) + contoh data deterministik dari peserta di ruangan itu.
+ * Akan diganti query ke tabel `violations`.
  */
 export async function getRoomViolations(roomId: string): Promise<Violation[]> {
   const data = await getBracket();
@@ -27,5 +29,7 @@ export async function getRoomViolations(roomId: string): Promise<Violation[]> {
       recordedBy: "Pengawas (simulasi)",
     });
   });
-  return samples.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+  return [...listLocalViolations(roomId), ...samples].sort((a, b) =>
+    b.occurredAt.localeCompare(a.occurredAt),
+  );
 }
