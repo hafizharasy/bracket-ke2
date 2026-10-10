@@ -1,5 +1,7 @@
 import { connection } from "next/server";
 
+import { can } from "@/lib/policy";
+
 export type PengawasSession = {
   userId: string;
   name: string;
@@ -18,7 +20,7 @@ export async function getPengawasSession(): Promise<PengawasSession> {
   return { userId: "u-pengawas-1", name: "Pengawas Ruangan 1", roomId: "ruangan-1" };
 }
 
-/** Satu-satunya aturan akses pengawas: hanya ruangan miliknya. */
+/** Boleh melihat/mengelola ruangan ini? (aturan di lib/policy, peran pengawas). */
 export function canAccessRoom(session: PengawasSession, roomId: string) {
-  return session.roomId === roomId;
+  return can({ role: "pengawas", roomId: session.roomId }, "room:view", { roomId });
 }

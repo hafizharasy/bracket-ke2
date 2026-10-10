@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { can, type RoomAction } from "@/lib/policy";
 import { ApiError } from "@/server/errors";
 
 export type SessionUser = Pick<typeof users.$inferSelect, "id" | "name" | "role" | "roomId">;
@@ -51,9 +52,9 @@ export async function requireUser(request: Request) {
   return user;
 }
 
-/** Admin boleh semua ruangan; pengawas hanya ruangannya sendiri. */
-export function assertRoomAccess(user: SessionUser, roomId: string) {
-  if (user.role === "admin") return;
-  if (user.role === "pengawas" && user.roomId === roomId) return;
-  throw new ApiError(403, "Anda tidak punya akses ke ruangan ini.");
+/** Tolak (403) bila pengguna tidak boleh melakukan aksi di ruangan ini — lihat lib/policy. */
+export function authorize(user: SessionUser, action: RoomAction, resource: { roomId: string }) {
+  if (!can(user, action, resource)) {
+    throw new ApiError(403, "Anda tidak punya akses ke ruangan ini.");
+  }
 }

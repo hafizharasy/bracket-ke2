@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { matches } from "@/db/schema";
-import { assertRoomAccess, requireUser } from "@/server/auth";
+import { authorize, requireUser } from "@/server/auth";
 import { ApiError, errorResponse } from "@/server/errors";
 import { detectImageType, MAX_PROOF_BYTES, saveProofPhoto } from "@/server/storage";
 
@@ -17,7 +17,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/matches/[id
     const { id } = await ctx.params;
     const match = db.select({ roomId: matches.roomId }).from(matches).where(eq(matches.id, id)).get();
     if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");
-    assertRoomAccess(user, match.roomId);
+    authorize(user, "proof:upload", match);
 
     const length = Number(request.headers.get("content-length") ?? 0);
     if (length > MAX_PROOF_BYTES + 64 * 1024) throw new ApiError(413, "Foto terlalu besar (maks. 5 MB).");

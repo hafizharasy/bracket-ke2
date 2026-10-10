@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { matches, matchResultHistory, matchResults } from "@/db/schema";
-import { assertRoomAccess, type SessionUser } from "@/server/auth";
+import { authorize, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
 import { isProofUrlForMatch } from "@/server/storage";
 import { bumpBracketVersion } from "@/server/live";
@@ -28,7 +28,7 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
   return db.transaction((tx) => {
     const match = tx.select().from(matches).where(eq(matches.id, matchId)).get();
     if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");
-    assertRoomAccess(user, match.roomId);
+    authorize(user, "result:write", match);
     if (!isProofUrlForMatch(input.proofPhotoUrl, match.id)) {
       throw new ApiError(422, "Foto bukti harus diunggah untuk laga ini terlebih dahulu.");
     }
@@ -102,7 +102,7 @@ export function cancelMatchResult(matchId: string, user: SessionUser) {
   return db.transaction((tx) => {
     const match = tx.select().from(matches).where(eq(matches.id, matchId)).get();
     if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");
-    assertRoomAccess(user, match.roomId);
+    authorize(user, "result:cancel", match);
     if (match.status !== "done" || !match.winnerId) {
       throw new ApiError(409, "Laga ini belum punya hasil untuk dibatalkan.");
     }

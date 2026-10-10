@@ -4,7 +4,8 @@ import { z } from "zod";
 
 import { getBracket } from "@/lib/get-bracket";
 import { addLocalViolation } from "@/lib/mock/violation-store";
-import { canAccessRoom, getPengawasSession } from "@/lib/pengawas-session";
+import { getPengawasSession } from "@/lib/pengawas-session";
+import { can } from "@/lib/policy";
 import type { SubmitResult, ViolationPayload } from "@/lib/results-client";
 
 const violationInput = z.object({
@@ -28,13 +29,15 @@ export async function recordViolation(payload: ViolationPayload): Promise<Submit
   }
 
   const session = await getPengawasSession();
+  const actor = { role: "pengawas" as const, roomId: session.roomId };
+  const mayWrite = (roomId: string) => can(actor, "violation:write", { roomId });
   const data = await getBracket();
   const participant = data.participants.find((p) => p.id === input.participantId);
   if (!participant) return { ok: false, error: "Peserta tidak ditemukan." };
 
   if (input.matchId) {
     const match = data.matches.find((m) => m.id === input.matchId);
-    if (!match || !canAccessRoom(session, match.roomId)) {
+    if (!match || !mayWrite(match.roomId)) {
       return { ok: false, error: "Laga tidak ada di ruangan Anda." };
     }
     if (match.participantAId !== participant.id && match.participantBId !== participant.id) {
@@ -42,9 +45,9 @@ export async function recordViolation(payload: ViolationPayload): Promise<Submit
     }
   } else {
     const playsHere = data.matches.some(
-      (m) => canAccessRoom(session, m.roomId) && (m.participantAId === participant.id || m.participantBId === participant.id),
+      (m) => mayWrite(m.roomId) && (m.participantAId === participant.id || m.participantBId === participant.id),
     );
-    if (participant.roomId !== session.roomId && !playsHere) {
+    if (!(participant.roomId && mayWrite(participant.roomId)) && !playsHere) {
       return { ok: false, error: "Peserta tidak terdaftar di ruangan Anda." };
     }
   }

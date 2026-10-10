@@ -1,5 +1,5 @@
 import { getRoom, getRoomMatches } from "@/db/queries/room";
-import { assertRoomAccess, requireUser } from "@/server/auth";
+import { authorize, requireUser } from "@/server/auth";
 import { ApiError, errorResponse } from "@/server/errors";
 
 /**
@@ -12,7 +12,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/rooms/[id]/m
     const { id } = await ctx.params;
     const room = getRoom(id);
     if (!room) throw new ApiError(404, "Ruangan tidak ditemukan.");
-    assertRoomAccess(user, room.id);
+    authorize(user, "room:view", { roomId: room.id });
     const sessionId = new URL(request.url).searchParams.get("sesi");
     return Response.json(
       { room, matches: getRoomMatches(room.id, sessionId) },
