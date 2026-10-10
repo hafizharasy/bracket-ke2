@@ -188,7 +188,11 @@ export const matchResultHistory = sqliteTable(
   ],
 );
 
-/** Catatan pelanggaran peserta. */
+/**
+ * Catatan pelanggaran peserta, dicatat pengawas di ruangannya. `occurredAt`
+ * = waktu kejadian (diisi pengawas), `createdAt` = waktu dicatat sistem.
+ * Jenis memakai daftar baku di lib/violations; "Lainnya" wajib berisi catatan.
+ */
 export const violations = sqliteTable(
   "violations",
   {
@@ -208,10 +212,17 @@ export const violations = sqliteTable(
     recordedBy: text("recorded_by")
       .notNull()
       .references(() => users.id),
+    createdAt: createdAt(),
   },
   (t) => [
-    index("violations_room_idx").on(t.roomId),
-    index("violations_participant_idx").on(t.participantId),
+    check("violations_type_check", sql`length(trim(${t.type})) between 1 and 100`),
+    check("violations_note_check", sql`${t.note} is null or length(${t.note}) <= 500`),
+    check(
+      "violations_other_note_check",
+      sql`${t.type} <> 'Lainnya' or (${t.note} is not null and length(trim(${t.note})) > 0)`,
+    ),
+    index("violations_room_idx").on(t.roomId, t.occurredAt),
+    index("violations_participant_idx").on(t.participantId, t.occurredAt),
     index("violations_match_idx").on(t.matchId),
   ],
 );
