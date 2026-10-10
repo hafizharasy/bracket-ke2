@@ -46,6 +46,16 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Tema arena (halaman publik) */
+  --font-display: var(--font-bungee), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #1a1a2e;
+  --color-ink-deep: #12121f;
+  --color-gold: #ffc72c;
+  --color-gold-soft: #fff3cf;
+  --color-crimson: #d10f2f;
+  --color-cream: #fffaf0;
+  --color-parchment: #f6ecd2;
 }
 
 :root {
@@ -129,4 +139,71 @@
   html {
     @apply font-sans;
   }
+}
+/* ---------- Tema arena: halaman publik (bracket) ---------- */
+.arena {
+  --background: #fffaf0;
+  --foreground: #1a1a2e;
+  --card: #fffdf7;
+  --card-foreground: #1a1a2e;
+  --popover: #fffdf7;
+  --popover-foreground: #1a1a2e;
+  --primary: #d10f2f;
+  --primary-foreground: #ffffff;
+  --muted: #f6ecd2;
+  --muted-foreground: #716760;
+  --accent: #fff3cf;
+  --accent-foreground: #1a1a2e;
+  --border: #e4d6b4;
+  --input: #e4d6b4;
+  --ring: #ffc72c;
+  --path-highlight: #ffe58a;
+  font-family: var(--font-body);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Garis kotak-kotak merah-kuning di tepi atas/bawah. */
+.arena-checker {
+  background: repeating-linear-gradient(90deg, #d10f2f 0 18px, #ffc72c 18px 36px);
+}
+
+/* Bayangan "offset" khas desain: kartu, tombol, lencana. */
+.arena-shadow {
+  box-shadow: 4px 4px 0 0 #1a1a2e;
+}
+.arena-shadow-gold {
+  box-shadow: 4px 4px 0 0 #ffc72c;
+}
+.arena-shadow-red {
+  box-shadow: 4px 4px 0 0 #d10f2f;
+}
+
+/* Sinar matahari di hero. */
+.arena-sunburst {
+  background: repeating-conic-gradient(from 0deg at 85% 55%, rgb(255 199 44 / 0.09) 0deg 9deg, transparent 9deg 18deg);
+}
+
+/* Konfeti titik di latar krem. */
+.arena-dots {
+  background-image:
+    radial-gradient(circle, rgb(209 15 47 / 0.55) 1.6px, transparent 2px),
+    radial-gradient(circle, rgb(255 199 44 / 0.8) 1.6px, transparent 2px),
+    radial-gradient(circle, rgb(37 70 210 / 0.45) 1.4px, transparent 2px);
+  background-size: 210px 180px, 260px 240px, 240px 210px;
+  background-position: 0 0, 90px 110px, 160px 40px;
+}
+
+/* Lampu di bingkai kartu sorotan. */
+.arena-marquee {
+  background-image: radial-gradient(circle, #fffaf0 2.4px, transparent 3px);
+  background-size: 22px 10px;
+  background-repeat: repeat-x;
+}
+
+/* Hasil pencarian peserta di bagan. */
+.arena [data-search-hit] {
+  outline: 2px solid #d10f2f;
+  outline-offset: -2px;
+  background-color: #ffe58a !important;
 }

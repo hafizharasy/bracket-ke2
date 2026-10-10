@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bungee, Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,16 +12,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Tema "arena" halaman publik: Bungee untuk judul, Poppins untuk teks.
+const bungee = Bungee({
+  variable: "--font-bungee",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const poppins = Poppins({
+  variable: "--font-poppins",
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Bracket LRP 2026",
-  description: "Bagan turnamen 1 vs 1 LRP 2026 — 640 peserta, 4 sesi, 10 ruangan, hasil live.",
+  title: "MCR & LRP 2026 · Bracket",
+  description: "Bagan turnamen MCR & LRP 2026 UNESA — babak ruangan, semifinal, dan final dengan hasil live.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bungee.variable} ${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background font-sans text-foreground">{children}</body>
     </html>

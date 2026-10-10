@@ -24,10 +24,10 @@ export function FinalStandingsTable({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <div className="overflow-x-auto rounded-xl border-2 border-ink bg-white shadow-[4px_4px_0_0_var(--color-gold)]">
         <table className="w-full min-w-[34rem] text-sm">
           <caption className="sr-only">Klasemen final</caption>
-          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+          <thead className="bg-ink text-left font-display text-[10px] tracking-wide text-gold uppercase">
             <tr>
               <th className="w-10 px-3 py-2 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Finalis</th>
@@ -38,30 +38,30 @@ export function FinalStandingsTable({
               <th className="px-3 py-2 text-center font-medium">Poin</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-ink/10">
             {rows.map((row) => {
               const p = participants.get(row.participantId);
               const champion = complete && row.rank === 1 && !row.tied;
               return (
-                <tr key={row.participantId} className={cn(champion && "bg-amber-500/10")}>
-                  <td className="px-3 py-2 tabular-nums">{row.rank}{row.tied && "*"}</td>
+                <tr key={row.participantId} className={cn(champion && "bg-gold-soft")}>
+                  <td className="px-3 py-2 font-display text-ink/70 tabular-nums">{row.rank}{row.tied && "*"}</td>
                   <td className="px-3 py-2">
                     <span className="flex items-center gap-1.5 font-medium">
-                      {champion && <TrophyIcon className="size-4 text-amber-500" aria-label="Juara" />}
+                      {champion && <TrophyIcon className="size-4 text-crimson" aria-label="Juara" />}
                       {p?.name ?? row.participantId}
                     </span>
-                    {p?.teamOrClub && <span className="block text-xs text-muted-foreground">{p.teamOrClub}</span>}
+                    {p?.teamOrClub && <span className="block text-xs text-ink/50">{p.teamOrClub}</span>}
                   </td>
                   <td className="px-3 py-2 text-center tabular-nums">{row.played}</td>
                   <td className="px-3 py-2 text-center tabular-nums">{row.wins}</td>
                   <td className="px-3 py-2 text-center tabular-nums">{row.losses}</td>
                   <td className="px-3 py-2 text-center tabular-nums">{row.fourInRow}</td>
-                  <td className="px-3 py-2 text-center font-semibold tabular-nums">{formatPoints(row.points)}</td>
+                  <td className="px-3 py-2 text-center font-display text-base text-crimson tabular-nums">{formatPoints(row.points)}</td>
                 </tr>
               );
             })}
             {pending.map((k) => (
-              <tr key={`sf-${k}`} className="text-muted-foreground">
+              <tr key={`sf-${k}`} className="text-ink/45">
                 <td className="px-3 py-2">–</td>
                 <td className="px-3 py-2 italic" colSpan={6}>Pemenang Semifinal #{k}</td>
               </tr>
@@ -69,7 +69,7 @@ export function FinalStandingsTable({
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-ink/60">
         Poin per kemenangan:{" "}
         {Object.values(WIN_TYPES)
           .map((w) => `${w.label.replace(/^Menang (telak )?/, "").replace(/[()]/g, "")} +${formatPoints(w.points)}`)

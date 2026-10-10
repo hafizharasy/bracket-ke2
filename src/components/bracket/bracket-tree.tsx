@@ -1,6 +1,6 @@
 import { BracketScroller } from "@/components/bracket/bracket-scroller";
 import { MatchCard } from "@/components/bracket/match-card";
-import { groupByRound, roundLabel, type SlotLabels } from "@/lib/bracket";
+import { groupByRound, LAST_ROOM_ROUND, roundLabel, type SlotLabels } from "@/lib/bracket";
 import type { Match, Participant, Room } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +10,11 @@ type BracketTreeProps = {
   /** Kalau diisi, nama ruangan ditampilkan di tiap kartu. */
   rooms?: Map<string, Room>;
   slotLabels?: Map<string, SlotLabels>;
+  /** Nomor undian peserta (urutan babak 1 di ruangannya). */
+  seeds?: Map<string, number>;
   /** Nama area gulir untuk pembaca layar, mis. "Bagan Sesi 1 Ruangan 3". */
   label: string;
-  tone?: "card" | "background";
+  tone?: "card" | "background" | "cream";
 };
 
 // Setengah jarak antarkolom (gap-8 = 2rem): garis penghubung bertemu di tengahnya.
@@ -32,6 +34,7 @@ export function BracketTree({
   participants,
   rooms,
   slotLabels,
+  seeds,
   label,
   tone,
 }: BracketTreeProps) {
@@ -46,9 +49,18 @@ export function BracketTree({
           const pairs = isLast ? [roundMatches] : chunk(roundMatches, 2);
           return (
             <div key={round} data-round-col className="flex snap-start flex-col">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
-                {roundLabel(round)}
-                <span className="ml-1 font-normal">· {roundMatches.length} laga</span>
+              <div className="mb-3 flex w-52 items-start justify-between gap-2 sm:w-60">
+                <div>
+                  <div className="font-display text-xs text-ink uppercase">
+                    {round === LAST_ROOM_ROUND ? roundLabel(round) : roundLabel(round).replace(/ Ruangan$/, "")}
+                  </div>
+                  <div className="text-[10px] text-ink/45">
+                    {round === LAST_ROOM_ROUND ? "Perebutan juara" : `${roundMatches.length * 2} peserta · ${roundMatches.length} laga`}
+                  </div>
+                </div>
+                <span aria-hidden className="font-display text-2xl leading-none text-ink/12">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
               </div>
               <div className="flex flex-1 flex-col">
                 {pairs.map((pair) => {
@@ -61,17 +73,18 @@ export function BracketTree({
                         // Garis vertikal yang menyatukan dua laga ke laga berikutnya.
                         !isLast &&
                           pair.length === 2 &&
-                          "after:absolute after:top-1/4 after:bottom-1/4 after:-right-(--half-gap) after:w-px",
-                        pairDone ? "after:bg-emerald-500/60" : "after:bg-border",
+                          "after:absolute after:top-1/4 after:bottom-1/4 after:-right-[calc(var(--half-gap)+1px)] after:w-0.5",
+                        pairDone ? "after:bg-gold" : "after:bg-ink/20",
                       )}
                     >
                       {pair.map((match) => (
-                        <div key={match.id} className="flex flex-1 items-center py-1">
+                        <div key={match.id} className="flex flex-1 items-center py-1.5">
                           <MatchCard
                             match={match}
                             participants={participants}
                             roomName={rooms?.get(match.roomId)?.name}
                             slotLabels={slotLabels?.get(match.id)}
+                            seeds={seeds}
                             connectOut={!isLast}
                             connectIn={!isFirst}
                           />

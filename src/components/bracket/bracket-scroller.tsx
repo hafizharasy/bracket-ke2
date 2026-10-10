@@ -19,10 +19,10 @@ export function BracketScroller({
 }: {
   label: string;
   /** Warna permukaan di belakang bagan, untuk bayangan tepi. */
-  tone?: "card" | "background";
+  tone?: "card" | "background" | "cream";
   children: ReactNode;
 }) {
-  const fade = tone === "card" ? "from-card" : "from-background";
+  const fade = tone === "card" ? "from-card" : tone === "cream" ? "from-cream" : "from-background";
   const ref = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
 

@@ -31,7 +31,10 @@ export function LiveUpdater({
   pollUrl = "/api/bracket/version",
   realtime = true,
   pollMs = FALLBACK_POLL_MS,
+  tone = "default",
 }: {
+  /** "dark" untuk latar gelap (hero halaman publik). */
+  tone?: "default" | "dark";
   version: number | string;
   updatedAt: string;
   /** Endpoint JSON `{ version }` untuk polling. */
@@ -117,7 +120,7 @@ export function LiveUpdater({
         : "Live";
 
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className={cn("flex items-center gap-2 text-xs", tone === "dark" ? "text-[#d9cbbd]" : "text-muted-foreground")}>
       <span className="flex items-center gap-1.5" aria-live="polite">
         <span
           className={cn(
@@ -131,7 +134,10 @@ export function LiveUpdater({
       <button
         type="button"
         onClick={() => setPaused((p) => !p)}
-        className="flex items-center gap-1 rounded-md border px-2 py-0.5 hover:bg-muted"
+        className={cn(
+          "flex items-center gap-1 rounded-md border px-2 py-0.5",
+          tone === "dark" ? "border-white/20 hover:bg-white/10" : "hover:bg-muted",
+        )}
         aria-pressed={paused}
       >
         {paused ? <PlayIcon className="size-3" /> : <PauseIcon className="size-3" />}
