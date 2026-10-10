@@ -3,12 +3,10 @@
 // sudah berisi data, kecuali diberi konfirmasi `--yakin`; sebelum menghapus,
 // salinan database disimpan di folder `cadangan/` di samping database.
 
-import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-
 import { sql } from "drizzle-orm";
 
-import { DATABASE_PATH, db } from "@/db";
+import { db } from "@/db";
+import { backupDatabase } from "@/db/backup";
 import { matches, participants, rooms, sessions } from "@/db/schema";
 
 export const CONFIRM_FLAG = "--yakin";
@@ -43,11 +41,7 @@ export function guardDestructive(command: string, args = process.argv.slice(2)):
     process.exit(1);
   }
 
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 15);
-  const backupDir = join(dirname(DATABASE_PATH), "cadangan");
-  mkdirSync(backupDir, { recursive: true });
-  const backup = join(backupDir, `bracket-${stamp}.db`);
-  db.run(sql.raw(`VACUUM INTO '${backup.replace(/'/g, "''")}'`));
+  const backup = backupDatabase();
   console.log(`✓ Cadangan database disimpan di ${backup}`);
   return backup;
 }

@@ -27,6 +27,10 @@ npm run dev        # http://localhost:3000
   `/admin/pantau/:ruangan`), disimpan di tabel terpisah `match_officials` dan
   tidak pernah ikut di data publik maupun data pengawas ruangan.
 - Admin bisa menginput/mengoreksi hasil laga mana pun dari `/admin/laga/:id`.
+- **Simulasi** (`/admin/simulasi`) — isi hasil acak sesuai aturan tiap babak (per
+  ruangan-sesi, per sesi, semifinal, final, atau sampai juara) untuk uji coba, lalu
+  **Hapus semua hasil** (ketik `HAPUS`; database dicadangkan dulu ke `data/cadangan/`).
+  Peserta, sesi, ruangan, struktur bagan, pasangan, akun, dan nama pengawas tetap.
 
 ## Deploy
 
