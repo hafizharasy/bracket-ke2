@@ -10,7 +10,15 @@ export type ResultPayload = {
   proofPhotoUrl?: string;
 };
 
-export type SubmitResult = { ok: true; simulated: boolean } | { ok: false; error: string };
+export type SubmitResult =
+  | { ok: true; simulated: boolean }
+  | { ok: false; error: string; /** Sesi login habis → arahkan pengguna masuk lagi. */ code?: "SESSION_EXPIRED" };
+
+export const SESSION_EXPIRED = {
+  ok: false,
+  error: "Sesi Anda berakhir. Silakan masuk lagi untuk menyimpan.",
+  code: "SESSION_EXPIRED",
+} as const;
 
 /** Simpan hasil laga lewat Server Action (skor, pemenang, bukti, status selesai). */
 export async function submitMatchResult(

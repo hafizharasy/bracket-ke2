@@ -4,6 +4,7 @@ import { CheckCircle2Icon, Loader2Icon, SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { SessionExpiredNotice } from "@/components/auth/session-expired-notice";
 import { Button } from "@/components/ui/button";
 import { submitViolation } from "@/lib/results-client";
 import { VIOLATION_TYPES } from "@/lib/violations";
@@ -12,7 +13,11 @@ import { cn } from "@/lib/utils";
 export type ViolationParticipantOption = { id: string; name: string; club: string | null };
 export type ViolationMatchOption = { id: string; label: string; participantIds: string[] };
 
-type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; simulated: boolean } | { kind: "error"; message: string };
+type Status =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved"; simulated: boolean }
+  | { kind: "error"; message: string; expired?: boolean };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 /** Jam sekarang (WIB) dalam format input time "HH:MM". */
@@ -86,7 +91,11 @@ export function ViolationForm({
       note: note.trim() || null,
       occurredAt: wibTimeToIso(time),
     });
-    setStatus(result.ok ? { kind: "saved", simulated: result.simulated } : { kind: "error", message: result.error });
+    setStatus(
+      result.ok
+        ? { kind: "saved", simulated: result.simulated }
+        : { kind: "error", message: result.error, expired: result.code === "SESSION_EXPIRED" },
+    );
   }
 
   if (status.kind === "saved") {
@@ -222,7 +231,8 @@ export function ViolationForm({
         Simpan pelanggaran
       </Button>
       <div aria-live="polite" className="min-h-5 text-sm">
-        {status.kind === "error" && <p className="text-destructive">{status.message}</p>}
+        {status.kind === "error" &&
+          (status.expired ? <SessionExpiredNotice message={status.message} /> : <p className="text-destructive">{status.message}</p>)}
         {status.kind === "idle" && missing && <p className="text-muted-foreground">{missing}</p>}
       </div>
     </form>

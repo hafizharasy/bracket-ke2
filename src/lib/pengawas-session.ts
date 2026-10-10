@@ -33,7 +33,11 @@ export async function getPengawasSession(): Promise<PengawasSession | null> {
 /** Halaman pengawas: arahkan ke /masuk (kembali ke `next` setelah login) bila belum login. */
 export async function requirePengawas(next = "/ruangan"): Promise<PengawasSession> {
   const session = await getPengawasSession();
-  if (!session) redirect(`/masuk?next=${encodeURIComponent(next)}`);
+  if (!session) {
+    // Cookie ada tapi tidak sah lagi (akun dinonaktifkan / dipindah) → sesi berakhir.
+    const hadCookie = (await cookies()).has(STUB_USER_COOKIE);
+    redirect(`/masuk?next=${encodeURIComponent(next)}${hadCookie ? "&alasan=sesi" : ""}`);
+  }
   return session;
 }
 

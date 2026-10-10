@@ -52,5 +52,20 @@ async function FormOrRedirect({ searchParams }: Pick<PageProps<"/masuk">, "searc
   const [session, params] = await Promise.all([getPengawasSession(), searchParams]);
   const next = typeof params.next === "string" ? params.next : undefined;
   if (session) redirect(safeNext(next));
-  return <LoginForm submit={loginPengawas} next={next} />;
+  const notice =
+    params.keluar === "1"
+      ? "Anda telah keluar. Sampai jumpa!"
+      : params.alasan === "sesi"
+        ? "Sesi Anda berakhir. Silakan masuk lagi untuk melanjutkan."
+        : null;
+  return (
+    <>
+      {notice && (
+        <p role="status" className="mb-4 rounded-lg bg-muted px-3 py-2 text-sm">
+          {notice}
+        </p>
+      )}
+      <LoginForm submit={loginPengawas} next={next} />
+    </>
+  );
 }

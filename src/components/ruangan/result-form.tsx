@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { type ProofPhoto, ProofPhotoInput } from "@/components/ruangan/proof-photo-input";
+import { SessionExpiredNotice } from "@/components/auth/session-expired-notice";
 import { ScoreStepper } from "@/components/ruangan/score-stepper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ type Status =
   | { kind: "idle" }
   | { kind: "saving" }
   | { kind: "saved"; simulated: boolean }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; expired?: boolean };
 
 /** Form input hasil laga oleh pengawas: skor, pemenang, foto bukti. */
 export function ResultForm({
@@ -79,7 +80,9 @@ export function ResultForm({
       proofPhotoUrl: photo.url,
     });
     setStatus(
-      result.ok ? { kind: "saved", simulated: result.simulated } : { kind: "error", message: result.error },
+      result.ok
+        ? { kind: "saved", simulated: result.simulated }
+        : { kind: "error", message: result.error, expired: result.code === "SESSION_EXPIRED" },
     );
     // Muat ulang data halaman (status laga, babak lanjut) dari server.
     if (result.ok) router.refresh();
@@ -192,7 +195,8 @@ export function ResultForm({
             {status.simulated ? " (mode simulasi)" : ""}.
           </p>
         )}
-        {status.kind === "error" && <p className="text-destructive">{status.message}</p>}
+        {status.kind === "error" &&
+          (status.expired ? <SessionExpiredNotice message={status.message} /> : <p className="text-destructive">{status.message}</p>)}
       </div>
     </form>
   );

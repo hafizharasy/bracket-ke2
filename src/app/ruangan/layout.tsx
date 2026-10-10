@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { LogoutButton } from "@/components/auth/logout-button";
 import { RoomLockBadge } from "@/components/ruangan/room-lock-badge";
 import { RoomNav } from "@/components/ruangan/room-nav";
 import { getAdminSession } from "@/lib/admin-session";
@@ -25,6 +26,7 @@ export default function RuanganLayout({ children }: LayoutProps<"/ruangan">) {
             <ArrowLeftIcon className="size-3" />
             Bracket publik
           </Link>
+          <LogoutButton className="ml-3" />
         </div>
         {/* Tab aktif dibaca dari URL → perlu Suspense pada rute dinamis. */}
         <Suspense fallback={<div className="h-9" />}>

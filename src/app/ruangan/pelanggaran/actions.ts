@@ -1,6 +1,6 @@
 "use server";
 
-import type { SubmitResult, ViolationPayload } from "@/lib/results-client";
+import { SESSION_EXPIRED, type SubmitResult, type ViolationPayload } from "@/lib/results-client";
 import { getActingUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
 import { bracketSource } from "@/server/live";
@@ -16,7 +16,7 @@ export async function recordViolation(payload: ViolationPayload): Promise<Submit
   if (bracketSource() === "mock") return recordMockViolation(parsed.data);
 
   const user = await getActingUser();
-  if (!user) return { ok: false, error: "Sesi berakhir. Silakan login kembali." };
+  if (!user) return SESSION_EXPIRED;
   try {
     recordViolationService(parsed.data, user);
     return { ok: true, simulated: false };
@@ -34,7 +34,7 @@ async function recordMockViolation(input: ReturnType<typeof violationInput.parse
     import("@/lib/pengawas-session"),
   ]);
   const session = await getPengawasSession();
-  if (!session) return { ok: false, error: "Sesi berakhir. Silakan login kembali." };
+  if (!session) return SESSION_EXPIRED;
   addLocalViolation({
     id: crypto.randomUUID(),
     participantId: input.participantId,

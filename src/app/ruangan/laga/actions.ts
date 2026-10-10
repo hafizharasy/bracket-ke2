@@ -4,7 +4,7 @@ import { getActingUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
 import { notifyBracketChanged } from "@/server/live";
 import { matchResultInput, recordMatchResult } from "@/server/match-results";
-import type { ResultPayload, SubmitResult } from "@/lib/results-client";
+import { type ResultPayload, SESSION_EXPIRED, type SubmitResult } from "@/lib/results-client";
 
 /**
  * Simpan hasil laga dari form pengawas: skor, pemenang, foto bukti, status
@@ -13,7 +13,7 @@ import type { ResultPayload, SubmitResult } from "@/lib/results-client";
  */
 export async function saveMatchResult(matchId: string, payload: ResultPayload): Promise<SubmitResult> {
   const user = await getActingUser();
-  if (!user) return { ok: false, error: "Sesi berakhir. Silakan login kembali." };
+  if (!user) return SESSION_EXPIRED;
 
   const parsed = matchResultInput.safeParse(payload);
   if (!parsed.success) return { ok: false, error: "Data hasil tidak valid. Periksa skor dan foto bukti." };
