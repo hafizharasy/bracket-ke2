@@ -14,11 +14,14 @@ const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digi
 export function RoomHomeSummary({
   pengawasName,
   sessionName,
+  sessionStart = null,
   matches,
   participants,
 }: {
   pengawasName: string;
   sessionName: string | null;
+  /** Jam mulai sesi aktif (ISO), dari jadwal admin. */
+  sessionStart?: string | null;
   matches: Match[];
   participants: Map<string, Participant>;
 }) {
@@ -39,6 +42,9 @@ export function RoomHomeSummary({
       <p className="text-sm">
         Halo, <span className="font-semibold">{pengawasName}</span>
         {sessionName && <span className="text-muted-foreground"> · {sessionName}</span>}
+        {sessionStart && (
+          <span className="text-muted-foreground"> · mulai {time.format(new Date(sessionStart))} WIB</span>
+        )}
       </p>
 
       <div className="grid grid-cols-3 gap-2">

@@ -49,6 +49,7 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 | `GET /api/bracket?sesi=&ruangan=` | Bagan (opsional difilter), ETag/304 |
 | `GET /api/bracket/version` | Versi data bagan (ringan) |
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
+| `GET /api/schedule?sesi=&ruangan=` | Jadwal publik: jam mulai & rentang laga tiap sesi, laga terurut jam beserta nama peserta |
 | `GET /api/matches/:id` | Detail satu pertandingan |
 | `POST /api/matches/:id/proof` | Unggah foto bukti (multipart `photo`, JPEG/PNG/WebP ≤ 5 MB) |
 | `DELETE /api/matches/:id/result` | Batalkan hasil (salah input) selama laga berikutnya belum dimulai |

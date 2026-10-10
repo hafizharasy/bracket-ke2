@@ -1,20 +1,33 @@
 "use server";
 
-import { z } from "zod";
-
 import { assertAdminAction } from "@/lib/admin-session";
 import type { AdminActionResult, RoomFormValues, SessionFormValues } from "@/lib/admin-client";
 import { getBracket } from "@/lib/get-bracket";
 import { updateMockRoom, updateMockSession } from "@/lib/mock/structure-store";
+import { ApiError } from "@/server/errors";
+import { bracketSource, notifyBracketChanged } from "@/server/live";
+import { roomInput, sessionScheduleInput, updateRoom, updateSessionSchedule } from "@/server/schedule";
 
-const name = z.string().trim().min(2).max(50);
+/** Tulis ke database (mode db) lalu beri tahu bagan publik & pengawas. */
+function persist(id: string, write: () => unknown): AdminActionResult {
+  try {
+    write();
+    notifyBracketChanged();
+    return { ok: true, simulated: false, id };
+  } catch (error) {
+    if (error instanceof ApiError) return { ok: false, error: error.message };
+    throw error;
+  }
+}
 
-/** Simpan nama & lokasi ruangan ke state tiruan (nama harus unik). */
+/** Simpan nama & lokasi ruangan (nama harus unik). */
 export async function saveRoomAction(id: string, values: RoomFormValues): Promise<AdminActionResult> {
   const denied = await assertAdminAction();
   if (denied) return denied;
-  const parsed = z.object({ name, location: z.string().trim().max(100) }).safeParse(values);
+  const parsed = roomInput.safeParse(values);
   if (!parsed.success) return { ok: false, error: "Data ruangan tidak valid." };
+  if (bracketSource() === "db") return persist(id, () => updateRoom(id, parsed.data));
+
   const { rooms } = await getBracket();
   if (!rooms.some((r) => r.id === id)) return { ok: false, error: "Ruangan tidak ditemukan." };
   if (rooms.some((r) => r.id !== id && r.name.toLowerCase() === parsed.data.name.toLowerCase())) {
@@ -24,12 +37,17 @@ export async function saveRoomAction(id: string, values: RoomFormValues): Promis
   return { ok: true, simulated: true, id };
 }
 
-/** Simpan nama & jam mulai sesi ke state tiruan (nama unik, urutan jam tetap naik). */
+/**
+ * Simpan nama & jam mulai sesi (nama unik, urutan jam tetap naik). Di
+ * database, jadwal laga sesi itu ikut digeser sebesar perubahan jam mulai.
+ */
 export async function saveSessionAction(id: string, values: SessionFormValues): Promise<AdminActionResult> {
   const denied = await assertAdminAction();
   if (denied) return denied;
-  const parsed = z.object({ name, startTime: z.iso.datetime() }).safeParse(values);
+  const parsed = sessionScheduleInput.safeParse(values);
   if (!parsed.success) return { ok: false, error: "Data sesi tidak valid." };
+  if (bracketSource() === "db") return persist(id, () => updateSessionSchedule(id, parsed.data));
+
   const { sessions } = await getBracket();
   const index = sessions.findIndex((s) => s.id === id);
   if (index < 0) return { ok: false, error: "Sesi tidak ditemukan." };

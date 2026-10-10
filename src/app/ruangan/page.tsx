@@ -61,6 +61,7 @@ async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "search
       <RoomHomeSummary
         pengawasName={session.name}
         sessionName={activeSession?.name ?? null}
+        sessionStart={activeSession?.startTime ?? null}
         matches={matches}
         participants={participants}
       />
