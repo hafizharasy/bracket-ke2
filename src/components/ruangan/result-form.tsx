@@ -3,6 +3,7 @@
 import { CheckCircle2Icon, Loader2Icon } from "lucide-react";
 import { useState } from "react";
 
+import { type ProofPhoto, ProofPhotoInput } from "@/components/ruangan/proof-photo-input";
 import { ScoreStepper } from "@/components/ruangan/score-stepper";
 import { Button } from "@/components/ui/button";
 import { submitMatchResult } from "@/lib/results-client";
@@ -22,13 +23,18 @@ export function ResultForm({
 }) {
   const [scoreA, setScoreA] = useState(match.scoreA ?? 0);
   const [scoreB, setScoreB] = useState(match.scoreB ?? 0);
+  const [photo, setPhoto] = useState<ProofPhoto | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const saving = status.kind === "saving";
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!photo) {
+      setStatus({ kind: "error", message: "Unggah foto bukti terlebih dahulu." });
+      return;
+    }
     setStatus({ kind: "saving" });
-    const result = await submitMatchResult(match.id, { scoreA, scoreB });
+    const result = await submitMatchResult(match.id, { scoreA, scoreB, proofPhotoUrl: photo.url });
     setStatus(result.ok ? { kind: "saved", simulated: result.simulated } : { kind: "error", message: result.error });
   }
 
@@ -65,7 +71,9 @@ export function ResultForm({
         ))}
       </fieldset>
 
-      <Button type="submit" size="lg" className="h-12 text-base" disabled={saving}>
+      <ProofPhotoInput matchId={match.id} onChange={setPhoto} disabled={saving} />
+
+      <Button type="submit" size="lg" className="h-12 text-base" disabled={saving || !photo}>
         {saving && <Loader2Icon className="animate-spin" />}
         {match.status === "done" ? "Simpan koreksi hasil" : "Simpan hasil"}
       </Button>

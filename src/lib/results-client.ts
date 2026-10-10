@@ -21,3 +21,32 @@ export async function submitMatchResult(
   console.info("[simulasi] simpan hasil", matchId, payload);
   return { ok: true, simulated: true };
 }
+
+/** Batas ukuran berkas asli yang diterima sebelum dikompres. */
+export const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Perkecil foto di browser sebelum diunggah (sisi terpanjang maks. 1600 px,
+ * JPEG kualitas 0.82) supaya unggahan cepat di jaringan lapangan.
+ */
+export async function compressPhoto(file: File, maxSide = 1600, quality = 0.82): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Gagal memproses foto."))), "image/jpeg", quality),
+  );
+}
+
+/**
+ * SEMENTARA (stub frontend): mensimulasikan unggah foto bukti dan
+ * mengembalikan URL sementara. Akan diganti endpoint unggah di backend.
+ */
+export async function uploadProofPhoto(matchId: string, photo: Blob): Promise<{ url: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  return { url: `/bukti/${matchId}-simulasi-${photo.size}.jpg` };
+}
