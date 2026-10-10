@@ -88,3 +88,4 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/participants/summary` | Ringkasan kelengkapan: isi tiap sesi × ruangan, belum ditempatkan, status pasangan babak 1, `checks` & `ready` — admin |
 | `GET /api/admin/summary?aktivitas=` | Ringkasan dashboard admin: progres laga per sesi, juara ruangan, laga berikutnya, total pelanggaran, perlu perhatian, aktivitas terbaru, status ruangan — admin |
 | `GET /api/admin/rooms?sesi=` | Pantau semua ruangan pada sesi (default sesi aktif): status, laga berjalan & berikutnya, juara, pelanggaran, pengawas aktif — admin |
+| `GET /api/admin/matches/:id` | Detail laga untuk admin: hasil & foto bukti, asal slot, laga berikutnya, jejak audit hasil, pelanggaran di laga itu — admin |
