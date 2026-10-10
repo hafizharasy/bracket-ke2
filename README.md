@@ -44,7 +44,9 @@ di `/admin/pengawas`.
 
 - **Admin utama** (`/masuk/admin`) — akses penuh ke `/admin` dan semua endpoint admin.
 - **Pengawas ruangan** (`/masuk`) — hanya ruangannya sendiri (`/ruangan`, hasil,
-  bukti, pelanggaran); aturan di `src/lib/policy.ts`.
+  bukti, pelanggaran); aturan di `src/lib/policy.ts`. Endpoint yang terikat ruangan
+  dibungkus `withRoomAccess` (`src/server/room-guard.ts`): 401 belum login,
+  404 data tidak ada, 403 ruangan lain.
 - Akun nonaktif (`users.active = 0`) tidak bisa login dan sesinya tidak berlaku lagi.
 - 5 kali gagal berturut-turut untuk satu email → login email itu dikunci 15 menit
   (tabel `login_attempts`). Rute HTTP bawaan Better Auth untuk sign-in, sign-up,
