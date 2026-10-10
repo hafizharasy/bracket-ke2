@@ -10,13 +10,14 @@ export type SessionUser = Pick<typeof users.$inferSelect, "id" | "name" | "role"
  * Pengguna yang sedang login untuk request ini.
  *
  * SEMENTARA, sampai login (Better Auth) dibuat: di luar production, pengguna
- * dibaca dari header `x-dev-user-id` (ID akun di tabel users) untuk pengujian.
+ * dibaca dari header `x-dev-user-id` (ID akun di tabel users) untuk pengujian,
+ * atau dari sesi stub pengawas (untuk panggilan dari browser).
  * Di production selalu null → semua endpoint tulis menolak dengan 401.
  */
 export async function getSessionUser(request: Request): Promise<SessionUser | null> {
   if (process.env.NODE_ENV === "production") return null;
   const id = request.headers.get("x-dev-user-id");
-  if (!id) return null;
+  if (!id) return getActingUser();
   const user = db
     .select({ id: users.id, name: users.name, role: users.role, roomId: users.roomId })
     .from(users)

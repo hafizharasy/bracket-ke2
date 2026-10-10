@@ -22,7 +22,8 @@ npm run dev        # http://localhost:3000
 | `npm run db:studio` | Buka Drizzle Studio |
 
 Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
-(mis. ke volume persisten saat deploy).
+(mis. ke volume persisten saat deploy). Foto bukti disimpan di `data/uploads`
+(env `UPLOAD_DIR`) dan disajikan lewat `/api/bukti/:file`.
 
 ## Sumber data & live update
 
@@ -40,4 +41,6 @@ Berkas database default ada di `data/bracket.db`; ubah lewat env `DATABASE_PATH`
 | `GET /api/bracket/version` | Versi data bagan (ringan) |
 | `GET /api/bracket/stream` | SSE `event: version` setiap ada perubahan |
 | `GET /api/matches/:id` | Detail satu pertandingan |
-| `PUT /api/matches/:id/result` | Simpan/koreksi hasil (pengawas ruangan / admin) |
+| `POST /api/matches/:id/proof` | Unggah foto bukti (multipart `photo`, JPEG/PNG/WebP ≤ 5 MB) |
+| `PUT /api/matches/:id/result` | Simpan/koreksi hasil (pengawas ruangan / admin); `proofPhotoUrl` harus hasil unggah untuk laga itu |
+| `GET /api/bukti/:file` | Foto bukti tersimpan |

@@ -44,13 +44,14 @@ export async function compressPhoto(file: File, maxSide = 1600, quality = 0.82):
   );
 }
 
-/**
- * SEMENTARA (stub frontend): mensimulasikan unggah foto bukti dan
- * mengembalikan URL sementara. Akan diganti endpoint unggah di backend.
- */
+/** Unggah foto bukti ke POST /api/matches/:id/proof; melempar Error berisi pesan server. */
 export async function uploadProofPhoto(matchId: string, photo: Blob): Promise<{ url: string }> {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  return { url: `/bukti/${matchId}-simulasi-${photo.size}.jpg` };
+  const form = new FormData();
+  form.append("photo", photo, "bukti.jpg");
+  const res = await fetch(`/api/matches/${encodeURIComponent(matchId)}/proof`, { method: "POST", body: form });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? "Gagal mengunggah foto.");
+  return { url: body.url };
 }
 
 export type ViolationPayload = {

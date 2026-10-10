@@ -59,8 +59,9 @@ export function ProofPhotoInput({
       const photo = { url, previewUrl: preview, size: compressed.size };
       setState({ kind: "ready", photo });
       onChange(photo);
-    } catch {
-      setState({ kind: "error", message: "Gagal mengunggah foto. Coba lagi.", previewUrl: preview });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal mengunggah foto. Coba lagi.";
+      setState({ kind: "error", message, previewUrl: preview });
     }
   }
 

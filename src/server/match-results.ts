@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { matches, matchResultHistory, matchResults } from "@/db/schema";
 import { assertRoomAccess, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
+import { isProofUrlForMatch } from "@/server/storage";
 import { bumpBracketVersion } from "@/server/live";
 import { advanceWinner } from "@/server/propagation";
 
@@ -13,7 +14,7 @@ export const matchResultInput = z.object({
   scoreB: z.int().min(0).max(999),
   /** Wajib bila skor seri (pemenang ditentukan aturan lain); selain itu harus cocok dengan skor. */
   winnerId: z.string().min(1).optional(),
-  /** URL/path foto bukti (unggah berkas ditangani endpoint terpisah). */
+  /** URL foto bukti dari POST /api/matches/:id/proof untuk laga yang sama. */
   proofPhotoUrl: z.string().trim().min(1).max(2048),
 });
 export type MatchResultInput = z.infer<typeof matchResultInput>;
@@ -28,6 +29,9 @@ export function recordMatchResult(matchId: string, input: MatchResultInput, user
     const match = tx.select().from(matches).where(eq(matches.id, matchId)).get();
     if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");
     assertRoomAccess(user, match.roomId);
+    if (!isProofUrlForMatch(input.proofPhotoUrl, match.id)) {
+      throw new ApiError(422, "Foto bukti harus diunggah untuk laga ini terlebih dahulu.");
+    }
 
     const { participantAId: a, participantBId: b } = match;
     if (!a || !b) throw new ApiError(409, "Kedua peserta laga ini belum lengkap.");
