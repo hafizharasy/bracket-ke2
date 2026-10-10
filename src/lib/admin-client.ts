@@ -108,3 +108,20 @@ export async function updateAccountStatus(
   console.info("[simulasi] ubah akun", id, "active" in change ? change : { resetPassword: "***" });
   return { ok: true, simulated: true };
 }
+
+export type RoomFormValues = { name: string; location: string };
+export type SessionFormValues = { name: string; startTime: string };
+
+/** SEMENTARA (stub frontend): simpan nama & lokasi ruangan. */
+export async function saveRoom(id: string, values: RoomFormValues): Promise<AdminActionResult> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  console.info("[simulasi] simpan ruangan", id, values);
+  return { ok: true, simulated: true };
+}
+
+/** SEMENTARA (stub frontend): simpan nama & jam mulai sesi (startTime ISO). */
+export async function saveSession(id: string, values: SessionFormValues): Promise<AdminActionResult> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  console.info("[simulasi] simpan sesi", id, values);
+  return { ok: true, simulated: true };
+}
