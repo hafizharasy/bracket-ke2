@@ -1,3 +1,7 @@
+import { count, sql } from "drizzle-orm";
+
+import { db } from "@/db";
+import { users } from "@/db/schema";
 import { getRecentActivity } from "@/lib/admin-activity";
 import { getBracket } from "@/lib/get-bracket";
 import { getPengawasAccounts } from "@/lib/pengawas-accounts";
@@ -7,6 +11,7 @@ import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
 import { summarizeTournament } from "@/lib/tournament-summary";
 import type { BracketData } from "@/lib/types";
 import { getTotalViolations } from "@/lib/violation-totals";
+import { getBracketVersion } from "@/server/live";
 
 export type AttentionItem = { text: string; href: string };
 
@@ -40,6 +45,8 @@ export async function getDashboardSummary({ activityLimit = 8 } = {}) {
   ]);
   const monitor = monitorRooms(data, violationsByRoom);
   return {
+    revision: await getDashboardRevision(),
+    generatedAt: new Date().toISOString(),
     version: data.version,
     updatedAt: data.updatedAt,
     summary: summarizeTournament(data),
@@ -81,4 +88,18 @@ export async function getRoomsMonitor(sessionId?: string) {
     },
     rooms,
   };
+}
+
+/**
+ * Penanda versi ringkasan dashboard: berubah bila bagan berubah (hasil,
+ * jadwal, peserta), ada pelanggaran baru, atau akun berubah. Klien cukup
+ * membandingkan string ini (polling ringan) sebelum memuat ulang ringkasan.
+ */
+export async function getDashboardRevision() {
+  const [{ version }, violations] = await Promise.all([getBracketVersion(), getTotalViolations()]);
+  const accounts = db
+    .select({ n: count(), changed: sql<number>`coalesce(max(max(coalesce(${users.updatedAt}, 0)), max(coalesce(${users.lastLoginAt}, 0))), 0)` })
+    .from(users)
+    .get();
+  return `${version}.${violations}.${accounts?.n ?? 0}.${accounts?.changed ?? 0}`;
 }

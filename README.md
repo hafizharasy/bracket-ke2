@@ -63,6 +63,8 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 - Live update: halaman berlangganan `GET /api/bracket/stream` (Server-Sent Events)
   dan hanya me-refresh saat versi bagan (`bracket_state.version`) berubah.
   Bila SSE tidak tersedia, klien polling `GET /api/bracket/version` (ETag/304).
+- Dashboard admin polling `GET /api/admin/summary/revision` tiap 15 detik dan
+  memuat ulang ringkasan hanya bila bagan, pelanggaran, atau akun berubah.
 
 ## API
 
@@ -91,6 +93,7 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/pairings?sesi=&ruangan=` · `PUT /api/pairings` | Baca/simpan pasangan babak 1 `{ sessionId, roomId, order }` (indeks 2k vs 2k+1; dikunci setelah laga ruangan dimulai) — admin |
 | `GET /api/participants/summary` | Ringkasan kelengkapan: isi tiap sesi × ruangan, belum ditempatkan, status pasangan babak 1, `checks` & `ready` — admin |
 | `GET /api/admin/summary?aktivitas=` | Ringkasan dashboard admin: progres laga per sesi, juara ruangan, laga berikutnya, total pelanggaran, perlu perhatian, aktivitas terbaru, status ruangan — admin |
+| `GET /api/admin/summary/revision` | Penanda versi ringkasan dashboard `{ version }` (bagan, pelanggaran, akun) untuk polling berkala, ETag/304 — admin |
 | `GET /api/admin/rooms?sesi=` | Pantau semua ruangan pada sesi (default sesi aktif): status, laga berjalan & berikutnya, juara, pelanggaran, pengawas aktif — admin |
 | `GET /api/admin/matches/:id` | Detail laga untuk admin: hasil & foto bukti, asal slot, laga berikutnya, jejak audit hasil, pelanggaran di laga itu — admin |
 | `GET/POST /api/admin/pengawas` · `GET/PATCH/DELETE /api/admin/pengawas/:id` | Akun pengawas `{ name, email, roomId, password, active? }`; pindah ruangan / ganti sandi / nonaktif mengakhiri sesi login; hapus ditolak 409 bila sudah punya jejak — admin |

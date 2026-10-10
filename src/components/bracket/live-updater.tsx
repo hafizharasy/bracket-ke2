@@ -21,10 +21,25 @@ type Mode = "connecting" | "realtime" | "polling";
 /**
  * Live update berbasis versi: berlangganan /api/bracket/stream (SSE) dan
  * me-refresh halaman (RSC) hanya saat versi bagan berubah. Bila stream gagal,
- * beralih ke polling ringan /api/bracket/version (ETag/304). Saat tab tidak
- * terlihat, refresh ditunda sampai tab dibuka lagi.
+ * beralih ke polling ringan `pollUrl` (default /api/bracket/version). Dengan
+ * `realtime={false}` langsung polling berkala (mis. ringkasan dashboard admin).
+ * Saat tab tidak terlihat, refresh ditunda sampai tab dibuka lagi.
  */
-export function LiveUpdater({ version, updatedAt }: { version: number; updatedAt: string }) {
+export function LiveUpdater({
+  version,
+  updatedAt,
+  pollUrl = "/api/bracket/version",
+  realtime = true,
+  pollMs = FALLBACK_POLL_MS,
+}: {
+  version: number | string;
+  updatedAt: string;
+  /** Endpoint JSON `{ version }` untuk polling. */
+  pollUrl?: string;
+  /** false = tanpa SSE, hanya polling berkala. */
+  realtime?: boolean;
+  pollMs?: number;
+}) {
   const router = useRouter();
   const [paused, setPaused] = useState(false);
   const [mode, setMode] = useState<Mode>("connecting");
@@ -49,7 +64,7 @@ export function LiveUpdater({ version, updatedAt }: { version: number; updatedAt
       pending = false;
       startTransition(() => router.refresh());
     };
-    const handleVersion = (next: number) => {
+    const handleVersion = (next: number | string) => {
       if (next !== shownVersion.current) refresh();
     };
     const onVisible = () => {
@@ -62,16 +77,16 @@ export function LiveUpdater({ version, updatedAt }: { version: number; updatedAt
       pollTimer = setInterval(async () => {
         if (document.visibilityState !== "visible") return;
         try {
-          const res = await fetch("/api/bracket/version", { cache: "no-cache" });
+          const res = await fetch(pollUrl, { cache: "no-cache" });
           if (res.ok) handleVersion((await res.json()).version);
         } catch {
           // jaringan putus sesaat; coba lagi di interval berikutnya
         }
-      }, FALLBACK_POLL_MS);
+      }, pollMs);
     };
 
     let source: EventSource | undefined;
-    if ("EventSource" in window) {
+    if (realtime && "EventSource" in window) {
       source = new EventSource("/api/bracket/stream");
       source.addEventListener("open", () => setMode("realtime"));
       source.addEventListener("version", (event) => {
@@ -91,7 +106,7 @@ export function LiveUpdater({ version, updatedAt }: { version: number; updatedAt
       clearInterval(pollTimer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [paused, router]);
+  }, [paused, router, pollUrl, realtime, pollMs]);
 
   const label = paused
     ? "Live dijeda"

@@ -5,6 +5,7 @@ import { TournamentSummaryCards } from "@/components/admin/tournament-summary-ca
 import { RoomMonitorGrid } from "@/components/admin/room-monitor-grid";
 import { ActivityFeed } from "@/components/admin/activity-feed";
 import { AttentionPanel } from "@/components/admin/attention-panel";
+import { LiveUpdater } from "@/components/bracket/live-updater";
 import { getAdminSession } from "@/lib/admin-session";
 import { getDashboardSummary } from "@/server/dashboard";
 
@@ -40,9 +41,11 @@ export default function AdminDashboardPage() {
 }
 
 async function QuickStats() {
-  const { summary, violations, attention, activity, monitor } = await getDashboardSummary();
+  const { summary, violations, attention, activity, monitor, revision, generatedAt } = await getDashboardSummary();
   return (
     <>
+      {/* Ringkasan dimuat ulang otomatis saat bagan, pelanggaran, atau akun berubah. */}
+      <LiveUpdater version={revision} updatedAt={generatedAt} pollUrl="/api/admin/summary/revision" realtime={false} pollMs={15_000} />
       <TournamentSummaryCards summary={summary} violations={violations} />
       <div className="grid gap-5 lg:grid-cols-2">
         <section aria-label="Perlu perhatian" className="flex flex-col gap-2">
