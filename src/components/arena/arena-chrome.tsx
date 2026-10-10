@@ -29,6 +29,7 @@ export function ArenaLogo({ className }: { className?: string }) {
 
 const NAV = [
   { href: "#bracket", label: "Bracket" },
+  { href: "#semifinal", label: "Semifinal" },
   { href: "#final", label: "Final" },
   { href: "#format", label: "Format" },
 ];
