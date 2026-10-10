@@ -15,7 +15,10 @@ const TABS = [
 /** Sub-navigasi Rekap & Ekspor; filter sesi/ruangan ikut terbawa antar tab. */
 export function RekapTabs() {
   const pathname = usePathname();
-  const query = useSearchParams().toString();
+  // Bawa filter sesi/ruangan saja (bukan ?cetak=1).
+  const params = new URLSearchParams(useSearchParams());
+  params.delete("cetak");
+  const query = params.toString();
   return (
     <nav aria-label="Rekap & ekspor" className="flex gap-1.5 overflow-x-auto pb-1">
       {TABS.map((tab) => {

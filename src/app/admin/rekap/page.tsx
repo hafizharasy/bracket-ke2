@@ -1,6 +1,8 @@
 import { CheckCircle2Icon, PencilLineIcon, RadioIcon, ShieldAlertIcon, TrophyIcon, UsersIcon } from "lucide-react";
 import { Suspense } from "react";
 
+import { AutoPrint } from "@/components/admin/auto-print";
+import { PrintButton } from "@/components/admin/print-button";
 import { RekapFilter } from "@/components/admin/rekap-filter";
 import { getRecap, recapFilters } from "@/lib/recap-source";
 
@@ -17,7 +19,8 @@ export default function RekapPage({ searchParams }: PageProps<"/admin/rekap">) {
 }
 
 async function Summary({ searchParams }: Pick<PageProps<"/admin/rekap">, "searchParams">) {
-  const recap = await getRecap(recapFilters(await searchParams));
+  const params = await searchParams;
+  const recap = await getRecap(recapFilters(params));
   const { summary } = recap;
   const scope = [
     recap.sessions.find((s) => s.id === recap.filters.sesi)?.name ?? "Semua sesi",
@@ -36,10 +39,14 @@ async function Summary({ searchParams }: Pick<PageProps<"/admin/rekap">, "search
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <RekapFilter sessions={recap.sessions} rooms={recap.rooms} />
-        <p className="text-xs text-muted-foreground">
-          {scope} · per {dateTime.format(new Date(recap.generatedAt))} WIB
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground">
+            {scope} · per {dateTime.format(new Date(recap.generatedAt))} WIB
+          </p>
+          <PrintButton />
+        </div>
       </div>
+      {params.cetak === "1" && <AutoPrint />}
 
       <section aria-label="Ringkasan angka" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map(({ label, value, note, icon: Icon, tone }) => (

@@ -15,7 +15,7 @@ export const metadata = { title: { template: "%s · Admin LRP 2026", default: "A
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur print:hidden">
         <div className="flex h-12 items-center gap-2 px-4">
           <LayoutDashboardIcon className="size-4 text-primary" aria-hidden />
           <span className="text-sm font-semibold">Admin Bracket LRP 2026</span>
@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         </Suspense>
       </header>
       <div className="flex flex-1">
-        <aside className="sticky top-12 hidden h-[calc(100dvh-3rem)] w-56 shrink-0 border-r p-3 lg:block">
+        <aside className="sticky top-12 hidden h-[calc(100dvh-3rem)] w-56 shrink-0 border-r p-3 lg:block print:hidden">
           <div className="flex h-full flex-col">
             <Suspense>
               <AdminSidebar />

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { RekapFilter } from "@/components/admin/rekap-filter";
+import { DownloadCsvButton } from "@/components/admin/report-downloads";
 import { ResultRecapList } from "@/components/admin/result-recap-list";
 import { getRecap, recapFilters } from "@/lib/recap-source";
 
@@ -18,7 +19,11 @@ async function Results({ searchParams }: Pick<PageProps<"/admin/rekap/hasil">, "
   const recap = await getRecap(recapFilters(await searchParams));
   return (
     <div className="flex flex-col gap-4">
-      <RekapFilter sessions={recap.sessions} rooms={recap.rooms} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <RekapFilter sessions={recap.sessions} rooms={recap.rooms} />
+        {/* Cukup kirim data laporan ini ke klien. */}
+        <DownloadCsvButton recap={{ ...recap, violations: [] }} kind="hasil" />
+      </div>
       {/* key: reset pencarian & halaman saat filter sesi/ruangan berubah */}
       <ResultRecapList key={`${recap.filters.sesi ?? ""}-${recap.filters.ruangan ?? ""}`} rows={recap.results} />
     </div>

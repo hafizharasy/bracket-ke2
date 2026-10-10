@@ -29,7 +29,7 @@ export function RekapFilter({
   const control =
     "h-9 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", pending && "opacity-60")}>
+    <div className={cn("flex flex-wrap items-center gap-2 print:hidden", pending && "opacity-60")}>
       <select aria-label="Filter sesi" value={params.get("sesi") ?? ""} onChange={(e) => set("sesi", e.target.value)} className={control}>
         <option value="">Semua sesi</option>
         {sessions.map((s) => (

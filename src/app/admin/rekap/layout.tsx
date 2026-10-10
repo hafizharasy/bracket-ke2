@@ -12,7 +12,9 @@ export default function RekapLayout({ children }: LayoutProps<"/admin/rekap">) {
         </p>
       </div>
       <Suspense fallback={<div className="h-9" />}>
-        <RekapTabs />
+        <div className="print:hidden">
+          <RekapTabs />
+        </div>
       </Suspense>
       {children}
     </main>
