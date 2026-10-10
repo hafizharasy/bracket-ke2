@@ -50,3 +50,22 @@ export async function uploadProofPhoto(matchId: string, photo: Blob): Promise<{ 
   await new Promise((resolve) => setTimeout(resolve, 800));
   return { url: `/bukti/${matchId}-simulasi-${photo.size}.jpg` };
 }
+
+export type ViolationPayload = {
+  participantId: string;
+  matchId: string | null;
+  type: string;
+  note: string | null;
+  /** ISO. */
+  occurredAt: string;
+};
+
+/**
+ * SEMENTARA (stub frontend): mensimulasikan penyimpanan catatan
+ * pelanggaran. Akan diganti POST /api/violations.
+ */
+export async function submitViolation(payload: ViolationPayload): Promise<SubmitResult> {
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  console.info("[simulasi] catat pelanggaran", payload);
+  return { ok: true, simulated: true };
+}

@@ -1,4 +1,4 @@
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, ShieldAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -107,7 +107,16 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
       </div>
 
       {a && b ? (
-        <ResultForm key={match.id} match={match} participantA={a} participantB={b} next={next} />
+        <>
+          <ResultForm key={match.id} match={match} participantA={a} participantB={b} next={next} />
+          <Link
+            href={`/ruangan/pelanggaran/baru?laga=${match.id}`}
+            className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ShieldAlertIcon className="size-4" />
+            Catat pelanggaran di laga ini
+          </Link>
+        </>
       ) : (
         <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
           Peserta laga ini belum lengkap. Hasil bisa diisi setelah pemenang babak sebelumnya
