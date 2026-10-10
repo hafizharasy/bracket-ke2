@@ -1,7 +1,7 @@
 // Kerangka halaman publik bertema arena: header, lencana judul seksi,
 // seksi format kompetisi, dan footer.
 
-import { LogInIcon, StarIcon } from "lucide-react";
+import { StarIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -41,7 +41,7 @@ export function ArenaHeader() {
         <Link href="/" aria-label={`${EVENT_NAME} — beranda`}>
           <ArenaLogo />
         </Link>
-        <nav aria-label="Navigasi halaman" className="mx-auto hidden items-center gap-8 md:flex">
+        <nav aria-label="Navigasi halaman" className="ml-auto hidden items-center gap-8 md:flex">
           {NAV.map((item, i) => (
             <a
               key={item.href}
@@ -55,14 +55,6 @@ export function ArenaHeader() {
             </a>
           ))}
         </nav>
-        <Link
-          href="/masuk"
-          className="ml-auto flex items-center gap-2 rounded-full bg-gold px-4 py-2 text-sm font-bold text-ink shadow-[3px_3px_0_0_var(--color-crimson)] transition-transform hover:-translate-y-0.5 md:ml-0"
-        >
-          <LogInIcon className="size-4" aria-hidden />
-          <span className="hidden sm:inline">Masuk pengawas</span>
-          <span className="sm:hidden">Masuk</span>
-        </Link>
       </div>
       <div className="h-0.5 bg-crimson" aria-hidden />
     </header>
