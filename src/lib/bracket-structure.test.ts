@@ -113,3 +113,19 @@ describe("spreadClubs", () => {
     for (let k = 0; k < order.length; k += 2) expect(order[k].teamOrClub).not.toBe(order[k + 1].teamOrClub);
   });
 });
+
+describe("finalLegs", () => {
+  it("membagi 20 laga final menjadi 2 putaran berisi 10 pasangan yang sama, tuan rumah ditukar", async () => {
+    const { finalLegs } = await import("@/lib/final-standings");
+    const result = buildBracketStructure(input);
+    if (!result.ok) throw new Error();
+    const [leg1, leg2] = finalLegs(result.matches.filter((m) => m.round === FINAL_ROUND));
+    expect([leg1.length, leg2.length]).toEqual([10, 10]);
+    const pair = (m: (typeof leg1)[number]) => [m.feedAId, m.feedBId].sort().join("|");
+    expect(new Set(leg1.map(pair))).toEqual(new Set(leg2.map(pair)));
+    for (const m of leg1) {
+      const back = leg2.find((x) => pair(x) === pair(m))!;
+      expect([back.feedAId, back.feedBId]).toEqual([m.feedBId, m.feedAId]);
+    }
+  });
+});

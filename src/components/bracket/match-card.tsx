@@ -17,6 +17,8 @@ type MatchCardProps = {
   connectOut?: boolean;
   /** Garis masuk dari pasangan laga babak sebelumnya. */
   connectIn?: boolean;
+  /** Lebar mengikuti wadah (grid) alih-alih lebar tetap kolom bagan. */
+  fluid?: boolean;
 };
 
 const timeFormat = new Intl.DateTimeFormat("id-ID", {
@@ -33,7 +35,7 @@ export function matchBadge(match: Match) {
   return { label: "Menunggu", className: "bg-ink/8 text-ink/45", dot: false };
 }
 
-export function MatchCard({ match, participants, roomName, slotLabels, seeds, connectOut, connectIn }: MatchCardProps) {
+export function MatchCard({ match, participants, roomName, slotLabels, seeds, connectOut, connectIn, fluid }: MatchCardProps) {
   const isLive = match.status === "ongoing";
   const a = match.participantAId ? participants.get(match.participantAId) : undefined;
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
@@ -69,7 +71,8 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
       aria-haspopup="dialog"
       aria-label={`${summary}. Lihat detail.`}
       className={cn(
-        "relative w-52 shrink-0 cursor-pointer rounded-lg border-2 bg-surface text-xs transition-transform outline-none hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold sm:w-60",
+        "relative cursor-pointer rounded-lg border-2 bg-surface text-xs transition-transform outline-none hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold",
+        fluid ? "w-full min-w-0" : "w-52 shrink-0 sm:w-60",
         isLive ? "border-crimson shadow-[4px_4px_0_0_var(--color-gold)]" : "border-line shadow-[3px_3px_0_0_var(--a-card-shadow)]",
         connectOut && "after:absolute after:top-1/2 after:-right-[calc(var(--half-gap)+2px)] after:h-0.5 after:w-(--half-gap)",
         connectOut && (winner ? "after:bg-gold" : "after:bg-ink/20"),

@@ -12,7 +12,7 @@ import { MatchCard } from "@/components/bracket/match-card";
 import { MatchDetails } from "@/components/bracket/match-details";
 import { PathHighlight } from "@/components/bracket/path-highlight";
 import { activeCells, buildSlotLabels, FINAL_ROUND, isFinalStage, roomsInSession, SEMIFINAL_ROUND } from "@/lib/bracket";
-import { finalStandings } from "@/lib/final-standings";
+import { finalLegs, finalStandings } from "@/lib/final-standings";
 import { getBracket } from "@/lib/get-bracket";
 import type { Match, MatchStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -122,14 +122,17 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
   const showFinal = finalMatches.length > 0 && !filter.sessionId;
   const shortRoom = (roomId: string) => roomMap.get(roomId)?.name.replace(/^Ruangan /, "R");
   const shownSemifinals = semifinals.filter((m) => !filter.roomId || m.roomId === filter.roomId);
-  // Laga final dikelompokkan per putaran (laga yang dijadwalkan bersamaan).
-  const finalRounds = [...Map.groupBy(roundRobin, (m) => m.scheduledAt ?? "")]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([at, list], i) => ({
-      index: i + 1,
-      time: at ? timeFormat.format(new Date(at)) : null,
-      list: list.filter((m) => !filter.roomId || m.roomId === filter.roomId),
-    }))
+  // Laga final: 2 putaran — tiap pasangan finalis bertemu sekali di putaran 1 dan
+  // sekali lagi (tuan rumah/tamu ditukar) di putaran 2.
+  const finalRounds = finalLegs(roundRobin)
+    .map((list, i) => {
+      const times = list.map((m) => m.scheduledAt).filter((t): t is string => !!t).sort();
+      return {
+        index: i + 1,
+        time: times.length ? `${timeFormat.format(new Date(times[0]))}–${timeFormat.format(new Date(times.at(-1)!))}` : null,
+        list: list.filter((m) => !filter.roomId || m.roomId === filter.roomId),
+      };
+    })
     .filter((r) => r.list.length > 0);
 
   return (
@@ -258,7 +261,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                     {shownSemifinals.map((match) => (
                       <div key={match.id} data-reveal style={{ ["--i" as string]: shownSemifinals.indexOf(match) }} className="flex flex-col gap-1.5">
                         <span className="font-display text-xs text-ink/70 uppercase">Semifinal #{match.matchNumber}</span>
-                        <MatchCard match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
+                        <MatchCard fluid match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
                       </div>
                     ))}
                   </div>
@@ -301,11 +304,14 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                       <div key={index} data-reveal className="flex flex-col gap-2">
                         <div className="flex items-baseline gap-2">
                           <span className="font-display text-sm text-gold">Putaran {index}</span>
-                          {time && <span className="text-xs text-[#d9cbbd]">{time} WIB</span>}
+                          <span className="text-xs text-[#d9cbbd]">
+                            {index === 1 ? "pertemuan pertama" : "pertemuan kedua (tuan rumah & tamu ditukar)"}
+                            {time && ` · ${time} WIB`}
+                          </span>
                         </div>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                           {list.map((match) => (
-                            <MatchCard key={match.id} match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
+                            <MatchCard key={match.id} fluid match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
                           ))}
                         </div>
                       </div>
