@@ -42,7 +42,7 @@ export function BracketSearch() {
 
   return (
     <div className="flex w-full flex-col gap-1">
-      <label className="relative flex h-10 items-center rounded-lg border-2 border-ink bg-white shadow-[3px_3px_0_0_var(--color-gold)]">
+      <label className="relative flex h-10 items-center rounded-lg border-2 border-line bg-surface shadow-[3px_3px_0_0_var(--color-gold)]">
         <SearchIcon className="pointer-events-none absolute left-3 size-4 text-crimson" aria-hidden />
         <span className="sr-only">Cari peserta</span>
         <input

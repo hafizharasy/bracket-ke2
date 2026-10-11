@@ -1,33 +1,43 @@
-// Kerangka halaman publik bertema arena: header, lencana judul seksi,
+// Kerangka halaman publik bertema karnaval: header, lencana judul seksi,
 // seksi format kompetisi, dan footer.
 
 import { StarIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MobileNav, ThemeToggle } from "@/components/arena/arena-client";
 import { cn } from "@/lib/utils";
 
 export const EVENT_NAME = "MCR & LRP 2026";
 export const EVENT_TAGLINE = "UNESA · Championship";
 
 /** Logo bulat merah-kuning dengan bintang + nama acara. */
-export function ArenaLogo({ className }: { className?: string }) {
+export function ArenaLogo({ className, tone = "auto" }: { className?: string; tone?: "auto" | "dark" }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
-      <span className="flex size-11 items-center justify-center rounded-full border-[3px] border-gold bg-crimson">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full border-[3px] border-gold bg-crimson shadow-[2px_2px_0_0_var(--color-navy)]">
         <span className="flex size-7 items-center justify-center rounded-full bg-gold">
           <StarIcon className="size-4 fill-crimson text-crimson" aria-hidden />
         </span>
       </span>
       <span className="leading-tight">
-        <span className="block font-display text-[15px] tracking-wide text-gold">{EVENT_NAME}</span>
-        <span className="block text-[9px] font-bold tracking-[0.12em] text-white/80 uppercase">{EVENT_TAGLINE}</span>
+        <span className="block font-display text-[15px] tracking-wide text-gold [text-shadow:1px_1px_0_var(--color-navy)]">
+          {EVENT_NAME}
+        </span>
+        <span
+          className={cn(
+            "block text-[9px] font-bold tracking-[0.12em] uppercase",
+            tone === "dark" ? "text-white/75" : "text-ink/70",
+          )}
+        >
+          {EVENT_TAGLINE}
+        </span>
       </span>
     </span>
   );
 }
 
-const NAV = [
+export const NAV = [
   { href: "#bracket", label: "Bracket" },
   { href: "#semifinal", label: "Semifinal" },
   { href: "#final", label: "Final" },
@@ -36,38 +46,45 @@ const NAV = [
 
 export function ArenaHeader() {
   return (
-    <header className="sticky top-0 z-40 bg-ink">
+    <header className="sticky top-0 z-40 bg-cream/90 backdrop-blur-md">
       <div className="arena-checker h-1.5" aria-hidden />
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href="/" aria-label={`${EVENT_NAME} — beranda`}>
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+        <Link href="/" aria-label={`${EVENT_NAME} — beranda`} className="mr-auto">
           <ArenaLogo />
         </Link>
-        <nav aria-label="Navigasi halaman" className="ml-auto hidden items-center gap-8 md:flex">
-          {NAV.map((item, i) => (
+        <nav aria-label="Navigasi halaman" className="hidden items-center gap-7 md:flex">
+          {NAV.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className={cn(
-                "relative py-5 text-sm font-semibold transition-colors hover:text-gold",
-                i === 0 ? "text-gold after:absolute after:inset-x-0 after:bottom-0 after:h-1 after:rounded-t after:bg-gold" : "text-white/85",
-              )}
+              className="group relative py-5 text-sm font-semibold text-ink/75 transition-colors hover:text-crimson"
             >
               {item.label}
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-1 origin-left scale-x-0 rounded-t bg-crimson transition-transform duration-300 group-hover:scale-x-100"
+              />
             </a>
           ))}
         </nav>
+        <ThemeToggle className="md:ml-4" />
+        <MobileNav items={NAV} />
       </div>
-      <div className="h-0.5 bg-crimson" aria-hidden />
+      <div className="h-[3px] bg-crimson" aria-hidden />
+      <div className="h-[3px] bg-gold" aria-hidden />
     </header>
   );
 }
 
-/** Lencana kuning kecil di atas judul seksi, mis. "Jalur menuju juara". */
-export function SectionBadge({ children, className }: { children: ReactNode; className?: string }) {
+/** Lencana kecil di atas judul seksi, mis. "Jalur menuju juara". */
+export function SectionBadge({ children, className, tone = "gold" }: { children: ReactNode; className?: string; tone?: "gold" | "red" }) {
   return (
     <span
       className={cn(
-        "inline-block rounded-md border-2 border-ink bg-gold px-3 py-1 font-display text-[10px] tracking-[0.15em] text-ink uppercase shadow-[3px_3px_0_0_var(--color-crimson)]",
+        "inline-flex items-center gap-1.5 rounded-md border-2 px-3 py-1 font-display text-[10px] tracking-[0.15em] uppercase",
+        tone === "gold"
+          ? "border-navy bg-gold text-navy shadow-[3px_3px_0_0_var(--color-crimson)]"
+          : "border-transparent bg-crimson text-white shadow-[3px_3px_0_0_var(--color-gold)]",
         className,
       )}
     >
@@ -87,10 +104,17 @@ const FORMAT = [
 
 export function FormatSection() {
   return (
-    <section id="format" className="scroll-mt-20 bg-ink text-white">
+    <section
+      id="format"
+      className="relative scroll-mt-20 overflow-hidden bg-navy bg-cover bg-center text-white"
+      style={{
+        backgroundImage:
+          "linear-gradient(rgb(25 58 85 / 0.88), rgb(17 19 38 / 0.96)), url(/arena/carnival-night.jpg)",
+      }}
+    >
       <div className="arena-checker h-3" aria-hidden />
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2">
-        <div className="flex flex-col items-start gap-4">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2">
+        <div data-reveal className="flex flex-col items-start gap-4">
           <SectionBadge>Format kompetisi</SectionBadge>
           <h2 className="font-display text-3xl leading-tight sm:text-4xl">Adil sejak babak pertama hingga final.</h2>
           <p className="max-w-md text-[15px] text-[#d9cbbd]">
@@ -101,7 +125,9 @@ export function FormatSection() {
           {FORMAT.map((step, i) => (
             <li
               key={step.title}
-              className="flex gap-5 rounded-xl border border-gold/40 bg-white/[0.03] p-5 shadow-[3px_3px_0_0_rgb(209_15_47/0.6)]"
+              data-reveal
+              style={{ ["--i" as string]: i + 1 }}
+              className="flex gap-5 rounded-xl border border-gold/35 bg-navy/60 p-5 shadow-[3px_3px_0_0_rgb(200_16_46/0.7)] backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1"
             >
               <span className="font-display text-lg text-gold">{String(i + 1).padStart(2, "0")}</span>
               <span>
@@ -120,7 +146,7 @@ export function ArenaFooter() {
   return (
     <footer className="border-t border-gold/20 bg-ink-deep text-white">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-8 text-center sm:flex-row sm:justify-between sm:px-6 sm:text-left">
-        <ArenaLogo />
+        <ArenaLogo tone="dark" />
         <p className="text-xs text-white/60">© 2026 {EVENT_NAME}. Sistem turnamen resmi.</p>
         <p className="font-display text-[10px] tracking-[0.2em] text-gold/80">Fair play. Great games.</p>
       </div>

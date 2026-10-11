@@ -2,6 +2,7 @@ import { ChevronDownIcon, CrownIcon } from "lucide-react";
 import { Suspense } from "react";
 
 import { ArenaFooter, ArenaHeader, FormatSection, SectionBadge } from "@/components/arena/arena-chrome";
+import { ARENA_BOOT_SCRIPT, RevealObserver } from "@/components/arena/arena-client";
 import { ArenaHero, ArenaStats } from "@/components/arena/arena-hero";
 import { BracketFilter } from "@/components/bracket/bracket-filter";
 import { BracketTree } from "@/components/bracket/bracket-tree";
@@ -55,7 +56,10 @@ export default function BracketPage({ searchParams }: PageProps<"/">) {
   // Filter dibaca dari searchParams (data saat request), jadi bagan dirender
   // di dalam Suspense.
   return (
-    <div className="arena flex min-h-full flex-1 flex-col">
+    <div className="arena flex min-h-full flex-1 flex-col" suppressHydrationWarning>
+      {/* Tema malam tersimpan & animasi gulir dipasang sebelum halaman tampil. */}
+      <script dangerouslySetInnerHTML={{ __html: ARENA_BOOT_SCRIPT }} />
+      <RevealObserver />
       <ArenaHeader />
       <main className="flex flex-1 flex-col">
         <Suspense fallback={<BracketSkeleton />}>
@@ -130,14 +134,14 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
 
   return (
     <>
-      <ArenaHero data={data} live={<LiveUpdater version={version} updatedAt={updatedAt} tone="dark" />} />
+      <ArenaHero data={data} live={<LiveUpdater version={version} updatedAt={updatedAt} />} />
       <ArenaStats data={data} />
 
       <MatchDetails data={data}>
         <PathHighlight>
-          <section id="bracket" className="arena-dots scroll-mt-20">
-            <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6">
-              <div className="flex flex-col items-start gap-3">
+          <section id="bracket" className="arena-lines scroll-mt-20 bg-cream">
+            <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 sm:px-6">
+              <div data-reveal className="flex flex-col items-start gap-3">
                 <SectionBadge>Jalur menuju juara</SectionBadge>
                 <h2 className="font-display text-3xl text-ink sm:text-4xl">Bracket pertandingan</h2>
                 <p className="text-sm text-ink/65">
@@ -148,11 +152,11 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
               <BracketFilter sessions={sessions} rooms={selectableRooms} value={filter} />
 
               {matches.length === 0 ? (
-                <p className="rounded-xl border-2 border-dashed border-ink/20 bg-white/70 p-8 text-center text-sm text-ink/60">
+                <p className="rounded-xl border-2 border-dashed border-ink/20 bg-surface/70 p-8 text-center text-sm text-ink/60">
                   Bagan pertandingan belum tersedia. Pantau lagi menjelang hari pertandingan.
                 </p>
               ) : cells.length === 0 ? (
-                <p className="rounded-xl border-2 border-dashed border-ink/20 bg-white/70 p-8 text-center text-sm text-ink/60">
+                <p className="rounded-xl border-2 border-dashed border-ink/20 bg-surface/70 p-8 text-center text-sm text-ink/60">
                   Tidak ada bagan untuk pilihan ini.
                 </p>
               ) : (
@@ -167,9 +171,9 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                         if (list.length === 0) return null;
                         const champion = list.find((m) => m.round === Math.max(...list.map((x) => x.round)))?.winnerId;
                         return (
-                          <div key={room.id} className="flex flex-col gap-4">
+                          <div key={room.id} data-reveal className="flex flex-col gap-4">
                             <div className="flex flex-wrap items-center gap-3">
-                              <span className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-gold">
+                              <span className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-navy bg-gold">
                                 <CrownIcon className="size-5 text-crimson" aria-hidden />
                               </span>
                               <div className="min-w-0">
@@ -209,7 +213,9 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                     <details
                       key={session.id}
                       open={status === "ongoing"}
-                      className="group rounded-2xl border-2 border-ink bg-white/80 shadow-[4px_4px_0_0_#e4d6b4] open:bg-white/60"
+                      data-reveal
+                      style={{ ["--i" as string]: visibleSessions.indexOf(session) }}
+                      className="group rounded-2xl border-2 border-line bg-surface/85 shadow-[4px_4px_0_0_var(--a-card-shadow)] transition-shadow duration-300 hover:shadow-[6px_6px_0_0_var(--a-card-shadow)] open:bg-surface/60"
                     >
                       <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
                         <ChevronDownIcon className="size-4 -rotate-90 text-crimson transition-transform group-open:rotate-0" aria-hidden />
@@ -231,9 +237,9 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
           </section>
 
           {showFinal && semifinals.length > 0 && (
-            <section id="semifinal" className="scroll-mt-20 border-t-4 border-gold bg-[#fff3d6]">
-              <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6">
-                <div className="flex flex-col items-start gap-3">
+            <section id="semifinal" className="arena-lines scroll-mt-20 border-t-4 border-gold bg-page-2">
+              <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 sm:px-6">
+                <div data-reveal className="flex flex-col items-start gap-3">
                   <SectionBadge>Puncak kompetisi · tahap 1</SectionBadge>
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="font-display text-3xl text-ink sm:text-4xl">Semifinal</h2>
@@ -250,7 +256,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {shownSemifinals.map((match) => (
-                      <div key={match.id} className="flex flex-col gap-1.5">
+                      <div key={match.id} data-reveal style={{ ["--i" as string]: shownSemifinals.indexOf(match) }} className="flex flex-col gap-1.5">
                         <span className="font-display text-xs text-ink/70 uppercase">Semifinal #{match.matchNumber}</span>
                         <MatchCard match={match} participants={participantMap} roomName={shortRoom(match.roomId)} slotLabels={slotLabels.get(match.id)} />
                       </div>
@@ -262,9 +268,9 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
           )}
 
           {showFinal && roundRobin.length > 0 && (
-            <section id="final" className="scroll-mt-20 border-t-4 border-crimson bg-ink text-white">
-              <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-14 sm:px-6">
-                <div className="flex flex-col items-start gap-3">
+            <section id="final" className="scroll-mt-20 border-t-4 border-crimson bg-navy text-white">
+              <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6">
+                <div data-reveal className="flex flex-col items-start gap-3">
                   <SectionBadge>Puncak kompetisi · tahap 2</SectionBadge>
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="font-display text-3xl text-gold sm:text-4xl">Final — kompetisi penuh</h2>
@@ -276,7 +282,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div data-reveal className="flex flex-col gap-3">
                   <h3 className="font-display text-lg text-white uppercase">Klasemen poin</h3>
                   <div className="rounded-2xl bg-cream p-3 text-ink sm:p-4">
                     <FinalStandingsTable rows={standings} participants={participantMap} pending={pendingFinalists} complete={finalComplete} />
@@ -292,7 +298,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
                     <p className="text-sm text-[#d9cbbd]">Tidak ada laga final di ruangan ini.</p>
                   ) : (
                     finalRounds.map(({ index, time, list }) => (
-                      <div key={index} className="flex flex-col gap-2">
+                      <div key={index} data-reveal className="flex flex-col gap-2">
                         <div className="flex items-baseline gap-2">
                           <span className="font-display text-sm text-gold">Putaran {index}</span>
                           {time && <span className="text-xs text-[#d9cbbd]">{time} WIB</span>}
@@ -318,7 +324,7 @@ async function BracketView({ searchParams }: Pick<PageProps<"/">, "searchParams"
 function BracketSkeleton() {
   return (
     <div aria-busy="true" aria-label="Memuat bagan">
-      <div className="h-[28rem] animate-pulse bg-ink" />
+      <div className="h-[28rem] animate-pulse bg-[linear-gradient(180deg,var(--sky-top),var(--sky-bottom))]" />
       <div className="mx-auto flex max-w-6xl animate-pulse flex-col gap-4 px-4 py-10 sm:px-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (

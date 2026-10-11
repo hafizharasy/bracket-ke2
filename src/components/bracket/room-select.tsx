@@ -9,7 +9,7 @@ type Value = { sessionId: string | null; roomId: string | null };
 export function RoomSelect({ rooms, value }: { rooms: { id: string; name: string }[]; value: Value }) {
   const router = useRouter();
   return (
-    <label className="relative flex h-10 w-full shrink-0 items-center rounded-lg border-2 border-ink bg-white shadow-[3px_3px_0_0_var(--color-gold)]">
+    <label className="relative flex h-10 w-full shrink-0 items-center rounded-lg border-2 border-line bg-surface shadow-[3px_3px_0_0_var(--color-gold)]">
       <DoorOpenIcon className="pointer-events-none absolute left-3 size-4 text-crimson" aria-hidden />
       <span className="sr-only">Pilih ruangan</span>
       <select
