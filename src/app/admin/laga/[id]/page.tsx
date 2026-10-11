@@ -8,6 +8,7 @@ import { ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
 import { getAdminMatchView } from "@/lib/admin-match-view";
 import { loadReferees } from "@/lib/admin-referees";
+import { isFinalStage } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { nextPreview } from "@/lib/next-preview";
 import { cn } from "@/lib/utils";
@@ -42,10 +43,10 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
   return (
     <>
       <Link
-        href={`/admin/pantau/${m.room.id}?sesi=${m.session.id}`}
+        href={isFinalStage(match) ? "/admin/final" : `/admin/pantau/${m.room.id}?sesi=${m.session.id}`}
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeftIcon className="size-4" /> {m.room.name} · {m.session.name}
+        <ArrowLeftIcon className="size-4" /> {isFinalStage(match) ? "Semifinal & Final" : `${m.room.name} · ${m.session.name}`}
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="font-heading text-2xl font-semibold">
