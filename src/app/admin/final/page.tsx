@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { FinalStandingsTable } from "@/components/bracket/final-standings-table";
 import { Badge } from "@/components/ui/badge";
 import { FINAL_ROUND, SEMIFINAL_ROUND, WIN_TYPES, type WinType } from "@/lib/bracket";
-import { finalistsOf, finalStandings, formatPoints, winPoints } from "@/lib/final-standings";
+import { finalLegs, finalistsOf, finalStandings, formatPoints, winPoints } from "@/lib/final-standings";
 import { getBracket } from "@/lib/get-bracket";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -48,8 +48,8 @@ async function Lists() {
   const finalists = finalistsOf(data.matches);
   const standings = finalStandings(finals, finalists.filter((id): id is string => !!id));
   const pending = semifinals.filter((_, i) => !finalists[i]).map((m) => m.matchNumber);
-  // Laga final per putaran (laga yang dijadwalkan bersamaan).
-  const rounds = [...Map.groupBy(finals, (m) => m.scheduledAt ?? "")].sort(([a], [b]) => a.localeCompare(b));
+  // Laga final per putaran: putaran 1 = pertemuan pertama tiap pasangan, putaran 2 = pertemuan kedua.
+  const rounds = finalLegs(finals);
 
   return (
     <>
@@ -70,11 +70,11 @@ async function Lists() {
         </h2>
         <FinalStandingsTable rows={standings} participants={people} pending={pending} complete={finals.length > 0 && finals.every((m) => m.status === "done")} />
         <div className="flex flex-col gap-4">
-          {rounds.map(([at, list], i) => (
-            <div key={at || i} className="flex flex-col gap-1.5">
+          {rounds.map((list, i) => (
+            <div key={i} className="flex flex-col gap-1.5">
               <h3 className="text-sm font-medium text-muted-foreground">
-                Putaran {i + 1}
-                {at && ` · ${time.format(new Date(at))} WIB`}
+                Putaran {i + 1} · {i === 0 ? "pertemuan pertama" : "pertemuan kedua (tuan rumah & tamu ditukar)"} ·{" "}
+                {list.filter((m) => m.status === "done").length}/{list.length} selesai
               </h3>
               <ul className="divide-y rounded-xl border bg-card">
                 {list.map((m) => (

@@ -104,3 +104,22 @@ export function tournamentChampion(matches: BracketMatch[]): string | null {
   const [top] = finalStandings(finals, finalistsOf(matches).filter((id): id is string => !!id));
   return top && !top.tied ? top.participantId : null;
 }
+
+type LegMatch = Pick<Match, "id" | "matchNumber"> & { feedAId?: string | null; feedBId?: string | null };
+
+/**
+ * Bagi laga final round-robin menjadi 2 putaran: tiap pasangan finalis
+ * bertemu sekali di putaran 1 dan sekali lagi (tuan rumah/tamu ditukar) di
+ * putaran 2. Pertemuan dengan nomor laga lebih kecil = putaran 1.
+ */
+export function finalLegs<T extends LegMatch>(matches: T[]): [T[], T[]] {
+  const sorted = [...matches].sort((a, b) => a.matchNumber - b.matchNumber);
+  const seen = new Set<string>();
+  const legs: [T[], T[]] = [[], []];
+  for (const m of sorted) {
+    const key = [m.feedAId ?? m.id, m.feedBId ?? m.id].sort().join("|");
+    legs[seen.has(key) ? 1 : 0].push(m);
+    seen.add(key);
+  }
+  return legs;
+}
