@@ -2,6 +2,7 @@ import { ArrowRightIcon, CalendarDaysIcon, Clock3Icon, MapPinIcon, ShieldCheckIc
 import type { ReactNode } from "react";
 
 import { SectionBadge } from "@/components/arena/arena-chrome";
+import { CountUp } from "@/components/arena/arena-client";
 import { FINAL_ROUND, roundLabel } from "@/lib/bracket";
 import { finalistsOf, finalStandings, formatPoints, winPoints, type StandingRow } from "@/lib/final-standings";
 import type { BracketData, Match, Participant } from "@/lib/types";
@@ -31,6 +32,36 @@ const initials = (name: string) =>
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
 
+const FLAG_COLORS = ["bg-crimson", "bg-gold", "bg-sky"];
+
+/** Untaian bendera segitiga di atas hero. */
+function Bunting({ count = 14 }: { count?: number }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-2 h-12">
+      <div className="absolute inset-x-0 top-1 h-0.5 -rotate-[0.6deg] bg-navy/70" />
+      <div className="absolute inset-x-0 top-1 flex justify-around px-2">
+        {Array.from({ length: count }, (_, i) => (
+          <span
+            key={i}
+            className={cn("arena-flag block h-9 w-7 [clip-path:polygon(0_0,100%_0,50%_100%)] sm:h-10 sm:w-8", FLAG_COLORS[i % 3], i > 7 && "hidden sm:block")}
+            style={{ animationDelay: `${(i % 5) * -0.6}s`, animationDuration: `${2.8 + (i % 4) * 0.4}s` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Cloud({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <span aria-hidden className={cn("arena-cloud pointer-events-none absolute block h-8 w-20 [.arena[data-theme=night]_&]:opacity-25", className)} style={style}>
+      <span className="absolute bottom-0 left-0 h-5 w-20 rounded-full bg-white/90" />
+      <span className="absolute bottom-2 left-4 size-9 rounded-full bg-white/90" />
+      <span className="absolute bottom-1 left-10 size-7 rounded-full bg-white/90" />
+    </span>
+  );
+}
+
 export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }) {
   const featured = featuredMatch(data.matches);
   const people = new Map(data.participants.map((p) => [p.id, p]));
@@ -42,39 +73,81 @@ export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }
     : null;
 
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(110deg,#1a1a2e_0%,#2a1730_45%,#4a1424_100%)] text-white">
-      <div className="arena-sunburst pointer-events-none absolute inset-0" aria-hidden />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:py-20">
+    <section className="relative isolate overflow-hidden bg-[linear-gradient(180deg,var(--sky-top),var(--sky-bottom))]">
+      {/* Foto bianglala di kanan, memudar ke langit di kiri. */}
+      <div
+        aria-hidden
+        className="arena-parallax absolute inset-y-0 right-0 -z-10 w-full bg-cover bg-[position:70%_30%] opacity-35 lg:opacity-90 [mask-image:linear-gradient(90deg,transparent_5%,black_55%)] lg:w-[62%] [.arena[data-theme=night]_&]:opacity-25 [.arena[data-theme=night]_&]:mix-blend-luminosity"
+        style={{ backgroundImage: "url(/arena/carnival-day.jpg)" }}
+      />
+      <Bunting />
+      <span aria-hidden className="arena-sun absolute top-24 left-[46%] -z-10 hidden size-20 rounded-full bg-[#ffe27a] lg:block" />
+      <Cloud className="top-28 left-[38%] -z-10 hidden lg:block" />
+      <Cloud className="top-52 left-[3%] -z-10 scale-75" style={{ animationDuration: "46s" }} />
+      <span aria-hidden className="arena-float absolute top-40 left-[6%] size-2.5 rotate-45 bg-gold" />
+      <span aria-hidden className="arena-float absolute top-[70%] left-[48%] size-2 rotate-45 bg-[#fffaf0] [animation-delay:-2s]" />
+      <span aria-hidden className="arena-float absolute top-56 right-[5%] size-2 rounded-full bg-crimson [animation-delay:-1s]" />
+
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-20 pb-16 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:pt-24 lg:pb-24">
         <div className="flex flex-col items-start gap-5">
-          <span className="flex items-center gap-1.5 rounded-md bg-gold px-3 py-1 font-display text-xs text-ink shadow-[3px_3px_0_0_var(--color-crimson)]">
-            <SparklesIcon className="size-3.5" aria-hidden /> UNESA · 2026
+          <span className="arena-enter" style={{ ["--d" as string]: 0 }}>
+            <SectionBadge tone="red">
+              <SparklesIcon className="size-3.5" aria-hidden /> Outdoor carnival · UNESA 2026
+            </SectionBadge>
           </span>
-          <h1 className="font-display text-4xl leading-[1.05] [text-shadow:3px_3px_0_rgb(0_0_0/0.35)] sm:text-6xl">
-            Satu panggung.
-            <span className="block text-gold">Ratusan penantang.</span>
+          <h1 className="font-display text-[2.6rem] leading-[1.02] sm:text-6xl">
+            <span className="arena-title-1 arena-enter block" style={{ ["--d" as string]: 1 }}>
+              Satu panggung.
+            </span>
+            <span className="arena-title-2 arena-enter block" style={{ ["--d" as string]: 2 }}>
+              Ratusan penantang.
+            </span>
           </h1>
-          <p className="max-w-xl text-base text-[#d9cbbd]">
+          <p className="arena-enter max-w-xl text-base leading-relaxed text-ink/80" style={{ ["--d" as string]: 3 }}>
             Pantau setiap langkah menuju gelar juara Lomba Rancang Permainan 2026—langsung, jelas, dan tanpa melewatkan satu
             laga pun.
           </p>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="arena-enter flex flex-wrap items-center gap-4" style={{ ["--d" as string]: 4 }}>
             <a
               href="#bracket"
-              className="flex items-center gap-2 rounded-full border-2 border-white/10 bg-crimson px-5 py-2.5 text-sm font-bold text-white shadow-[4px_4px_0_0_var(--color-gold)] transition-transform hover:-translate-y-0.5"
+              className="group flex items-center gap-2 rounded-full bg-crimson px-6 py-3 text-sm font-bold text-white shadow-[4px_4px_0_0_var(--color-gold)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-gold)]"
             >
-              Masuk arena <ArrowRightIcon className="size-4" aria-hidden />
+              Masuk arena <ArrowRightIcon className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
             </a>
             {live}
           </div>
+          <p className="arena-enter text-[10px] text-ink/50" style={{ ["--d" as string]: 5 }}>
+            Foto karnaval: Pascale Amez · Unsplash
+          </p>
         </div>
 
-        {podium && podium.length > 0 ? (
-          <WinnersCard rows={podium} people={people} />
-        ) : (
-          featured && <SpotlightCard {...featured} data={data} people={people} />
-        )}
+        <div className="arena-pop" style={{ ["--d" as string]: 3 }}>
+          {podium && podium.length > 0 ? (
+            <WinnersCard rows={podium} people={people} />
+          ) : (
+            featured && <SpotlightCard {...featured} data={data} people={people} />
+          )}
+        </div>
       </div>
+      <div aria-hidden className="arena-grass absolute inset-x-0 bottom-0" />
     </section>
+  );
+}
+
+/** Bingkai kartu sorotan: tepi emas, garis merah, panji bergerigi dengan lampu. */
+function MarqueeFrame({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="group relative block rounded-3xl bg-gold p-2 shadow-[8px_8px_0_0_rgb(26_26_46/0.25)] transition-transform duration-300 hover:-translate-y-1 hover:rotate-[-0.4deg]"
+    >
+      <div className="overflow-hidden rounded-[1.25rem] border-4 border-crimson bg-paper">
+        <div aria-hidden className="arena-pennant relative h-9 bg-crimson">
+          <div className="arena-bulbs absolute inset-x-2 top-2 h-3" />
+        </div>
+        {children}
+      </div>
+    </a>
   );
 }
 
@@ -94,25 +167,20 @@ function SpotlightCard({
   const shown = (id: string | null, score: number | null) =>
     match.round === FINAL_ROUND && match.winnerId ? (id === match.winnerId ? `+${formatPoints(winPoints(match.winType))}` : "0") : score;
   const sides = [
-    { p: match.participantAId ? people.get(match.participantAId) : undefined, score: shown(match.participantAId, match.scoreA), avatar: "bg-ink text-white" },
-    { p: match.participantBId ? people.get(match.participantBId) : undefined, score: shown(match.participantBId, match.scoreB), avatar: "bg-gold text-ink" },
+    { p: match.participantAId ? people.get(match.participantAId) : undefined, score: shown(match.participantAId, match.scoreA), avatar: "bg-navy text-white" },
+    { p: match.participantBId ? people.get(match.participantBId) : undefined, score: shown(match.participantBId, match.scoreB), avatar: "bg-gold text-navy" },
   ];
   const heading = kind === "live" ? "Sedang berlangsung" : kind === "next" ? "Laga berikutnya" : "Hasil terakhir";
 
   return (
-    <a
-      href={`#${match.id}`}
-      className="group relative block rounded-3xl bg-gold p-2 shadow-[8px_8px_0_0_rgb(0_0_0/0.3)] transition-transform hover:-translate-y-1"
-    >
-      <div className="rounded-[1.25rem] border-4 border-crimson bg-[#fbf1d8] p-1">
-        <div className="arena-marquee h-2.5 rounded-t-xl bg-crimson" aria-hidden />
+    <MarqueeFrame href={`#${match.id}`}>
         <div className="flex flex-col gap-4 p-5 text-ink sm:p-7">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="inline-block border-b-2 border-ink/20 pb-1 text-[10px] font-bold tracking-[0.15em] text-ink/60 uppercase">
                 {heading}
               </div>
-              <div className="mt-2 font-display text-xl text-crimson">{roundLabel(match.round)}</div>
+              <div className="mt-2 font-display text-xl text-crimson [.arena[data-theme=night]_&]:text-gold">{roundLabel(match.round)}</div>
             </div>
             {kind === "live" && (
               <span className="flex items-center gap-1 rounded bg-crimson px-2 py-1 font-display text-[10px] text-white">
@@ -138,12 +206,12 @@ function SpotlightCard({
                 {i === 1 && (
                   <div className="relative my-1 flex items-center justify-center" aria-hidden>
                     <span className="absolute inset-x-0 border-t border-dashed border-ink/25" />
-                    <span className="relative bg-[#fbf1d8] px-2 font-display text-[9px] text-crimson">vs</span>
+                    <span className="relative bg-paper px-2 font-display text-[9px] text-crimson">vs</span>
                   </div>
                 )}
                 <div
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border border-ink/10 bg-[#f6e9c4] p-3",
+                    "flex items-center gap-3 rounded-xl border border-ink/10 bg-paper-2 p-3",
                     match.winnerId && p?.id === match.winnerId && "border-gold bg-gold-soft",
                   )}
                 >
@@ -163,36 +231,30 @@ function SpotlightCard({
             <ShieldCheckIcon className="size-3.5" aria-hidden /> Hasil diverifikasi pengawas ruangan
           </div>
         </div>
-      </div>
-    </a>
+    </MarqueeFrame>
   );
 }
 
 const PLACES = [
-  { label: "Juara 1", medal: "bg-gold text-ink", row: "border-gold bg-gold-soft" },
-  { label: "Juara 2", medal: "bg-[#cfd6e0] text-ink", row: "border-ink/10 bg-[#f6e9c4]" },
-  { label: "Juara 3", medal: "bg-[#d99a5b] text-white", row: "border-ink/10 bg-[#f6e9c4]" },
-  { label: "Harapan 1", medal: "bg-ink text-gold", row: "border-ink/10 bg-[#f6e9c4]" },
-  { label: "Harapan 2", medal: "bg-ink text-gold", row: "border-ink/10 bg-[#f6e9c4]" },
+  { label: "Juara 1", medal: "bg-gold text-navy", row: "border-gold bg-gold-soft" },
+  { label: "Juara 2", medal: "bg-[#cfd6e0] text-navy", row: "border-ink/10 bg-paper-2" },
+  { label: "Juara 3", medal: "bg-[#d99a5b] text-white", row: "border-ink/10 bg-paper-2" },
+  { label: "Harapan 1", medal: "bg-navy text-gold", row: "border-ink/10 bg-paper-2" },
+  { label: "Harapan 2", medal: "bg-navy text-gold", row: "border-ink/10 bg-paper-2" },
 ];
 
 /** Kartu juara setelah final selesai: juara 1–3 dan harapan 1–2 sesuai urutan klasemen poin. */
 function WinnersCard({ rows, people }: { rows: StandingRow[]; people: Map<string, Participant> }) {
   const tied = rows.some((r) => r.tied);
   return (
-    <a
-      href="#final"
-      className="group relative block rounded-3xl bg-gold p-2 shadow-[8px_8px_0_0_rgb(0_0_0/0.3)] transition-transform hover:-translate-y-1"
-    >
-      <div className="rounded-[1.25rem] border-4 border-crimson bg-[#fbf1d8] p-1">
-        <div className="arena-marquee h-2.5 rounded-t-xl bg-crimson" aria-hidden />
+    <MarqueeFrame href="#final">
         <div className="flex flex-col gap-3 p-5 text-ink sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="inline-block border-b-2 border-ink/20 pb-1 text-[10px] font-bold tracking-[0.15em] text-ink/60 uppercase">
                 Turnamen selesai
               </div>
-              <div className="mt-2 font-display text-xl text-crimson">Para juara</div>
+              <div className="mt-2 font-display text-xl text-crimson [.arena[data-theme=night]_&]:text-gold">Para juara</div>
             </div>
             <TrophyIcon className="size-8 text-crimson" aria-hidden />
           </div>
@@ -234,48 +296,48 @@ function WinnersCard({ rows, people }: { rows: StandingRow[]; people: Map<string
             {tied ? "Ada poin yang masih seri — urutan akhir ditetapkan panitia." : "Urutan sesuai klasemen poin final."}
           </div>
         </div>
-      </div>
-    </a>
+    </MarqueeFrame>
   );
 }
 
 export function ArenaStats({ data }: { data: BracketData }) {
   const done = data.matches.filter((m) => m.status === "done").length;
   const tiles = [
-    { icon: UsersIcon, value: String(data.participants.length), label: "Peserta terdaftar" },
-    { icon: MapPinIcon, value: String(data.sessionRooms.length), label: "Ruangan aktif" },
-    { icon: CalendarDaysIcon, value: String(data.sessions.length), label: "Sesi pertandingan" },
-    { icon: TrophyIcon, value: String(done), extra: `/ ${data.matches.length}`, label: "Laga selesai" },
+    { icon: UsersIcon, value: data.participants.length, label: "Peserta terdaftar" },
+    { icon: MapPinIcon, value: data.sessionRooms.length, label: "Ruangan aktif" },
+    { icon: CalendarDaysIcon, value: data.sessions.length, label: "Sesi pertandingan" },
+    { icon: TrophyIcon, value: done, extra: `/ ${data.matches.length}`, label: "Laga selesai" },
   ];
   return (
-    <section aria-label="Ringkasan turnamen" className="border-y-4 border-gold bg-cream">
+    <section aria-label="Ringkasan turnamen" className="arena-tent bg-cream">
       <div className="mx-auto grid max-w-6xl grid-cols-2 lg:grid-cols-4">
         {tiles.map(({ icon: Icon, value, extra, label }, i) => (
           <div
             key={label}
+            data-reveal
+            style={{ ["--i" as string]: i }}
             className={cn(
-              "flex items-center gap-3 border-ink/10 px-4 py-5 sm:justify-center sm:px-6",
+              "group flex items-center gap-3 border-ink/10 px-4 py-6 sm:justify-center sm:px-6",
               i % 2 === 0 && "border-r",
               i < 2 && "border-b lg:border-b-0",
               i === 1 && "lg:border-r",
               i === 2 && "lg:border-r",
             )}
           >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full border-[3px] border-gold bg-crimson text-white">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full border-[3px] border-gold bg-crimson text-white shadow-[2px_2px_0_0_var(--color-navy)] transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110">
               <Icon className="size-5" aria-hidden />
             </span>
             <span>
               <span className="block font-display text-2xl leading-none text-ink">
-                {value}
+                <CountUp value={value} />
                 {extra && <span className="ml-1 font-body text-xs font-semibold text-ink/40">{extra}</span>}
               </span>
-              <span className="mt-1 block text-[11px] font-semibold text-[#716760]">{label}</span>
+              <span className="mt-1 block text-[11px] font-semibold text-muted-ink">{label}</span>
             </span>
           </div>
         ))}
       </div>
+      <div aria-hidden className="arena-ribbon h-3" />
     </section>
   );
 }
-
-export { SectionBadge };

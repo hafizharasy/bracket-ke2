@@ -29,7 +29,7 @@ const timeFormat = new Intl.DateTimeFormat("id-ID", {
 export function matchBadge(match: Match) {
   if (match.status === "ongoing") return { label: "Berlangsung", className: "bg-crimson text-white", dot: true };
   if (match.status === "done") return { label: "Selesai", className: "bg-gold text-ink", dot: false };
-  if (match.participantAId && match.participantBId) return { label: "Berikutnya", className: "bg-ink text-gold", dot: false };
+  if (match.participantAId && match.participantBId) return { label: "Berikutnya", className: "bg-navy text-gold", dot: false };
   return { label: "Menunggu", className: "bg-ink/8 text-ink/45", dot: false };
 }
 
@@ -69,8 +69,8 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
       aria-haspopup="dialog"
       aria-label={`${summary}. Lihat detail.`}
       className={cn(
-        "relative w-52 shrink-0 cursor-pointer rounded-lg border-2 bg-white text-xs transition-transform outline-none hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold sm:w-60",
-        isLive ? "border-crimson shadow-[4px_4px_0_0_var(--color-gold)]" : "border-ink shadow-[3px_3px_0_0_#e4d6b4]",
+        "relative w-52 shrink-0 cursor-pointer rounded-lg border-2 bg-surface text-xs transition-transform outline-none hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold sm:w-60",
+        isLive ? "border-crimson shadow-[4px_4px_0_0_var(--color-gold)]" : "border-line shadow-[3px_3px_0_0_var(--a-card-shadow)]",
         connectOut && "after:absolute after:top-1/2 after:-right-[calc(var(--half-gap)+2px)] after:h-0.5 after:w-(--half-gap)",
         connectOut && (winner ? "after:bg-gold" : "after:bg-ink/20"),
         connectIn &&
@@ -118,7 +118,7 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
         className={cn("border-t border-ink/10", !winTypeLabel && "rounded-b-md")}
       />
       {winTypeLabel && (
-        <div className="rounded-b-md border-t border-ink/10 bg-ink px-2.5 py-1 text-[10px] font-semibold text-gold">
+        <div className="rounded-b-md border-t border-ink/10 bg-navy px-2.5 py-1 text-[10px] font-semibold text-gold">
           {winTypeLabel} · <span className="font-display">+{points}</span> poin
         </div>
       )}

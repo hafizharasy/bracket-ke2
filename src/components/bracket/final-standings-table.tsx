@@ -24,10 +24,10 @@ export function FinalStandingsTable({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-xl border-2 border-ink bg-white shadow-[4px_4px_0_0_var(--color-gold)]">
+      <div className="overflow-x-auto rounded-xl border-2 border-line bg-surface shadow-[4px_4px_0_0_var(--color-gold)]">
         <table className="w-full min-w-[34rem] text-sm">
           <caption className="sr-only">Klasemen final</caption>
-          <thead className="bg-ink text-left font-display text-[10px] tracking-wide text-gold uppercase">
+          <thead className="bg-navy text-left font-display text-[10px] tracking-wide text-gold uppercase">
             <tr>
               <th className="w-10 px-3 py-2 font-medium">#</th>
               <th className="px-3 py-2 font-medium">Finalis</th>

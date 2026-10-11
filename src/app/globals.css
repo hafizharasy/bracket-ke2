@@ -46,19 +46,39 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  /* Tema arena (halaman publik) */
+  /* Tema arena (halaman publik). Warna adaptif (siang/malam) lewat variabel --a-*. */
   --font-display: var(--font-bungee), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-  --color-ink: #1a1a2e;
-  --color-ink-deep: #12121f;
+  --color-ink: var(--a-ink);
+  --color-navy: #1a1a2e;
+  --color-ink-deep: #11131f;
   --color-gold: #ffc72c;
-  --color-gold-soft: #fff3cf;
-  --color-crimson: #d10f2f;
-  --color-cream: #fffaf0;
-  --color-parchment: #f6ecd2;
+  --color-gold-soft: var(--a-gold-soft);
+  --color-crimson: #c8102e;
+  --color-sky: #1f7fbf;
+  --color-grass: #2e8b3d;
+  --color-cream: var(--a-cream);
+  --color-page-2: var(--a-page-2);
+  --color-surface: var(--a-surface);
+  --color-parchment: var(--a-parchment);
+  --color-paper: var(--a-paper);
+  --color-paper-2: var(--a-paper-2);
+  --color-line: var(--a-line);
+  --color-muted-ink: var(--a-muted);
 }
 
 :root {
+  --a-ink: #1a1a2e;
+  --a-muted: #716760;
+  --a-cream: #fffaf0;
+  --a-page-2: #fff3d6;
+  --a-surface: #ffffff;
+  --a-parchment: #f6ecd2;
+  --a-paper: #fbf1d8;
+  --a-paper-2: #f6e9c4;
+  --a-gold-soft: #fff3cf;
+  --a-line: #1a1a2e;
+  --a-card-shadow: #e4d6b4;
   --path-highlight: oklch(0.93 0.1 90);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -142,68 +162,214 @@
 }
 /* ---------- Tema arena: halaman publik (bracket) ---------- */
 .arena {
-  --background: #fffaf0;
-  --foreground: #1a1a2e;
-  --card: #fffdf7;
-  --card-foreground: #1a1a2e;
-  --popover: #fffdf7;
-  --popover-foreground: #1a1a2e;
-  --primary: #d10f2f;
+  --background: var(--a-cream);
+  --foreground: var(--a-ink);
+  --card: var(--a-surface);
+  --card-foreground: var(--a-ink);
+  --popover: var(--a-surface);
+  --popover-foreground: var(--a-ink);
+  --primary: #c8102e;
   --primary-foreground: #ffffff;
-  --muted: #f6ecd2;
-  --muted-foreground: #716760;
-  --accent: #fff3cf;
-  --accent-foreground: #1a1a2e;
-  --border: #e4d6b4;
-  --input: #e4d6b4;
+  --muted: var(--a-parchment);
+  --muted-foreground: var(--a-muted);
+  --accent: var(--a-gold-soft);
+  --accent-foreground: var(--a-ink);
+  --border: color-mix(in oklab, var(--a-ink) 18%, transparent);
+  --input: color-mix(in oklab, var(--a-ink) 18%, transparent);
   --ring: #ffc72c;
   --path-highlight: #ffe58a;
+  --sky-top: #bfe3fa;
+  --sky-bottom: #eef8fe;
   font-family: var(--font-body);
   background-color: var(--background);
   color: var(--foreground);
 }
 
-/* Garis kotak-kotak merah-kuning di tepi atas/bawah. */
+/* Mode malam karnaval. */
+.arena[data-theme="night"] {
+  --a-ink: #f4ecdc;
+  --a-muted: #b9ae9f;
+  --a-cream: #0f1726;
+  --a-page-2: #131d2f;
+  --a-surface: #1c2638;
+  --a-parchment: #243049;
+  --a-paper: #1c2638;
+  --a-paper-2: #26324a;
+  --a-gold-soft: rgb(255 199 44 / 0.13);
+  --a-line: #e7c25c;
+  --a-card-shadow: #c8102e;
+  --path-highlight: rgb(255 199 44 / 0.28);
+  --sky-top: #0f2340;
+  --sky-bottom: #1d3557;
+  color-scheme: dark;
+}
+
+/* Gulir halus untuk tautan menu (#bracket, #final, …). */
+html:has(.arena) {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+/* Garis kotak-kotak merah-kuning. */
 .arena-checker {
-  background: repeating-linear-gradient(90deg, #d10f2f 0 18px, #ffc72c 18px 36px);
+  background: repeating-linear-gradient(90deg, #c8102e 0 18px, #ffc72c 18px 36px);
+}
+/* Pita warna karnaval: merah, kuning, biru, putih. */
+.arena-ribbon {
+  background: repeating-linear-gradient(90deg, #c8102e 0 24px, #ffc72c 24px 48px, #1f7fbf 48px 72px, #fffaf0 72px 96px);
+}
+/* Tenda bergaris tipis di latar statistik. */
+.arena-tent {
+  background-image: repeating-linear-gradient(90deg, color-mix(in oklab, var(--a-ink) 7%, transparent) 0 1px, transparent 1px 120px);
+}
+/* Garis buku tipis di latar bracket. */
+.arena-lines {
+  background-image: repeating-linear-gradient(0deg, color-mix(in oklab, var(--a-ink) 4%, transparent) 0 1px, transparent 1px 8px);
+}
+/* Rumput bergelombang di bawah hero. */
+.arena-grass {
+  height: 22px;
+  background:
+    radial-gradient(circle at 50% 0, transparent 13px, var(--color-grass) 14px, var(--color-grass) 17px, transparent 18px) 0 -2px / 36px 22px repeat-x,
+    linear-gradient(transparent 18px, var(--color-grass) 18px);
 }
 
-/* Bayangan "offset" khas desain: kartu, tombol, lencana. */
-.arena-shadow {
-  box-shadow: 4px 4px 0 0 #1a1a2e;
+/* Bendera segitiga (bunting) bergoyang. */
+.arena-flag {
+  transform-origin: 50% 0;
+  animation: arena-sway 3.2s ease-in-out infinite alternate;
 }
-.arena-shadow-gold {
-  box-shadow: 4px 4px 0 0 #ffc72c;
+@keyframes arena-sway {
+  from { transform: rotate(-5deg); }
+  to { transform: rotate(5deg); }
 }
-.arena-shadow-red {
-  box-shadow: 4px 4px 0 0 #d10f2f;
+/* Awan melayang pelan. */
+.arena-cloud {
+  animation: arena-drift 38s linear infinite alternate;
 }
-
-/* Sinar matahari di hero. */
-.arena-sunburst {
-  background: repeating-conic-gradient(from 0deg at 85% 55%, rgb(255 199 44 / 0.09) 0deg 9deg, transparent 9deg 18deg);
+@keyframes arena-drift {
+  from { transform: translateX(-30px); }
+  to { transform: translateX(60px); }
 }
-
-/* Konfeti titik di latar krem. */
-.arena-dots {
-  background-image:
-    radial-gradient(circle, rgb(209 15 47 / 0.55) 1.6px, transparent 2px),
-    radial-gradient(circle, rgb(255 199 44 / 0.8) 1.6px, transparent 2px),
-    radial-gradient(circle, rgb(37 70 210 / 0.45) 1.4px, transparent 2px);
-  background-size: 210px 180px, 260px 240px, 240px 210px;
-  background-position: 0 0, 90px 110px, 160px 40px;
+/* Matahari/bulan berdenyut lembut. */
+.arena-sun {
+  animation: arena-glow 4s ease-in-out infinite alternate;
 }
-
-/* Lampu di bingkai kartu sorotan. */
-.arena-marquee {
-  background-image: radial-gradient(circle, #fffaf0 2.4px, transparent 3px);
-  background-size: 22px 10px;
+@keyframes arena-glow {
+  from { box-shadow: 0 0 30px 8px rgb(255 214 90 / 0.35); }
+  to { box-shadow: 0 0 60px 22px rgb(255 214 90 / 0.55); }
+}
+.arena[data-theme="night"] .arena-sun {
+  background: #c9d3e0;
+  animation-name: arena-moon;
+}
+@keyframes arena-moon {
+  from { box-shadow: 0 0 24px 6px rgb(201 211 224 / 0.15); }
+  to { box-shadow: 0 0 44px 14px rgb(201 211 224 / 0.3); }
+}
+/* Konfeti mengambang. */
+.arena-float {
+  animation: arena-float 5s ease-in-out infinite alternate;
+}
+@keyframes arena-float {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(-14px) rotate(25deg); }
+}
+/* Lampu kartu sorotan berkedip bergantian. */
+.arena-bulbs {
+  background-image: radial-gradient(circle, #fffaf0 2.6px, transparent 3.2px);
+  background-size: 28px 12px;
   background-repeat: repeat-x;
+  animation: arena-bulbs 1.6s steps(2) infinite;
+}
+@keyframes arena-bulbs {
+  to { background-position: 14px 0; }
+}
+/* Tepi bergerigi (pennant) di atas kartu sorotan. */
+.arena-pennant {
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 97.5% 100%, 95% 70%, 92.5% 100%, 90% 70%, 87.5% 100%, 85% 70%, 82.5% 100%, 80% 70%, 77.5% 100%, 75% 70%, 72.5% 100%, 70% 70%, 67.5% 100%, 65% 70%, 62.5% 100%, 60% 70%, 57.5% 100%, 55% 70%, 52.5% 100%, 50% 70%, 47.5% 100%, 45% 70%, 42.5% 100%, 40% 70%, 37.5% 100%, 35% 70%, 32.5% 100%, 30% 70%, 27.5% 100%, 25% 70%, 22.5% 100%, 20% 70%, 17.5% 100%, 15% 70%, 12.5% 100%, 10% 70%, 7.5% 100%, 5% 70%, 2.5% 100%, 0 70%);
+}
+
+/* Judul hero: siang navy/merah dengan bayangan kuning; malam putih/kuning dengan bayangan merah. */
+.arena-title-1 {
+  color: #1a1a2e;
+  text-shadow: 3px 3px 0 #ffc72c;
+}
+.arena-title-2 {
+  color: #c8102e;
+  text-shadow: 3px 3px 0 #fffaf0, 6px 6px 0 #ffc72c;
+}
+.arena[data-theme="night"] .arena-title-1 {
+  color: #fffaf0;
+  text-shadow: 3px 3px 0 #c8102e;
+}
+.arena[data-theme="night"] .arena-title-2 {
+  color: #ffc72c;
+  text-shadow: 3px 3px 0 #c8102e;
+}
+
+/* Masuk halaman: elemen hero muncul berurutan. */
+.arena-enter {
+  animation: arena-enter 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--d, 0) * 110ms);
+}
+@keyframes arena-enter {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: none; }
+}
+.arena-pop {
+  animation: arena-pop 0.9s cubic-bezier(0.2, 0.8, 0.2, 1.2) both;
+  animation-delay: calc(var(--d, 0) * 110ms);
+}
+@keyframes arena-pop {
+  from { opacity: 0; transform: translateY(30px) rotate(2deg) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Muncul saat digulir: hanya disembunyikan bila JS aktif (kelas reveal-ready). */
+.reveal-ready [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(32px);
+}
+.reveal-ready [data-reveal] {
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+
+/* Foto hero bergeser pelan saat digulir (parallax; browser yang mendukung). */
+@supports (animation-timeline: scroll()) {
+  .arena-parallax {
+    animation: arena-parallax linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 100vh;
+  }
+  @keyframes arena-parallax {
+    to { transform: translateY(80px) scale(1.04); }
+  }
 }
 
 /* Hasil pencarian peserta di bagan. */
 .arena [data-search-hit] {
-  outline: 2px solid #d10f2f;
+  outline: 2px solid #c8102e;
   outline-offset: -2px;
   background-color: #ffe58a !important;
+  color: #1a1a2e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.arena) {
+    scroll-behavior: auto;
+  }
+  .arena *,
+  .arena *::before,
+  .arena *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal-ready [data-reveal]:not([data-revealed]) {
+    opacity: 1;
+    transform: none;
+  }
 }
