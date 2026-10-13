@@ -6,6 +6,7 @@ import { matches, matchResultHistory, matchResults, WIN_TYPE_VALUES } from "@/db
 import { FINAL_ROUND, SEMIFINAL_ROUND, SEMIFINAL_WINS } from "@/lib/bracket";
 import { authorize, type SessionUser } from "@/server/auth";
 import { ApiError } from "@/server/errors";
+import { queueProofForDrive } from "@/server/drive-sync";
 import { isProofUrlForMatch } from "@/server/storage";
 import { bumpBracketVersion } from "@/server/live";
 import { advanceToFeeds, advanceWinner, retractFromFeeds, retractWinner } from "@/server/propagation";
@@ -57,6 +58,13 @@ export function resolveResult(round: number, a: string, b: string, input: MatchR
  * pemenang dimajukan ke laga berikutnya (lihat `advanceWinner`).
  */
 export function recordMatchResult(matchId: string, input: MatchResultInput, user: SessionUser) {
+  const saved = saveResult(matchId, input, user);
+  // Salinan foto ke Google Drive (bila terhubung) berjalan di latar belakang.
+  queueProofForDrive(matchId, input.proofPhotoUrl);
+  return saved;
+}
+
+function saveResult(matchId: string, input: MatchResultInput, user: SessionUser) {
   return db.transaction((tx) => {
     const match = tx.select().from(matches).where(eq(matches.id, matchId)).get();
     if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");

@@ -103,6 +103,34 @@ perintah itu berjalan di komputer Anda, bukan di volume server.
   backup manual sebelum hari-H.
 - Unduh rekap CSV dari `/admin/rekap/unduh` secara berkala selama acara.
 
+## 7. Salinan foto bukti ke Google Drive (opsional)
+
+Foto bukti selalu disimpan di volume server. Bila Google Drive dihubungkan,
+setiap foto baru juga disalin otomatis (di latar belakang) ke folder
+**Foto Bukti MCR & LRP 2026** di Drive akun Google pribadi admin, dengan
+subfolder `Sesi X/Ruangan Y`, `Semifinal`, dan `Final`. Pengawas tidak perlu
+melakukan apa pun; bila Drive bermasalah, input hasil tetap berjalan.
+
+1. Buka <https://console.cloud.google.com>, buat project baru.
+2. **APIs & Services → Library**: aktifkan **Google Drive API**.
+3. **OAuth consent screen** (Google Auth Platform): tipe **External**, isi
+   nama aplikasi & email. Di **Audience**, klik **Publish app** sehingga
+   statusnya **In production** (bila tetap "Testing", koneksi putus tiap
+   7 hari). Verifikasi Google tidak diperlukan karena izin yang dipakai hanya
+   `drive.file` (aplikasi hanya melihat berkas yang dibuatnya sendiri).
+4. **Clients → Create client**: tipe **Web application**, tambahkan
+   *Authorized redirect URI*:
+   `https://<domain-anda>/api/admin/drive/callback`
+   (alamat tepatnya juga ditampilkan di halaman Admin → Google Drive).
+5. Salin *Client ID* & *Client secret* ke Variables Railway:
+   `GOOGLE_DRIVE_CLIENT_ID` dan `GOOGLE_DRIVE_CLIENT_SECRET`, lalu redeploy.
+6. Masuk sebagai admin → **Google Drive → Hubungkan Google Drive**, pilih akun
+   Google Anda. Bila muncul "Google belum memverifikasi aplikasi ini", klik
+   **Lanjutan → Buka (nama aplikasi)**.
+
+Foto yang sudah ada sebelum Drive dihubungkan ikut diantrekan otomatis. Status
+terkirim/menunggu/gagal dan tombol **Kirim ulang** ada di halaman yang sama.
+
 ## Catatan
 
 - Redeploy menghentikan layanan beberapa detik (volume tidak bisa dipakai dua
