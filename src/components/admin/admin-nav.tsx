@@ -4,6 +4,7 @@ import {
   DicesIcon,
   ClipboardListIcon,
   DoorOpenIcon,
+  HardDriveUploadIcon,
   LayoutDashboardIcon,
   TrophyIcon,
   MonitorIcon,
@@ -34,6 +35,7 @@ export const ADMIN_LINKS: {
   { href: "/admin/ruangan", label: "Ruangan & Sesi", icon: DoorOpenIcon },
   { href: "/admin/pengawas", label: "Akun Pengawas", icon: UserCogIcon },
   { href: "/admin/rekap", label: "Rekap & Ekspor", icon: ClipboardListIcon },
+  { href: "/admin/drive", label: "Google Drive", icon: HardDriveUploadIcon },
   { href: "/admin/simulasi", label: "Simulasi", icon: DicesIcon },
 ];
 

@@ -288,6 +288,35 @@ export const matchOfficials = sqliteTable("match_officials", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 });
 
+/** Pengaturan aplikasi sederhana (kunci → nilai), mis. koneksi Google Drive. */
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+export const DRIVE_UPLOAD_STATUS = ["pending", "done", "failed"] as const;
+
+/** Antrean salinan foto bukti ke Google Drive (satu baris per berkas foto). */
+export const driveUploads = sqliteTable(
+  "drive_uploads",
+  {
+    /** Nama berkas foto di UPLOAD_DIR. */
+    fileName: text("file_name").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    status: text("status", { enum: DRIVE_UPLOAD_STATUS }).notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    driveFileId: text("drive_file_id"),
+    webViewLink: text("web_view_link"),
+    error: text("error"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [index("drive_uploads_status_idx").on(t.status), index("drive_uploads_match_idx").on(t.matchId)],
+);
+
 /** Hasil yang diinput pengawas: foto bukti & siapa yang mencatat (maks. 1 per laga). */
 export const matchResults = sqliteTable(
   "match_results",

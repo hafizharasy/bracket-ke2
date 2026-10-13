@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ArrowRightIcon, CameraOffIcon, TrophyIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CameraOffIcon, HardDriveUploadIcon, TrophyIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -12,6 +12,7 @@ import { isFinalStage } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { nextPreview } from "@/lib/next-preview";
 import { cn } from "@/lib/utils";
+import { driveLinkForMatch } from "@/server/drive-sync";
 
 export const metadata = { title: "Detail laga" };
 
@@ -35,6 +36,7 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
   const referees = await loadReferees([id], `/admin/laga/${id}`);
   const [m, data] = await Promise.all([getAdminMatchView(id), getBracket()]);
   if (!m) notFound();
+  const driveLink = driveLinkForMatch(id);
   const match = data.matches.find((x) => x.id === id)!;
   const a = data.participants.find((p) => p.id === match.participantAId);
   const b = data.participants.find((p) => p.id === match.participantBId);
@@ -106,6 +108,11 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
               <CameraOffIcon className="size-6" /> Belum ada foto bukti.
             </div>
+          )}
+          {driveLink && (
+            <a href={driveLink} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+              <HardDriveUploadIcon className="size-3.5" /> Lihat salinan di Google Drive
+            </a>
           )}
         </section>
 

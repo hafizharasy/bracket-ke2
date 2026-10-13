@@ -38,6 +38,9 @@ Siap deploy ke Railway (Dockerfile + `railway.json`, volume `/app/data`).
 Langkahnya di [docs/DEPLOY-RAILWAY.md](docs/DEPLOY-RAILWAY.md). Variabel lingkungan:
 lihat [.env.example](.env.example).
 
+Opsional: foto bukti dapat disalin otomatis ke Google Drive pribadi admin
+(Admin → Google Drive); pengaturannya di bagian 7 panduan deploy.
+
 ## Pengecekan
 
 ```bash
