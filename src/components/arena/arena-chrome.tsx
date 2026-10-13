@@ -147,7 +147,12 @@ export function ArenaFooter() {
     <footer className="border-t border-gold/20 bg-ink-deep text-white">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-8 text-center sm:flex-row sm:justify-between sm:px-6 sm:text-left">
         <ArenaLogo tone="dark" />
-        <p className="text-xs text-white/60">© 2026 {EVENT_NAME}. Sistem turnamen resmi.</p>
+        <p className="text-xs text-white/60">
+          © 2026 {EVENT_NAME}. Sistem turnamen resmi. ·{" "}
+          <Link href="/privasi" className="underline underline-offset-2 hover:text-gold">
+            Kebijakan Privasi
+          </Link>
+        </p>
         <p className="font-display text-[10px] tracking-[0.2em] text-gold/80">Fair play. Great games.</p>
       </div>
     </footer>
