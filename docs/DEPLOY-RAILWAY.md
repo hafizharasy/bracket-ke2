@@ -118,6 +118,11 @@ melakukan apa pun; bila Drive bermasalah, input hasil tetap berjalan.
    statusnya **In production** (bila tetap "Testing", koneksi putus tiap
    7 hari). Verifikasi Google tidak diperlukan karena izin yang dipakai hanya
    `drive.file` (aplikasi hanya melihat berkas yang dibuatnya sendiri).
+   Bila tombol **Publish app** masih abu-abu, lengkapi **Branding**: isi
+   *Application home page* `https://<domain-anda>`, *Application privacy policy
+   link* `https://<domain-anda>/privasi`, dan tambahkan `<domain-anda>` di
+   *Authorised domains*, lalu **Save**. Jangan mengunggah logo (memicu
+   verifikasi).
 4. **Clients → Create client**: tipe **Web application**, tambahkan
    *Authorized redirect URI*:
    `https://<domain-anda>/api/admin/drive/callback`
