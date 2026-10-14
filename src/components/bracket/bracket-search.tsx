@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
  * Cari peserta (nama/sekolah) di bagan yang tampil: baris yang cocok
  * ditandai (data-search-hit) dan yang pertama digulir ke tengah layar.
  */
-export function BracketSearch() {
+export function BracketSearch({ onQuery }: { onQuery?: (query: string) => void } = {}) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -24,6 +24,7 @@ export function BracketSearch() {
       setHits(null);
       return;
     }
+    onQuery?.(q); // mis. buka sesi yang memuat peserta agar barisnya tersusun dulu
     timer.current = setTimeout(() => {
       clear();
       // Bagan di dalam <details> yang tertutup ikut dibuka bila ada yang cocok.

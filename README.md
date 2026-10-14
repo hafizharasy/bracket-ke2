@@ -99,8 +99,11 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 
 - Default, halaman membaca database. Set `BRACKET_DATA_SOURCE=mock` untuk demo
   dengan simulasi turnamen berjalan (tanpa database).
+- Halaman publik `/` statis; bagan disusun di browser dari `GET /api/bracket`
+  (JSON ±20 KB terkompresi, disiapkan sekali per versi bagan dan dipakai ulang
+  untuk semua penonton). Isi sesi yang tertutup baru disusun saat dibuka.
 - Live update: halaman berlangganan `GET /api/bracket/stream` (Server-Sent Events)
-  dan hanya me-refresh saat versi bagan (`bracket_state.version`) berubah.
+  dan hanya mengambil ulang data saat versi bagan (`bracket_state.version`) berubah.
   Bila SSE tidak tersedia, klien polling `GET /api/bracket/version` (ETag/304).
 - Dashboard admin polling `GET /api/admin/summary/revision` tiap 15 detik dan
   memuat ulang ringkasan hanya bila bagan, pelanggaran, atau akun berubah.
