@@ -21,7 +21,7 @@ export function DriveButtons({ show }: { show: (keyof typeof ACTIONS)[] }) {
   const [result, setResult] = useState<DriveActionResult | null>(null);
 
   async function run(key: keyof typeof ACTIONS) {
-    if (key === "disconnect" && !confirm("Putuskan koneksi Google Drive? Foto yang sudah tersalin tetap ada di Drive Anda.")) return;
+    if (key === "disconnect" && !confirm("Putuskan koneksi Google Drive? Foto yang sudah tersalin tetap ada di Drive Anda. Saat dihubungkan lagi, dibuat folder baru dan semua foto bukti dikirim ulang ke sana.")) return;
     setBusy(key);
     const r = await ACTIONS[key].run().catch(() => ({ ok: false as const, error: "Gagal menghubungi server." }));
     setBusy(null);

@@ -5,6 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import {
   auditLogs,
+  driveUploads,
   matches,
   matchOfficials,
   matchResultHistory,
@@ -31,7 +32,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  for (const table of [violations, matchResultHistory, matchResults, matchOfficials, matches, auditLogs]) db.delete(table).run();
+  for (const table of [driveUploads, violations, matchResultHistory, matchResults, matchOfficials, matches, auditLogs]) db.delete(table).run();
   clearUsers();
   for (const table of [participants, sessionRooms, rooms, sessions]) db.delete(table).run();
   db.insert(sessions).values(mockBracket.sessions.map((s) => ({ ...s, startTime: new Date(s.startTime!) }))).run();
@@ -84,6 +85,7 @@ describe("clearAllResults", () => {
     simulateResults({ stage: "semua" }, null);
     db.insert(users).values({ id: "u-p", name: "Pengawas", email: "p@x", role: "pengawas", roomId: "ruangan-1" }).run();
     db.insert(violations).values({ id: "v1", participantId: "p-001", matchId: "m-s1-r1-b1-1", roomId: "ruangan-1", type: "Terlambat hadir", recordedBy: "u-p" }).run();
+    db.insert(driveUploads).values({ fileName: "m-s1-r1-b1-1-x.jpg", matchId: "m-s1-r1-b1-1", status: "done" }).run();
 
     const result = clearAllResults({ violations: false }, null);
     expect(result).toMatchObject({ cleared: 655, removedViolations: 0 });
@@ -94,6 +96,7 @@ describe("clearAllResults", () => {
     expect(after.filter((m) => m.round === 1).map((m) => [m.id, m.participantAId, m.participantBId])).toEqual(roundOneBefore);
     expect(db.select().from(matchOfficials).where(eq(matchOfficials.matchId, "m-s1-r1-b1-1")).get()?.refereeName).toBe("Pak Budi");
     expect(db.select().from(violations).all()).toHaveLength(1);
+    expect(db.select().from(driveUploads).all()).toHaveLength(0);
 
     expect(clearAllResults({ violations: true }, null).removedViolations).toBe(1);
     // Bisa disimulasikan lagi setelah dihapus.

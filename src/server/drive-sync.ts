@@ -54,6 +54,15 @@ export function queueExistingProofs() {
   return added;
 }
 
+/**
+ * Mulai dari awal setelah (menghubungkan ulang) Drive: lupakan catatan kiriman
+ * lama — foldernya sudah baru — lalu antrekan ulang semua foto bukti saat ini.
+ */
+export function resyncAllToDrive() {
+  db.delete(driveUploads).run();
+  return queueExistingProofs();
+}
+
 /** Kembalikan foto yang gagal ke antrean (percobaan diulang dari nol). */
 export function retryFailedUploads() {
   const n = db

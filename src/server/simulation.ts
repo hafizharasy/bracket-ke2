@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { backupDatabase } from "@/db/backup";
-import { matches, matchResultHistory, matchResults, violations } from "@/db/schema";
+import { driveUploads, matches, matchResultHistory, matchResults, violations } from "@/db/schema";
 import { FINAL_ROUND, LAST_ROOM_ROUND, SEMIFINAL_ROUND, SEMIFINAL_WINS } from "@/lib/bracket";
 import { recordAudit } from "@/server/audit";
 import { ApiError } from "@/server/errors";
@@ -122,6 +122,7 @@ export function clearAllResults(options: { violations: boolean }, actorId: strin
       .get()!.n;
     tx.delete(matchResultHistory).run();
     tx.delete(matchResults).run();
+    tx.delete(driveUploads).run(); // catatan kiriman Drive ikut bersih; berkas di Drive tidak dihapus
     const removedViolations = options.violations ? tx.delete(violations).run().changes : 0;
     tx.update(matches).set({ status: "scheduled", scoreA: null, scoreB: null, winnerId: null, winType: null }).run();
     tx.update(matches).set({ participantAId: null, participantBId: null }).where(gt(matches.round, 1)).run();
