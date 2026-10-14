@@ -40,10 +40,11 @@ export async function submitMatchResult(
 export const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
 /**
- * Perkecil foto di browser sebelum diunggah (sisi terpanjang maks. 1600 px,
- * JPEG kualitas 0.82) supaya unggahan cepat di jaringan lapangan.
+ * Perkecil foto di browser sebelum diunggah (sisi terpanjang maks. 1280 px,
+ * JPEG kualitas 0.75) supaya unggahan cepat di jaringan lapangan dan
+ * volume server (500 MB) cukup untuk seluruh foto bukti turnamen.
  */
-export async function compressPhoto(file: File, maxSide = 1600, quality = 0.82): Promise<Blob> {
+export async function compressPhoto(file: File, maxSide = 1280, quality = 0.75): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
