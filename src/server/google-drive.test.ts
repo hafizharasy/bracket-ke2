@@ -7,7 +7,7 @@ import { appSettings, driveUploads, matches, matchResultHistory, matchResults, u
 import { mockBracket } from "@/lib/mock/bracket-data";
 import { generateBracketStructure } from "@/server/bracket-structure";
 import { clearUsers } from "@/test/db";
-import { drivePlacement, formatWib, driveQueueStatus, MAX_ATTEMPTS, processDriveQueue, queueProofForDrive, retryFailedUploads } from "@/server/drive-sync";
+import { drivePlacement, formatWib, driveQueueStatus, MAX_ATTEMPTS, processDriveQueue, queueProofForDrive, resyncAllToDrive, retryFailedUploads } from "@/server/drive-sync";
 import { connectDrive, disconnectDrive, driveAuthUrl, driveConnection, ensureFolderPath } from "@/server/google-drive";
 
 vi.mock("@/server/storage", () => ({
@@ -180,6 +180,18 @@ describe("antrean foto bukti", () => {
 
     expect(retryFailedUploads()).toBe(1);
     expect(db.select().from(driveUploads).get()).toMatchObject({ attempts: 0 });
+  });
+
+  it("hubungkan ulang: catatan kiriman lama dilupakan, semua foto bukti diantrekan ulang", () => {
+    const m = roundOne();
+    db.insert(users).values({ id: "u-p", name: "Pengawas", email: "p@x", role: "pengawas", roomId: m.roomId }).run();
+    db.insert(matchResults).values({ id: "r1", matchId: m.id, proofPhotoUrl: `/api/bukti/${fileFor(m.id)}`, recordedBy: "u-p" }).run();
+    db.insert(driveUploads).values([
+      { fileName: fileFor(m.id), matchId: m.id, status: "done", driveFileId: "lama" },
+      { fileName: `${m.id}-sisa-simulasi.jpg`, matchId: m.id, status: "done", driveFileId: "lama-2" },
+    ]).run();
+    expect(resyncAllToDrive()).toBe(1);
+    expect(db.select().from(driveUploads).all()).toEqual([expect.objectContaining({ fileName: fileFor(m.id), status: "pending", driveFileId: null })]);
   });
 
   it("izin dicabut: antrean berhenti tanpa menghabiskan percobaan dan admin diberi tahu", async () => {
