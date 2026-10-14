@@ -20,7 +20,8 @@ type Mode = "connecting" | "realtime" | "polling";
 
 /**
  * Live update berbasis versi: berlangganan /api/bracket/stream (SSE) dan
- * me-refresh halaman (RSC) hanya saat versi bagan berubah. Bila stream gagal,
+ * me-refresh halaman (RSC) — atau memanggil `onChange` — hanya saat versi
+ * bagan berubah. Bila stream gagal,
  * beralih ke polling ringan `pollUrl` (default /api/bracket/version). Dengan
  * `realtime={false}` langsung polling berkala (mis. ringkasan dashboard admin).
  * Saat tab tidak terlihat, refresh ditunda sampai tab dibuka lagi.
@@ -32,6 +33,7 @@ export function LiveUpdater({
   realtime = true,
   pollMs = FALLBACK_POLL_MS,
   tone = "default",
+  onChange,
 }: {
   /** "dark" untuk latar gelap (hero halaman publik). */
   tone?: "default" | "dark";
@@ -42,6 +44,8 @@ export function LiveUpdater({
   /** false = tanpa SSE, hanya polling berkala. */
   realtime?: boolean;
   pollMs?: number;
+  /** Dipanggil saat versi berubah (mis. ambil ulang data); default: router.refresh(). */
+  onChange?: () => Promise<void>;
 }) {
   const router = useRouter();
   const [paused, setPaused] = useState(false);
@@ -53,6 +57,10 @@ export function LiveUpdater({
   useEffect(() => {
     shownVersion.current = version;
   }, [version]);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (paused) return;
@@ -65,7 +73,10 @@ export function LiveUpdater({
         return;
       }
       pending = false;
-      startTransition(() => router.refresh());
+      startTransition(async () => {
+        if (onChangeRef.current) await onChangeRef.current();
+        else router.refresh();
+      });
     };
     const handleVersion = (next: number | string) => {
       if (next !== shownVersion.current) refresh();

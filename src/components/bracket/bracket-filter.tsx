@@ -24,11 +24,14 @@ export function BracketFilter({
   sessions,
   rooms,
   value,
+  onSearch,
 }: {
   sessions: Session[];
   /** Ruangan yang bisa dipilih (yang dipakai di sesi terpilih). */
   rooms: Room[];
   value: BracketFilterValue;
+  /** Diteruskan ke pencarian peserta (mis. membuka sesi yang memuatnya). */
+  onSearch?: (query: string) => void;
 }) {
   return (
     <nav aria-label="Filter bagan" className="flex flex-col gap-4 border-b-2 border-ink/10 pb-4 lg:flex-row lg:items-end lg:justify-between">
@@ -44,7 +47,7 @@ export function BracketFilter({
       </div>
       <div className="flex flex-col gap-2 sm:flex-row lg:w-[26rem] lg:flex-col">
         <RoomSelect rooms={rooms.map((r) => ({ id: r.id, name: r.name }))} value={value} />
-        <BracketSearch />
+        <BracketSearch onQuery={onSearch} />
       </div>
     </nav>
   );
