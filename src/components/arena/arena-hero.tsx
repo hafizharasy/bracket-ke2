@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { SectionBadge } from "@/components/arena/arena-chrome";
 import { CountUp } from "@/components/arena/arena-client";
-import { FINAL_ROUND, roundLabel } from "@/lib/bracket";
+import { FINAL_ROUND, hasScore, roundLabel } from "@/lib/bracket";
 import { finalistsOf, finalStandings, formatPoints, winPoints, type StandingRow } from "@/lib/final-standings";
 import type { BracketData, Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -163,9 +163,16 @@ function SpotlightCard({
   people: Map<string, Participant>;
 }) {
   const room = data.rooms.find((r) => r.id === match.roomId);
-  // Laga final tanpa skor: tampilkan poin dari jenis kemenangan.
+  // Final: poin dari jenis kemenangan; semifinal: skor game; babak ruangan
+  // (best of one): tanpa skor, cukup tanda menang.
   const shown = (id: string | null, score: number | null) =>
-    match.round === FINAL_ROUND && match.winnerId ? (id === match.winnerId ? `+${formatPoints(winPoints(match.winType))}` : "0") : score;
+    match.round === FINAL_ROUND && match.winnerId
+      ? id === match.winnerId
+        ? `+${formatPoints(winPoints(match.winType))}`
+        : "0"
+      : hasScore(match.round)
+        ? score
+        : undefined;
   const sides = [
     { p: match.participantAId ? people.get(match.participantAId) : undefined, score: shown(match.participantAId, match.scoreA), avatar: "bg-navy text-white" },
     { p: match.participantBId ? people.get(match.participantBId) : undefined, score: shown(match.participantBId, match.scoreB), avatar: "bg-gold text-navy" },
@@ -222,7 +229,14 @@ function SpotlightCard({
                     <span className="block truncate text-sm font-bold">{p?.name ?? "Menunggu pemenang"}</span>
                     <span className="block truncate text-[11px] text-ink/55">{p?.teamOrClub ?? "—"}</span>
                   </span>
-                  <span className="font-display text-2xl text-crimson tabular-nums">{score ?? "—"}</span>
+                  {score !== undefined ? (
+                    <span className="font-display text-2xl text-crimson tabular-nums">{score ?? "—"}</span>
+                  ) : (
+                    match.winnerId &&
+                    p?.id === match.winnerId && (
+                      <span className="rounded bg-crimson px-2 py-1 font-display text-[10px] text-white uppercase">Menang</span>
+                    )
+                  )}
                 </div>
               </div>
             ))}

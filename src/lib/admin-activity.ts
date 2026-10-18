@@ -1,11 +1,11 @@
 import { connection } from "next/server";
-import { roundLabel } from "@/lib/bracket";
+import { roundLabel, scoreText } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { getRoomViolations } from "@/lib/room-violations";
 import { bracketSource } from "@/server/live";
 
 export type ActivityItem =
-  | { kind: "result"; at: string; matchId: string; roomName: string; label: string; winner: string; score: string }
+  | { kind: "result"; at: string; matchId: string; roomName: string; label: string; winner: string; score: string | null }
   | { kind: "violation"; at: string; matchId: string | null; roomName: string; participant: string; type: string };
 
 /**
@@ -36,7 +36,7 @@ export async function getRecentActivity(limit = 10): Promise<ActivityItem[]> {
       roomName: roomName(m.roomId),
       label: `${roundLabel(m.round)} #${m.matchNumber}`,
       winner: name(m.winnerId),
-      score: `${m.scoreA ?? 0}–${m.scoreB ?? 0}`,
+      score: scoreText(m),
     }));
 
   const violations = (await Promise.all(data.rooms.map((r) => getRoomViolations(r.id)))).flat().map((v) => ({

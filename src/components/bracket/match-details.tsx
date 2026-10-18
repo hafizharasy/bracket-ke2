@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { buildSlotLabels, FINAL_ROUND, roundLabel, SEMIFINAL_ROUND, type SlotLabel } from "@/lib/bracket";
+import { buildSlotLabels, FINAL_ROUND, hasScore, roundLabel, SEMIFINAL_ROUND, type SlotLabel } from "@/lib/bracket";
 import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { BracketData, Match, MatchStatus, Participant, Room, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -100,7 +100,8 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
 
   const side = (id: string | null, score: number | null, label?: SlotLabel) => ({
     participant: id ? lookup.participants.get(id) : undefined,
-    score,
+    // Hanya semifinal yang berskor; babak ruangan (best of one) & final cukup pemenang.
+    score: hasScore(match.round) ? score : undefined,
     label,
     isWinner: !!match.winnerId && match.winnerId === id,
   });
@@ -159,7 +160,7 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
             ? "Best of 3 (menang 2 game)"
             : match.round === FINAL_ROUND
               ? "Kompetisi penuh — A tuan rumah (jalan pertama)"
-              : "7 menit + 3 menit injury time"}
+              : "Best of one, gugur langsung · 7 menit + 3 menit injury time"}
         </dd>
         <dt className="text-muted-foreground">Pemenang maju ke</dt>
         <dd>{advance}</dd>
@@ -175,7 +176,8 @@ function Contender({
   isWinner,
 }: {
   participant?: Participant;
-  score: number | null;
+  /** undefined = laga tanpa skor. */
+  score: number | null | undefined;
   label?: SlotLabel;
   isWinner: boolean;
 }) {
@@ -196,7 +198,7 @@ function Contender({
         isWinner && "border-emerald-500/60 bg-emerald-500/10",
       )}
     >
-      <span className="text-3xl font-bold tabular-nums">{score ?? "–"}</span>
+      {score !== undefined && <span className="text-3xl font-bold tabular-nums">{score ?? "–"}</span>}
       <span className="font-medium leading-tight">{participant.name}</span>
       <span className="text-xs text-muted-foreground">
         {participant.teamOrClub ?? "Tanpa sekolah"} · {participant.id.toUpperCase()}

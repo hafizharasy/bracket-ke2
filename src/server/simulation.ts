@@ -38,9 +38,10 @@ export function randomResult(round: number, a: string, b: string, rand: Rand = M
     const winType = pick(["empat", "tiga", "tiga", "tiga_tercepat", "tiga_tercepat", "dua_terbanyak"] as const, rand);
     return { winnerId, scoreA: null, scoreB: null, winType };
   }
-  const loser = round === SEMIFINAL_ROUND ? Math.floor(rand() * SEMIFINAL_WINS) : Math.floor(rand() * 4);
-  const winner = round === SEMIFINAL_ROUND ? SEMIFINAL_WINS : loser + 1 + Math.floor(rand() * 3);
-  return { winnerId, scoreA: aWins ? winner : loser, scoreB: aWins ? loser : winner, winType: null };
+  // Babak ruangan: best of one, hanya menang/kalah.
+  if (round !== SEMIFINAL_ROUND) return { winnerId, scoreA: null, scoreB: null, winType: null };
+  const loser = Math.floor(rand() * SEMIFINAL_WINS);
+  return { winnerId, scoreA: aWins ? SEMIFINAL_WINS : loser, scoreB: aWins ? loser : SEMIFINAL_WINS, winType: null };
 }
 
 /**

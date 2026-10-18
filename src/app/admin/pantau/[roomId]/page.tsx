@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { RefereeEditor } from "@/components/admin/referee-editor";
 import { Badge } from "@/components/ui/badge";
 import { loadReferees } from "@/lib/admin-referees";
-import { roundLabel, sortMatches } from "@/lib/bracket";
+import { roundLabel, scoreText, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +61,7 @@ async function RoomMatches({ params, searchParams }: Pick<PageProps<"/admin/pant
               </span>
               <span className="min-w-0 flex-1 truncate">
                 <span className={cn(m.winnerId === m.participantAId && m.winnerId && "font-semibold")}>{name(m.participantAId) ?? "—"}</span>
-                <span className="mx-1.5 tabular-nums text-muted-foreground">{m.scoreA ?? "–"}:{m.scoreB ?? "–"}</span>
+                <span className="mx-1.5 tabular-nums text-muted-foreground">{scoreText(m) ?? "vs"}</span>
                 <span className={cn(m.winnerId === m.participantBId && m.winnerId && "font-semibold")}>{name(m.participantBId) ?? "—"}</span>
               </span>
               <Badge variant={m.status === "done" ? "secondary" : "outline"} className={cn(m.status === "ongoing" && "border-transparent bg-red-600 text-white")}>

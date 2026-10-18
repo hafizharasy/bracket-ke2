@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { OtherRoomNotice } from "@/components/ruangan/other-room-notice";
 import { Badge } from "@/components/ui/badge";
 import { getMatchDetail, type MatchDetail } from "@/db/queries/match-detail";
+import { hasScore } from "@/lib/bracket";
 import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 import { cn } from "@/lib/utils";
 
@@ -126,7 +127,7 @@ function Scoreboard({ match }: { match: MatchDetail }) {
               won && "border-emerald-500 bg-emerald-500/5",
             )}
           >
-            <span className="text-4xl font-bold tabular-nums">{score ?? "–"}</span>
+            {hasScore(match.round) && <span className="text-4xl font-bold tabular-nums">{score ?? "–"}</span>}
             <span className={cn("font-medium leading-tight", !p && "italic text-muted-foreground")}>
               {p?.name ?? (label ? `Pemenang ${label}` : "Belum ada")}
             </span>

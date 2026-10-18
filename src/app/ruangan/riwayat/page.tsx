@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { getBracket } from "@/lib/get-bracket";
+import { hasScore } from "@/lib/bracket";
 import { requirePengawas } from "@/lib/pengawas-session";
 import { getRoomHistory, type RoomHistoryItem } from "@/lib/room-history";
 import { cn } from "@/lib/utils";
@@ -97,7 +98,7 @@ function HistoryRow({ item, sessionName }: { item: RoomHistoryItem; sessionName?
           <div key={p.id} className={cn("flex items-center gap-2 text-sm", won ? "font-semibold" : "text-muted-foreground")}>
             {won ? <TrophyIcon className="size-3.5 text-emerald-600" aria-label="pemenang" /> : <span className="size-3.5" />}
             <span className="min-w-0 flex-1 truncate">{p.name}</span>
-            <span className="tabular-nums">{score}</span>
+            {hasScore(item.round) ? <span className="tabular-nums">{score}</span> : won && <span className="text-xs">Menang</span>}
           </div>
         );
       })}

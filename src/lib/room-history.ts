@@ -6,6 +6,7 @@ import type { Participant } from "@/lib/types";
 export type RoomHistoryItem = {
   matchId: string;
   sessionId: string;
+  round: number;
   roundLabel: string;
   matchNumber: number;
   participantA: Pick<Participant, "id" | "name">;
@@ -38,6 +39,7 @@ export async function getRoomHistory(roomId: string): Promise<RoomHistoryItem[]>
     .map((m) => ({
       matchId: m.id,
       sessionId: m.sessionId,
+      round: m.round,
       roundLabel: roundLabel(m.round),
       matchNumber: m.matchNumber,
       participantA: participants.get(m.participantAId!)!,

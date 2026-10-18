@@ -56,7 +56,7 @@ function finishRoomFinal(id: string) {
     .limit(2)
     .all();
   db.update(matches).set({ participantAId: a.id, participantBId: b.id }).where(eq(matches.id, id)).run();
-  recordMatchResult(id, { scoreA: 3, scoreB: 1, proofPhotoUrl: proof(id) }, admin);
+  recordMatchResult(id, { winnerId: a.id, proofPhotoUrl: proof(id) }, admin);
   return a.id;
 }
 
@@ -82,6 +82,15 @@ describe("aturan hasil per babak", () => {
     expect(resolveResult(SEMIFINAL_ROUND, "a", "b", { scoreA: 1, scoreB: 2, proofPhotoUrl: "x" })).toMatchObject({ winnerId: "b" });
     expectApiError(() => resolveResult(SEMIFINAL_ROUND, "a", "b", { scoreA: 3, scoreB: 1, proofPhotoUrl: "x" }), 422);
     expectApiError(() => resolveResult(SEMIFINAL_ROUND, "a", "b", { scoreA: 2, scoreB: 2, proofPhotoUrl: "x" }), 422);
+    // Babak ruangan: best of one — cukup pemenang, skor tidak disimpan.
+    expect(resolveResult(1, "a", "b", { winnerId: "b", scoreA: 5, scoreB: 0, proofPhotoUrl: "x" })).toEqual({
+      winnerId: "b",
+      scoreA: null,
+      scoreB: null,
+      winType: null,
+    });
+    expectApiError(() => resolveResult(1, "a", "b", { scoreA: 3, scoreB: 1, proofPhotoUrl: "x" }), 422);
+    expectApiError(() => resolveResult(6, "a", "b", { winnerId: "c", proofPhotoUrl: "x" }), 422);
     expect(resolveResult(FINAL_ROUND, "a", "b", { winnerId: "a", winType: "tiga", proofPhotoUrl: "x" })).toEqual({
       winnerId: "a",
       scoreA: null,

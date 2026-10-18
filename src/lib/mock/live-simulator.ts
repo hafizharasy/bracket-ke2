@@ -4,7 +4,6 @@
 // selesai & pemenang maju, laga berikutnya dimulai). Dihitung saat diminta,
 // jadi tidak butuh timer di server.
 
-import { FINAL_ROUND, SEMIFINAL_ROUND } from "@/lib/bracket";
 import { mockBracket } from "@/lib/mock/bracket-data";
 import { createSimulation, finishMatch } from "@/lib/mock/simulate";
 import type { BracketData, Match } from "@/lib/types";
@@ -24,21 +23,16 @@ const sim = createSimulation(state.data.matches);
 const finish = (match: Match) => finishMatch(sim, match, Math.random);
 
 /**
- * Satu langkah: tiap laga berjalan mungkin mencetak poin atau selesai,
+ * Satu langkah: tiap laga berjalan mungkin selesai,
  * lalu laga terjadwal yang pesertanya sudah lengkap dimulai.
  */
 function step() {
   const matches = state.data.matches;
 
+  // Laga berjalan selesai sewaktu-waktu (babak ruangan best of one: hanya
+  // menang/kalah; semifinal skor game; final jenis kemenangan).
   for (const match of matches.filter((m) => m.status === "ongoing")) {
-    const total = (match.scoreA ?? 0) + (match.scoreB ?? 0);
-    const roll = Math.random();
-    // Semifinal & final diselesaikan langsung (skor game / jenis kemenangan).
-    if (match.round === SEMIFINAL_ROUND || match.round === FINAL_ROUND) {
-      if (roll < 0.3) finish(match);
-    } else if (total >= 4 && roll < 0.25) finish(match);
-    else if (roll < 0.45) match.scoreA = (match.scoreA ?? 0) + 1;
-    else if (roll < 0.65) match.scoreB = (match.scoreB ?? 0) + 1;
+    if (Math.random() < 0.3) finish(match);
   }
 
   // Mulai laga terjadwal yang kedua pesertanya sudah ada, urut jadwal.
@@ -49,9 +43,6 @@ function step() {
   for (const match of ready) {
     if (running >= MAX_ONGOING) break;
     match.status = "ongoing";
-    const scored = match.round < SEMIFINAL_ROUND;
-    match.scoreA = scored ? 0 : null;
-    match.scoreB = scored ? 0 : null;
     running++;
   }
 }

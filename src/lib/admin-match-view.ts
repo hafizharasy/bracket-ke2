@@ -10,6 +10,7 @@ type Person = { id: string; name: string; teamOrClub: string | null };
 
 export type AdminMatchView = {
   id: string;
+  round: number;
   roundLabel: string;
   matchNumber: number;
   status: MatchStatus;
@@ -77,6 +78,7 @@ export async function getAdminMatchView(matchId: string): Promise<AdminMatchView
 
   return {
     id: match.id,
+    round: match.round,
     roundLabel: roundLabel(match.round),
     matchNumber: match.matchNumber,
     status: match.status,

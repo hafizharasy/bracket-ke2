@@ -22,9 +22,12 @@ const admin: SessionUser = { id: "u-admin", name: "Admin", role: "admin", roomId
 const pengawas2: SessionUser = { id: "u-p2", name: "P2", role: "pengawas", roomId: "ruangan-2" };
 
 const proof = (matchId: string) => `/api/bukti/${matchId}-${crypto.randomUUID()}.jpg`;
-const save = (matchId: string, scoreA: number, scoreB: number, user = admin) =>
-  recordMatchResult(matchId, { scoreA, scoreB, proofPhotoUrl: proof(matchId) }, user);
 const get = (id: string) => db.select().from(matches).where(eq(matches.id, id)).get()!;
+/** Babak ruangan best of one: cukup pemenang (sisi "A"/"B"). */
+const save = (matchId: string, side: "A" | "B", user = admin) => {
+  const m = get(matchId);
+  return recordMatchResult(matchId, { winnerId: (side === "A" ? m.participantAId : m.participantBId)!, proofPhotoUrl: proof(matchId) }, user);
+};
 const setStatus = (id: string, status: "scheduled" | "ongoing" | "done") =>
   db.update(matches).set({ status }).where(eq(matches.id, id)).run();
 
@@ -76,49 +79,50 @@ beforeEach(() => {
 
 describe("advanceWinner (lewat recordMatchResult)", () => {
   it("menempatkan pemenang laga bernomor kecil di slot A dan besar di slot B", () => {
-    save("r1-2", 0, 2);
-    save("r1-1", 3, 1);
+    save("r1-2", "B");
+    save("r1-1", "A");
     expect(get("r2-1")).toMatchObject({ participantAId: "p1", participantBId: "p4" });
     expect(get("r1-1")).toMatchObject({ status: "done", winnerId: "p1" });
   });
 
   it("lintas babak: final ruangan (babak lebih awal) ke A, play-off ke B", () => {
-    save("po", 1, 0);
-    save("rf", 0, 1);
+    save("po", "A");
+    save("rf", "B");
     expect(get("k32")).toMatchObject({ participantAId: "p6", participantBId: "p7" });
   });
 
   it("koreksi mengganti pemenang di laga berikutnya selama belum dimulai", () => {
-    save("r1-1", 3, 1);
-    save("r1-1", 1, 3);
+    save("r1-1", "A");
+    save("r1-1", "B");
     expect(get("r2-1").participantAId).toBe("p2");
     const history = db.select().from(matchResultHistory).where(eq(matchResultHistory.matchId, "r1-1")).all();
     expect(history.map((h) => h.action)).toEqual(["create", "correct"]);
   });
 
   it("menolak koreksi pemenang setelah laga berikutnya dimulai dan me-rollback semuanya", () => {
-    save("r1-1", 3, 1);
+    save("r1-1", "A");
     setStatus("r2-1", "ongoing");
-    expectApiError(() => save("r1-1", 0, 2), 409);
-    expect(get("r1-1")).toMatchObject({ scoreA: 3, scoreB: 1, winnerId: "p1" });
+    expectApiError(() => save("r1-1", "B"), 409);
+    expect(get("r1-1")).toMatchObject({ scoreA: null, scoreB: null, winnerId: "p1" });
     expect(get("r2-1").participantAId).toBe("p1");
   });
 
-  it("tetap mengizinkan koreksi skor dengan pemenang yang sama setelah laga berikutnya dimulai", () => {
-    save("r1-1", 3, 1);
+  it("tetap mengizinkan koreksi (mis. ganti foto) dengan pemenang yang sama setelah laga berikutnya dimulai", () => {
+    save("r1-1", "A");
     setStatus("r2-1", "ongoing");
-    save("r1-1", 4, 1);
-    expect(get("r1-1").scoreA).toBe(4);
+    save("r1-1", "A");
+    expect(get("r1-1").winnerId).toBe("p1");
+    expect(db.select().from(matchResultHistory).where(eq(matchResultHistory.matchId, "r1-1")).all()).toHaveLength(2);
   });
 
   it("menolak pengawas ruangan lain", () => {
-    expectApiError(() => save("r1-1", 3, 1, pengawas2), 403);
+    expectApiError(() => save("r1-1", "A", pengawas2), 403);
   });
 });
 
 describe("cancelMatchResult / retractWinner", () => {
   it("mengembalikan laga ke terjadwal dan menarik pemenang dari laga berikutnya", () => {
-    save("r1-1", 3, 1);
+    save("r1-1", "A");
     cancelMatchResult("r1-1", admin);
     expect(get("r1-1")).toMatchObject({ status: "scheduled", winnerId: null, scoreA: null });
     expect(get("r2-1").participantAId).toBeNull();
@@ -128,7 +132,7 @@ describe("cancelMatchResult / retractWinner", () => {
   });
 
   it("menolak pembatalan setelah laga berikutnya dimulai", () => {
-    save("r1-1", 3, 1);
+    save("r1-1", "A");
     setStatus("r2-1", "ongoing");
     expectApiError(() => cancelMatchResult("r1-1", admin), 409);
     expect(get("r1-1").status).toBe("done");
@@ -141,8 +145,8 @@ describe("cancelMatchResult / retractWinner", () => {
 
 describe("repropagateAll", () => {
   it("mengisi slot kosong dan melaporkan slot yang berisi peserta lain tanpa menimpanya", () => {
-    save("r1-1", 3, 1);
-    save("r1-2", 2, 0);
+    save("r1-1", "A");
+    save("r1-2", "A");
     db.update(matches).set({ participantAId: null, participantBId: "p8" }).where(eq(matches.id, "r2-1")).run();
 
     const report = db.transaction((tx) => repropagateAll(tx));

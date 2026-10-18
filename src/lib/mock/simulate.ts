@@ -36,15 +36,10 @@ export function finishMatch(sim: Simulation, match: Match, rand: () => number) {
     match.scoreB = aWins ? loser : SEMIFINAL_WINS;
     match.winnerId = aWins ? match.participantAId : match.participantBId;
   } else {
-    let a = match.scoreA ?? Math.floor(rand() * 8);
-    let b = match.scoreB ?? Math.floor(rand() * 8);
-    if (a === b) {
-      if (rand() < 0.5) a++;
-      else b++;
-    }
-    match.scoreA = a;
-    match.scoreB = b;
-    match.winnerId = a > b ? match.participantAId : match.participantBId;
+    // Babak ruangan: best of one, hanya menang/kalah.
+    match.scoreA = null;
+    match.scoreB = null;
+    match.winnerId = rand() < 0.5 ? match.participantAId : match.participantBId;
   }
   match.status = "done";
 

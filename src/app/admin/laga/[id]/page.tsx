@@ -8,7 +8,7 @@ import { ResultForm } from "@/components/ruangan/result-form";
 import { Badge } from "@/components/ui/badge";
 import { getAdminMatchView } from "@/lib/admin-match-view";
 import { loadReferees } from "@/lib/admin-referees";
-import { isFinalStage } from "@/lib/bracket";
+import { hasScore, isFinalStage } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { nextPreview } from "@/lib/next-preview";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,7 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
           const won = !!p && p.id === m.winnerId;
           return (
             <div key={key} className={cn("flex flex-col items-center gap-1 rounded-xl border p-4 text-center", won && "border-emerald-500 bg-emerald-500/5")}>
-              <span className="text-4xl font-bold tabular-nums">{score ?? "–"}</span>
+              {hasScore(m.round) && <span className="text-4xl font-bold tabular-nums">{score ?? "–"}</span>}
               <span className={cn("font-medium", !p && "italic text-muted-foreground")}>{p?.name ?? source ?? "Belum ada"}</span>
               {p && <span className="text-xs text-muted-foreground">{p.teamOrClub ?? "Tanpa sekolah"} · {p.id.toUpperCase()}</span>}
               {won && <Badge className="mt-1 bg-emerald-600 text-white"><TrophyIcon data-icon="inline-start" /> Pemenang</Badge>}
@@ -131,7 +131,7 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
                     <span className="text-xs text-muted-foreground">{fmt(h.recordedAt)}</span>
                   </div>
                   <div className="text-muted-foreground">
-                    {h.scoreA}–{h.scoreB}, pemenang {nameOf(h.winnerId)}
+                    {hasScore(m.round) && `${h.scoreA}–${h.scoreB}, `}pemenang {nameOf(h.winnerId)}
                     {h.recordedBy && ` · oleh ${h.recordedBy}`}
                   </div>
                 </li>

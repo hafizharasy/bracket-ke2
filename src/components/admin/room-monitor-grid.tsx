@@ -56,13 +56,16 @@ export function RoomMonitorGrid({ rooms, compact = false }: { rooms: RoomMonitor
               room.live.map((m) => (
                 <Link key={m.matchId} href={`/admin/laga/${m.matchId}`} className="block rounded-lg bg-red-500/5 p-2 text-sm hover:bg-red-500/10">
                   <div className="text-xs text-muted-foreground">{m.label}</div>
-                  <div className="flex justify-between gap-2"><span className="truncate">{m.a}</span><span className="font-semibold tabular-nums">{m.scoreA ?? 0}</span></div>
-                  <div className="flex justify-between gap-2"><span className="truncate">{m.b}</span><span className="font-semibold tabular-nums">{m.scoreB ?? 0}</span></div>
+                  <div className="truncate">{m.a}</div>
+                  <div className="truncate">
+                    <span className="text-xs text-muted-foreground">vs</span> {m.b}
+                    {m.score && <span className="ml-1.5 font-semibold tabular-nums">({m.score})</span>}
+                  </div>
                 </Link>
               ))}
             {compact && room.live.length > 0 && (
               <div className="truncate text-xs">
-                {room.live[0].a} <span className="font-semibold tabular-nums">{room.live[0].scoreA ?? 0}–{room.live[0].scoreB ?? 0}</span> {room.live[0].b}
+                {room.live[0].a} <span className="font-semibold tabular-nums">{room.live[0].score ?? "vs"}</span> {room.live[0].b}
               </div>
             )}
 

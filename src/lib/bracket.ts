@@ -2,8 +2,9 @@ import type { Match } from "@/lib/types";
 
 /**
  * Struktur turnamen:
- * - Babak ruangan (ronde 1–6): tiap ruangan yang dipakai di suatu sesi berisi
- *   64 peserta → 63 laga, menghasilkan 1 juara ruangan.
+ * - Babak ruangan / penyisihan (ronde 1–6): tiap ruangan yang dipakai di suatu
+ *   sesi berisi 64 peserta → 63 laga, menghasilkan 1 juara ruangan. Gugur
+ *   langsung, best of one: hanya menang/kalah, tanpa skor.
  * - Semifinal (ronde 7, best of 3): juara ruangan dipasangkan admin; yang
  *   lebih dulu menang 2 game lolos ke final.
  * - Final (ronde 8): kompetisi penuh (double round-robin) antar finalis —
@@ -32,6 +33,19 @@ const ROUND_LABELS: Record<number, string> = {
 
 export function roundLabel(round: number) {
   return ROUND_LABELS[round] ?? `Babak ${round}`;
+}
+
+/**
+ * Babak yang mencatat skor: hanya semifinal (jumlah game, best of 3). Babak
+ * ruangan (best of one) hanya menang/kalah; final mencatat jenis kemenangan.
+ */
+export function hasScore(round: number) {
+  return round === SEMIFINAL_ROUND;
+}
+
+/** Teks skor singkat, mis. "2–1" (semifinal); null untuk babak tanpa skor. */
+export function scoreText(m: { round: number; scoreA: number | null; scoreB: number | null }) {
+  return hasScore(m.round) && m.scoreA !== null && m.scoreB !== null ? `${m.scoreA}–${m.scoreB}` : null;
 }
 
 /** Laga semifinal atau final (setelah babak ruangan). */

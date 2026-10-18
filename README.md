@@ -14,8 +14,8 @@ npm run dev        # http://localhost:3000
 
 - **Ruangan per sesi** — daftar ruangan dipakai bersama; admin memilih ruangan
   yang dipakai tiap sesi di `/admin/ruangan` (tabel `session_rooms`). Tiap
-  ruangan-sesi berisi **64 peserta → 63 laga** (babak 1–6, gugur), juaranya
-  satu orang.
+  ruangan-sesi berisi **64 peserta → 63 laga** (babak 1–6, gugur langsung,
+  **best of one**: hanya menang/kalah, tanpa skor/poin), juaranya satu orang.
 - **Semifinal** (babak 7) — juara ruangan-sesi dipasangkan (bisa diatur admin di
   `/admin/peserta/semifinal`), **best of 3**: skor = game dimenangkan, yang
   lebih dulu 2 menang. Jumlah ruangan-sesi harus genap dan minimal 4.
@@ -125,7 +125,7 @@ Di luar production, endpoint API juga menerima header `x-dev-user-id: <id akun>`
 | `GET /api/matches/:id` | Detail satu pertandingan |
 | `POST /api/matches/:id/proof` | Unggah foto bukti (multipart `photo`, JPEG/PNG/WebP ≤ 5 MB) |
 | `DELETE /api/matches/:id/result` | Batalkan hasil (salah input) selama laga berikutnya belum dimulai |
-| `PUT /api/matches/:id/result` | Simpan/koreksi hasil (pengawas ruangan / admin); `proofPhotoUrl` harus hasil unggah untuk laga itu |
+| `PUT /api/matches/:id/result` | Simpan/koreksi hasil (pengawas ruangan / admin): babak ruangan `{ winnerId }`, semifinal `{ scoreA, scoreB }`, final `{ winnerId, winType }`; `proofPhotoUrl` harus hasil unggah untuk laga itu |
 | `GET /api/bukti/:file` | Foto bukti tersimpan |
 | `GET /api/rooms/:id/violations?sesi=` | Pelanggaran ruangan + total per jenis/peserta |
 | `GET /api/participants/:id/violations` | Riwayat pelanggaran peserta (pengawas: ruangannya; admin: semua) |

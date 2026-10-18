@@ -128,7 +128,9 @@ export function drivePlacement(matchId: string, fileName: string) {
       ? `menang ${names.get(m.winnerId) ?? "?"} +${formatPoints(WIN_TYPES[m.winType as WinType]?.points ?? 0)}`
       : m.scoreA !== null && m.scoreB !== null
         ? `${m.scoreA}-${m.scoreB}`
-        : "";
+        : m.winnerId
+          ? `menang ${names.get(m.winnerId) ?? "?"}` // babak ruangan: best of one, tanpa skor
+          : "";
   const ext = fileName.split(".").pop() ?? "jpg";
   // Waktu foto dikirim pengawas (hasil pertama yang memakai foto ini); tiap koreksi beda waktu.
   const sentAt =

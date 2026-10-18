@@ -1,4 +1,4 @@
-import { LAST_ROOM_ROUND, roomsInSession, roundLabel, sortMatches } from "@/lib/bracket";
+import { LAST_ROOM_ROUND, roomsInSession, roundLabel, scoreText, sortMatches } from "@/lib/bracket";
 import type { BracketData, Match } from "@/lib/types";
 
 export type RoomStatus = "berlangsung" | "siap" | "menunggu" | "selesai" | "kosong";
@@ -12,7 +12,7 @@ export type RoomMonitor = {
   status: RoomStatus;
   done: number;
   total: number;
-  live: { matchId: string; label: string; a: string; b: string; scoreA: number | null; scoreB: number | null }[];
+  live: { matchId: string; label: string; a: string; b: string; score: string | null }[];
   next: { matchId: string; label: string; scheduledAt: string | null } | null;
   champion: string | null;
   violations: number;
@@ -62,8 +62,7 @@ export function monitorRooms(
           label: `${roundLabel(m.round)} #${m.matchNumber}`,
           a: name(m.participantAId),
           b: name(m.participantBId),
-          scoreA: m.scoreA,
-          scoreB: m.scoreB,
+          score: scoreText(m),
         })),
         next: ready[0]
           ? { matchId: ready[0].id, label: `${roundLabel(ready[0].round)} #${ready[0].matchNumber}`, scheduledAt: ready[0].scheduledAt }

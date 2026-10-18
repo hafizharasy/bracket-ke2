@@ -40,7 +40,7 @@ type Status =
 
 /**
  * Form input hasil laga (pengawas ruangan & admin), sesuai babak:
- * - Babak ruangan: skor akhir (pemenang dipilih manual bila seri).
+ * - Babak ruangan (best of one): cukup pilih pemenang, tanpa skor.
  * - Semifinal: game dimenangkan, best of 3 (2-0 atau 2-1).
  * - Final round-robin: pemenang + jenis kemenangan (poin).
  * Semua disertai foto bukti.
@@ -58,31 +58,19 @@ export function ResultForm({
 }) {
   const [scoreA, setScoreA] = useState(match.scoreA ?? 0);
   const [scoreB, setScoreB] = useState(match.scoreB ?? 0);
-  // Pemenang pilihan manual, hanya dipakai saat skor seri.
-  const [tieWinnerId, setTieWinnerId] = useState<string | null>(
-    match.scoreA !== null && match.scoreA === match.scoreB ? match.winnerId : null,
-  );
   const [photo, setPhoto] = useState<ProofPhoto | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const saving = status.kind === "saving";
   const router = useRouter();
 
   const mode = match.round === FINAL_ROUND ? "final" : match.round === SEMIFINAL_ROUND ? "semifinal" : "room";
-  const [finalWinnerId, setFinalWinnerId] = useState<string | null>(mode === "final" ? match.winnerId : null);
+  // Pemenang yang dipilih langsung (babak ruangan & final).
+  const [pickedWinnerId, setPickedWinnerId] = useState<string | null>(mode === "semifinal" ? null : match.winnerId);
   const [winType, setWinType] = useState<WinType | null>((match.winType as WinType | null) ?? null);
 
-  const isTie = mode === "room" && scoreA === scoreB;
   const semifinalValid = Math.max(scoreA, scoreB) === SEMIFINAL_WINS && Math.min(scoreA, scoreB) < SEMIFINAL_WINS;
   const winnerId =
-    mode === "final"
-      ? finalWinnerId
-      : mode === "semifinal" && !semifinalValid
-        ? null
-        : isTie
-          ? tieWinnerId
-          : scoreA > scoreB
-            ? participantA.id
-            : participantB.id;
+    mode !== "semifinal" ? pickedWinnerId : !semifinalValid ? null : scoreA > scoreB ? participantA.id : participantB.id;
   const winner = winnerId === participantA.id ? participantA : winnerId === participantB.id ? participantB : null;
 
   // Koreksi yang mengganti pemenang ditolak server bila laga berikutnya sudah dimulai.
@@ -100,14 +88,16 @@ export function ResultForm({
     if (mode === "final" && (!winnerId || !winType)) {
       return setStatus({ kind: "error", message: "Pilih pemenang dan jenis kemenangannya." });
     }
-    if (!winnerId) return setStatus({ kind: "error", message: "Skor seri: pilih pemenangnya." });
+    if (!winnerId) return setStatus({ kind: "error", message: "Pilih pemenang laga ini." });
     if (!photo) return setStatus({ kind: "error", message: "Unggah foto bukti terlebih dahulu." });
     setStatus({ kind: "saving" });
     const result = await submitMatchResult(
       match.id,
       mode === "final"
         ? { winnerId, winType: winType!, proofPhotoUrl: photo.url }
-        : { scoreA, scoreB, winnerId: isTie ? winnerId : undefined, proofPhotoUrl: photo.url },
+        : mode === "room"
+          ? { winnerId, proofPhotoUrl: photo.url }
+          : { scoreA, scoreB, proofPhotoUrl: photo.url },
     );
     setStatus(
       result.ok
@@ -125,14 +115,15 @@ export function ResultForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      {mode === "final" ? (
-        <FinalResultFields
+      {mode !== "semifinal" ? (
+        <WinnerFields
           participants={[participantA, participantB]}
-          winnerId={finalWinnerId}
+          final={mode === "final"}
+          winnerId={pickedWinnerId}
           winType={winType}
           disabled={saving}
           onWinner={(id) => {
-            setFinalWinnerId(id);
+            setPickedWinnerId(id);
             touch();
           }}
           onWinType={(type) => {
@@ -142,9 +133,7 @@ export function ResultForm({
         />
       ) : (
         <fieldset className="flex min-w-0 flex-col gap-3" disabled={saving}>
-          <legend className="mb-2 text-sm font-semibold">
-            {mode === "semifinal" ? "Game dimenangkan (best of 3)" : "Skor akhir"}
-          </legend>
+          <legend className="mb-2 text-sm font-semibold">Game dimenangkan (best of 3)</legend>
           {sides.map(({ key, participant, score, setScore }) => {
             const isWinner = winnerId === participant.id;
             return (
@@ -172,7 +161,7 @@ export function ResultForm({
                 <ScoreStepper
                   id={`score-${key}`}
                   label={participant.name}
-                  max={mode === "semifinal" ? SEMIFINAL_WINS : undefined}
+                  max={SEMIFINAL_WINS}
                   value={score}
                   onChange={(v) => {
                     setScore(v);
@@ -182,36 +171,6 @@ export function ResultForm({
               </div>
             );
           })}
-
-          {isTie && (
-            <div className="flex flex-col gap-2 rounded-xl border border-amber-500/50 bg-amber-500/5 p-3">
-              <p className="text-sm font-medium">Skor seri — pilih pemenang (mis. dari aturan tambahan):</p>
-              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Pemenang">
-                {[participantA, participantB].map((p) => (
-                  <label
-                    key={p.id}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg border bg-background p-2 text-sm",
-                      tieWinnerId === p.id && "border-emerald-500 ring-1 ring-emerald-500/40",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="tie-winner"
-                      value={p.id}
-                      checked={tieWinnerId === p.id}
-                      onChange={() => {
-                        setTieWinnerId(p.id);
-                        touch();
-                      }}
-                      className="accent-emerald-600"
-                    />
-                    <span className="truncate">{p.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
 
           {mode === "semifinal" && !semifinalValid && (
             <p className="text-sm text-muted-foreground">Isi game yang dimenangkan: pemenang 2, lawan 0 atau 1.</p>
@@ -224,8 +183,8 @@ export function ResultForm({
       {winnerChangeBlocked && (
         <p className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
           <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
-          Laga berikutnya sudah dimulai, jadi pemenang tidak bisa diganti. Koreksi hanya boleh mengubah skor dengan
-          pemenang yang sama.
+          Laga berikutnya sudah dimulai, jadi pemenang tidak bisa diganti.{" "}
+          {mode === "semifinal" ? "Koreksi hanya boleh mengubah skor dengan pemenang yang sama." : "Koreksi hanya boleh mengganti foto bukti."}
         </p>
       )}
 
@@ -247,7 +206,9 @@ export function ResultForm({
             <CheckCircle2Icon className="size-4" />
             {mode === "final"
               ? `Hasil tersimpan: ${winner?.name} menang (+${winType ? formatPoints(WIN_TYPES[winType].points) : 0} poin)`
-              : `Hasil ${scoreA}–${scoreB} tersimpan, ${winner?.name} menang`}
+              : mode === "semifinal"
+                ? `Hasil ${scoreA}–${scoreB} tersimpan, ${winner?.name} menang`
+                : `Hasil tersimpan: ${winner?.name} menang`}
             {status.simulated ? " (mode simulasi)" : ""}.
           </p>
         )}
@@ -299,9 +260,13 @@ function AdvancePreview({ next, winner }: { next: NextPreview; winner: Participa
   );
 }
 
-/** Final round-robin: pilih pemenang dan jenis kemenangan (menentukan poin). */
-function FinalResultFields({
+/**
+ * Pilih pemenang: babak ruangan (best of one, cukup pemenang) dan final
+ * round-robin (pemenang + jenis kemenangan yang menentukan poin).
+ */
+function WinnerFields({
   participants,
+  final,
   winnerId,
   winType,
   disabled,
@@ -309,6 +274,7 @@ function FinalResultFields({
   onWinType,
 }: {
   participants: [Participant, Participant];
+  final: boolean;
   winnerId: string | null;
   winType: WinType | null;
   disabled: boolean;
@@ -322,27 +288,37 @@ function FinalResultFields({
     );
   return (
     <fieldset className="flex min-w-0 flex-col gap-4" disabled={disabled}>
-      <legend className="sr-only">Hasil final</legend>
+      <legend className="sr-only">{final ? "Hasil final" : "Hasil laga"}</legend>
       <div className="flex flex-col gap-2" role="radiogroup" aria-label="Pemenang">
-        <span className="text-sm font-semibold">Pemenang</span>
+        <span className="text-sm font-semibold">{final ? "Pemenang" : "Siapa yang menang? (best of one)"}</span>
         {participants.map((p, i) => (
           <label key={p.id} className={option(winnerId === p.id)}>
             <input
               type="radio"
-              name="final-winner"
+              name="winner"
               checked={winnerId === p.id}
               onChange={() => onWinner(p.id)}
               className="accent-emerald-600"
             />
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{p.name}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="min-w-0 truncate font-medium">{p.name}</span>
+                {winnerId === p.id && (
+                  <Badge className="shrink-0 bg-emerald-600 text-white">
+                    <TrophyIcon data-icon="inline-start" />
+                    Menang
+                  </Badge>
+                )}
+              </span>
               <span className="block truncate text-xs text-muted-foreground">
-                {i === 0 ? "Tuan rumah (jalan pertama)" : "Tamu"} · {p.teamOrClub ?? "Tanpa sekolah"}
+                {final ? `${i === 0 ? "Tuan rumah (jalan pertama)" : "Tamu"} · ` : ""}
+                {p.teamOrClub ?? "Tanpa sekolah"} · {p.id.toUpperCase()}
               </span>
             </span>
           </label>
         ))}
       </div>
+      {final && (
       <div className="flex flex-col gap-2" role="radiogroup" aria-label="Jenis kemenangan">
         <span className="text-sm font-semibold">Jenis kemenangan</span>
         {WIN_TYPE_KEYS.map((key) => (
@@ -359,6 +335,7 @@ function FinalResultFields({
           </label>
         ))}
       </div>
+      )}
     </fieldset>
   );
 }

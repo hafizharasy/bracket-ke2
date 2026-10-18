@@ -17,7 +17,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
             <>
               <TrophyIcon className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden />
               <span className="min-w-0 flex-1">
-                <span className="font-medium">{item.winner}</span> menang {item.score}
+                <span className="font-medium">{item.winner}</span> menang{item.score && ` ${item.score}`}
                 <span className="block text-xs text-muted-foreground">{item.roomName} · {item.label}</span>
               </span>
             </>
