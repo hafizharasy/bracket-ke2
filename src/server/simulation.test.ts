@@ -48,8 +48,9 @@ describe("randomResult", () => {
   it("menghasilkan hasil sah per babak", () => {
     for (let i = 0; i < 50; i++) {
       const room = randomResult(1, "a", "b");
-      expect(room.scoreA).not.toBe(room.scoreB);
-      expect(room.winnerId).toBe(room.scoreA! > room.scoreB! ? "a" : "b");
+      // Babak ruangan best of one: pemenang saja, tanpa skor.
+      expect(room).toMatchObject({ scoreA: null, scoreB: null });
+      expect(["a", "b"]).toContain(room.winnerId);
       const sf = randomResult(SEMIFINAL_ROUND, "a", "b");
       expect(Math.max(sf.scoreA!, sf.scoreB!)).toBe(2);
       expect(Math.min(sf.scoreA!, sf.scoreB!)).toBeLessThan(2);

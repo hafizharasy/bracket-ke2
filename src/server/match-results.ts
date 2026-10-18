@@ -12,10 +12,10 @@ import { bumpBracketVersion } from "@/server/live";
 import { advanceToFeeds, advanceWinner, retractFromFeeds, retractWinner } from "@/server/propagation";
 
 export const matchResultInput = z.object({
-  /** Babak ruangan: skor; semifinal: jumlah game dimenangkan (best of 3). Final: tidak dipakai. */
+  /** Semifinal: jumlah game dimenangkan (best of 3). Babak ruangan & final: tidak dipakai. */
   scoreA: z.int().min(0).max(999).nullish(),
   scoreB: z.int().min(0).max(999).nullish(),
-  /** Wajib bila skor seri dan di final; selain itu harus cocok dengan skor. */
+  /** Wajib di babak ruangan dan final; di semifinal (opsional) harus cocok dengan skor. */
   winnerId: z.string().min(1).optional(),
   /** Final round-robin: jenis kemenangan (menentukan poin). */
   winType: z.enum(WIN_TYPE_VALUES).optional(),
@@ -26,7 +26,7 @@ export type MatchResultInput = z.infer<typeof matchResultInput>;
 
 /**
  * Validasi hasil sesuai babak:
- * - Babak ruangan: skor bebas; pemenang dari skor (atau winnerId bila seri).
+ * - Babak ruangan (best of one, gugur langsung): cukup pemenang, tanpa skor.
  * - Semifinal (best of 3): skor = game dimenangkan; pemenang tepat 2 game,
  *   lawan 0 atau 1.
  * - Final round-robin: pemenang + jenis kemenangan (poin); tanpa skor.
@@ -37,18 +37,19 @@ export function resolveResult(round: number, a: string, b: string, input: MatchR
     if (input.winnerId !== a && input.winnerId !== b) throw new ApiError(422, "Pemenang harus salah satu peserta laga ini.");
     return { winnerId: input.winnerId, scoreA: null, scoreB: null, winType: input.winType };
   }
+  if (round !== SEMIFINAL_ROUND) {
+    // Babak ruangan: skor (bila terkirim) diabaikan, tidak disimpan.
+    if (!input.winnerId) throw new ApiError(422, "Pilih pemenang laga ini.");
+    if (input.winnerId !== a && input.winnerId !== b) throw new ApiError(422, "Pemenang harus salah satu peserta laga ini.");
+    return { winnerId: input.winnerId, scoreA: null, scoreB: null, winType: null };
+  }
   const scoreA = input.scoreA;
   const scoreB = input.scoreB;
   if (scoreA == null || scoreB == null) throw new ApiError(422, "Skor kedua peserta wajib diisi.");
-  if (round === SEMIFINAL_ROUND) {
-    const valid = Math.max(scoreA, scoreB) === SEMIFINAL_WINS && Math.min(scoreA, scoreB) < SEMIFINAL_WINS;
-    if (!valid) throw new ApiError(422, "Semifinal best of 3: pemenang 2 game, lawan 0 atau 1 (mis. 2-0 atau 2-1).");
-  }
-  const scoreWinner = scoreA > scoreB ? a : scoreB > scoreA ? b : null;
-  const winnerId = input.winnerId ?? scoreWinner;
-  if (!winnerId) throw new ApiError(422, "Skor seri: tentukan pemenang lewat winnerId.");
-  if (winnerId !== a && winnerId !== b) throw new ApiError(422, "Pemenang harus salah satu peserta laga ini.");
-  if (scoreWinner && winnerId !== scoreWinner) throw new ApiError(422, "Pemenang tidak sesuai dengan skor.");
+  const valid = Math.max(scoreA, scoreB) === SEMIFINAL_WINS && Math.min(scoreA, scoreB) < SEMIFINAL_WINS;
+  if (!valid) throw new ApiError(422, "Semifinal best of 3: pemenang 2 game, lawan 0 atau 1 (mis. 2-0 atau 2-1).");
+  const winnerId = scoreA > scoreB ? a : b;
+  if (input.winnerId && input.winnerId !== winnerId) throw new ApiError(422, "Pemenang tidak sesuai dengan skor.");
   return { winnerId, scoreA, scoreB, winType: null };
 }
 

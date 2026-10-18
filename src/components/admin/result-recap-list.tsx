@@ -22,6 +22,16 @@ const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digi
  * Daftar rekap hasil pertandingan: cari peserta, filter status & babak,
  * tampil bertahap. Tabel di layar lebar, kartu di ponsel. Klik → detail laga.
  */
+/**
+ * Isi kolom hasil per peserta: skor (semifinal) atau Menang/Kalah untuk laga
+ * tanpa skor (babak ruangan best of one, final).
+ */
+function cell(r: ResultRecapRow, person: ResultRecapRow["participantA"], score: number | null) {
+  if (score !== null) return score;
+  if (!r.winner || !person) return "–";
+  return r.winner.id === person.id ? "Menang" : "Kalah";
+}
+
 export function ResultRecapList({ rows }: { rows: ResultRecapRow[] }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | MatchStatus>("all");
@@ -87,7 +97,7 @@ export function ResultRecapList({ rows }: { rows: ResultRecapRow[] }) {
                 <tr>
                   <th className="px-3 py-2 font-medium">Laga</th>
                   <th className="px-3 py-2 font-medium">Peserta</th>
-                  <th className="px-3 py-2 text-center font-medium">Skor</th>
+                  <th className="px-3 py-2 text-center font-medium">Hasil</th>
                   <th className="px-3 py-2 font-medium">Status</th>
                   <th className="px-3 py-2 font-medium">Dicatat</th>
                 </tr>
@@ -106,8 +116,8 @@ export function ResultRecapList({ rows }: { rows: ResultRecapRow[] }) {
                       <div>{name(r.participantB, r.winner)}</div>
                     </td>
                     <td className="px-3 py-2 text-center tabular-nums">
-                      <div>{r.scoreA ?? "–"}</div>
-                      <div>{r.scoreB ?? "–"}</div>
+                      <div>{cell(r, r.participantA, r.scoreA)}</div>
+                      <div>{cell(r, r.participantB, r.scoreB)}</div>
                       {r.finalResult && <div className="text-[11px] text-muted-foreground">{r.finalResult}</div>}
                     </td>
                     <td className="px-3 py-2">
@@ -151,7 +161,7 @@ export function ResultRecapList({ rows }: { rows: ResultRecapRow[] }) {
                         {name(person, r.winner)}
                         {person && r.winner?.id === person.id && <TrophyIcon className="size-3.5 shrink-0 text-amber-500" />}
                       </span>
-                      <span className="tabular-nums">{score ?? "–"}</span>
+                      <span className="tabular-nums">{cell(r, person, score)}</span>
                     </div>
                   ))}
                   {r.corrections > 0 && <span className="text-xs text-amber-700 dark:text-amber-400">{r.corrections}× koreksi</span>}

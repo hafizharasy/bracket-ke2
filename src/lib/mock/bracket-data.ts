@@ -98,8 +98,6 @@ for (const match of [...matches].sort((a, b) => a.round - b.round || a.matchNumb
   if (s <= 2 || (s === 3 && match.round <= 3)) finishMatch(sim, match, rand);
   else if (s === 3 && match.round === 4 && match.participantAId && match.participantBId) {
     match.status = "ongoing";
-    match.scoreA = Math.floor(rand() * 4);
-    match.scoreB = Math.floor(rand() * 4);
   }
 }
 

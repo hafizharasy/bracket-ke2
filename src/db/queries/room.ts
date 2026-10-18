@@ -96,6 +96,7 @@ export function getRoomHistoryFromDb(roomId: string, sessionId?: string | null):
     .map((row) => ({
       matchId: row.matchId,
       sessionId: row.sessionId,
+      round: row.round,
       roundLabel: roundLabel(row.round),
       matchNumber: row.matchNumber,
       participantA: row.participantA,

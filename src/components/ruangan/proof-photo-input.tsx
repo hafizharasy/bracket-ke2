@@ -112,7 +112,7 @@ export function ProofPhotoInput({
         >
           <CameraIcon className="size-6" aria-hidden />
           <span className="font-medium text-foreground">Ambil atau pilih foto</span>
-          <span className="text-xs">Foto papan skor / layar hasil sebagai bukti</span>
+          <span className="text-xs">Foto papan / layar hasil laga sebagai bukti</span>
         </label>
       )}
 

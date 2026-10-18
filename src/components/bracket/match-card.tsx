@@ -1,6 +1,6 @@
 import { CheckIcon, Clock3Icon } from "lucide-react";
 
-import { type SlotLabel, type SlotLabels, WIN_TYPES, type WinType } from "@/lib/bracket";
+import { hasScore, type SlotLabel, type SlotLabels, WIN_TYPES, type WinType } from "@/lib/bracket";
 import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,13 +40,15 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
   const a = match.participantAId ? participants.get(match.participantAId) : undefined;
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
   const winner = match.winnerId ? participants.get(match.winnerId) : undefined;
-  const hasScore = match.scoreA !== null && match.scoreB !== null;
+  const scored = match.scoreA !== null && match.scoreB !== null;
   // Final round-robin: tampilkan poin dari jenis kemenangan, bukan skor.
   const points = match.winType && match.winnerId ? formatPoints(winPoints(match.winType)) : null;
+  // Babak ruangan (best of one) tanpa kolom skor: cukup tanda pemenang.
+  const showScore = points !== null || hasScore(match.round);
   const display = (id: string | null, score: number | null) =>
-    points !== null ? (id === match.winnerId ? `+${points}` : "0") : score;
+    !showScore ? undefined : points !== null ? (id === match.winnerId ? `+${points}` : "0") : score;
   const leader =
-    isLive && hasScore && match.scoreA !== match.scoreB ? (match.scoreA! > match.scoreB! ? "a" : "b") : null;
+    isLive && scored && match.scoreA !== match.scoreB ? (match.scoreA! > match.scoreB! ? "a" : "b") : null;
   const badge = matchBadge(match);
   // Final: jenis kemenangan menentukan poin, mis. "Menang telak (4 pion berjajar)".
   const winTypeLabel = points !== null && match.winType ? WIN_TYPES[match.winType as WinType]?.label : null;
@@ -54,7 +56,7 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
   const summary = [
     `Laga #${match.matchNumber}`,
     `${a?.name ?? slotLabels?.a.text ?? "TBD"} lawan ${b?.name ?? slotLabels?.b.text ?? "TBD"}`,
-    hasScore ? `skor ${match.scoreA}–${match.scoreB}` : null,
+    scored ? `skor ${match.scoreA}–${match.scoreB}` : null,
     points !== null ? `${points} poin untuk pemenang` : null,
     winner ? `pemenang ${winner.name}` : isLive ? "sedang berlangsung" : null,
   ]
@@ -148,7 +150,8 @@ function ParticipantRow({
 }: {
   participant?: Participant;
   seed?: number;
-  score: number | string | null;
+  /** undefined = laga tanpa skor (babak ruangan, best of one). */
+  score: number | string | null | undefined;
   placeholder?: SlotLabel;
   isWinner: boolean;
   isLoser: boolean;
@@ -170,7 +173,7 @@ function ParticipantRow({
         {placeholder.live ? (
           <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-crimson" aria-label="sedang bertanding" />
         ) : (
-          <span className="w-5 text-right text-ink/25">—</span>
+          score !== undefined && <span className="w-5 text-right text-ink/25">—</span>
         )}
       </div>
     );
@@ -195,6 +198,7 @@ function ParticipantRow({
         <span className="block truncate text-[9px] text-ink/45">{participant.teamOrClub ?? "—"}</span>
       </span>
       {isWinner && <CheckIcon className="size-3.5 shrink-0 text-crimson" aria-label="pemenang" />}
+      {score !== undefined && (
       <span
         className={cn(
           "w-6 text-right font-display text-sm tabular-nums",
@@ -204,6 +208,7 @@ function ParticipantRow({
       >
         {score ?? "—"}
       </span>
+      )}
     </div>
   );
 }

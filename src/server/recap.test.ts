@@ -31,13 +31,13 @@ beforeEach(() => {
 
 describe("getDbRecap", () => {
   it("menyertakan pencatat, bukti, dan jumlah koreksi; filter ruangan", () => {
-    recordMatchResult("a", { scoreA: 3, scoreB: 1, proofPhotoUrl: proof("a") }, pengawas);
-    recordMatchResult("a", { scoreA: 1, scoreB: 3, proofPhotoUrl: proof("a") }, pengawas);
+    recordMatchResult("a", { winnerId: "p1", proofPhotoUrl: proof("a") }, pengawas);
+    recordMatchResult("a", { winnerId: "p2", proofPhotoUrl: proof("a") }, pengawas);
     db.insert(violations).values({ id: "v1", participantId: "p1", matchId: "a", roomId: "ruangan-1", type: "Terlambat hadir", recordedBy: "u-p1" }).run();
 
     const recap = getDbRecap({ ruangan: "ruangan-1" });
     expect(recap.results).toEqual([
-      expect.objectContaining({ matchId: "a", status: "done", scoreA: 1, scoreB: 3, winner: { id: "p2", name: "Nama p2" }, recordedBy: "Pengawas R1", corrections: 1, hasProof: true }),
+      expect.objectContaining({ matchId: "a", status: "done", scoreA: null, scoreB: null, winner: { id: "p2", name: "Nama p2" }, recordedBy: "Pengawas R1", corrections: 1, hasProof: true }),
     ]);
     expect(recap.summary).toMatchObject({ matches: { total: 1, done: 1 }, corrections: 1, violations: { total: 1 } });
     expect(recap.violations[0]).toMatchObject({ participant: { name: "Nama p1" }, recordedBy: "Pengawas R1", matchLabel: "64 Besar Ruangan #1" });

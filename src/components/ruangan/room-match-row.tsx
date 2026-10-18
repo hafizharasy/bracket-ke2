@@ -2,7 +2,7 @@ import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { roundLabel, type SlotLabels } from "@/lib/bracket";
+import { hasScore, roundLabel, type SlotLabels } from "@/lib/bracket";
 import { canInputResult } from "@/lib/room-matches";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,13 +50,13 @@ export function RoomMatchRow({
         <Side
           name={a?.name ?? slotLabels?.a.text}
           empty={!a}
-          score={match.scoreA}
+          score={hasScore(match.round) ? match.scoreA : undefined}
           winner={!!match.winnerId && match.winnerId === match.participantAId}
         />
         <Side
           name={b?.name ?? slotLabels?.b.text}
           empty={!b}
-          score={match.scoreB}
+          score={hasScore(match.round) ? match.scoreB : undefined}
           winner={!!match.winnerId && match.winnerId === match.participantBId}
         />
       </div>
@@ -88,7 +88,8 @@ function Side({
 }: {
   name?: string;
   empty: boolean;
-  score: number | null;
+  /** undefined = babak tanpa skor (best of one). */
+  score: number | null | undefined;
   winner: boolean;
 }) {
   return (
@@ -96,7 +97,11 @@ function Side({
       <span className={cn("min-w-0 flex-1 truncate", empty && "italic text-muted-foreground")}>
         {name ?? "Menunggu pemenang"}
       </span>
-      <span className="w-6 text-right tabular-nums">{score ?? "–"}</span>
+      {score !== undefined ? (
+        <span className="w-6 text-right tabular-nums">{score ?? "–"}</span>
+      ) : (
+        winner && <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Menang</span>
+      )}
     </div>
   );
 }
