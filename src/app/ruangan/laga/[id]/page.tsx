@@ -73,7 +73,6 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
             .filter(Boolean)
             .join(" · ")}
         </p>
-        <p className="text-xs text-muted-foreground">Durasi: 7 menit + 3 menit injury time</p>
       </div>
 
       {a && b ? (
