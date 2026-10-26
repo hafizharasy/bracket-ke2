@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { type ImportPreview, importParticipantsAction } from "@/app/admin/peserta/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isXlsx, xlsxToCsv } from "@/lib/spreadsheet";
 import { cn } from "@/lib/utils";
 
 const MAX_BYTES = 1_000_000;
@@ -31,8 +32,9 @@ type State =
   | { kind: "error"; message: string };
 
 /**
- * Tombol + dialog unggah CSV peserta: pilih berkas → diperiksa server
- * (baris bermasalah, kapasitas 64 per ruangan-sesi) → simpan.
+ * Tombol + dialog unggah peserta dari CSV atau Excel (.xlsx; sheet pertama
+ * diubah ke CSV di browser): pilih berkas → diperiksa server (baris
+ * bermasalah, kapasitas 64 per ruangan-sesi) → simpan.
  */
 export function CsvImportDialog() {
   const router = useRouter();
@@ -62,7 +64,20 @@ export function CsvImportDialog() {
   async function onFile(f: File | undefined) {
     if (!f) return;
     if (f.size > MAX_BYTES) return setState({ kind: "error", message: "Berkas terlalu besar (maks. 1 MB)." });
-    const text = await f.text();
+    if (/\.xls$/i.test(f.name)) {
+      return setState({ kind: "error", message: 'Format .xls (Excel lama) belum didukung. Simpan ulang sebagai "Excel Workbook (.xlsx)" atau CSV.' });
+    }
+    let text: string;
+    if (isXlsx(f.name)) {
+      setState({ kind: "busy", label: "Membaca Excel…" });
+      try {
+        text = await xlsxToCsv(f);
+      } catch {
+        return setState({ kind: "error", message: "Berkas Excel tidak bisa dibaca. Pastikan formatnya .xlsx dan tidak dikunci kata sandi." });
+      }
+    } else {
+      text = await f.text();
+    }
     setFile({ name: f.name, text });
     await run(text, true);
   }
@@ -73,23 +88,28 @@ export function CsvImportDialog() {
   return (
     <>
       <Button variant="outline" onClick={() => { reset(); setOpen(true); }}>
-        <FileUpIcon /> Unggah CSV
+        <FileUpIcon /> Unggah CSV / Excel
       </Button>
       <Dialog open={open} onOpenChange={(v) => { if (!busy) setOpen(v); }}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Unggah peserta dari CSV</DialogTitle>
+            <DialogTitle>Unggah peserta dari CSV / Excel</DialogTitle>
             <DialogDescription>
               Kolom: <code>nama</code> (wajib), <code>sekolah</code>, <code>sesi</code>, <code>ruangan</code>. Sesi/ruangan boleh
-              ditulis &quot;Sesi 1&quot; / &quot;Ruangan 2&quot; atau angkanya saja, dan boleh kosong (dibagi otomatis nanti). Bisa
-              disimpan dari Excel/Google Sheets sebagai CSV.
+              ditulis &quot;Sesi 1&quot; / &quot;Ruangan 2&quot; atau angkanya saja, dan boleh kosong (dibagi otomatis nanti). Berkas
+              Excel (.xlsx) dibaca dari sheet pertama; dari Google Sheets pilih File → Download → Microsoft Excel atau CSV.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-3 text-sm">
-            <Button variant="ghost" size="sm" className="self-start" onClick={downloadTemplate}>
-              <DownloadIcon /> Unduh templat CSV
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              <a href="/templat-peserta.xlsx" download className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+                <DownloadIcon /> Unduh templat Excel
+              </a>
+              <Button variant="ghost" size="sm" onClick={downloadTemplate}>
+                <DownloadIcon /> Unduh templat CSV
+              </Button>
+            </div>
 
             <label
               className={cn(
@@ -98,11 +118,11 @@ export function CsvImportDialog() {
               )}
             >
               <UploadIcon className="size-5 text-muted-foreground" />
-              <span className="font-medium">{file ? file.name : "Pilih berkas .csv"}</span>
+              <span className="font-medium">{file ? file.name : "Pilih berkas .xlsx atau .csv"}</span>
               <span className="text-xs text-muted-foreground">{file ? "Klik untuk ganti berkas" : "Maks. 1 MB"}</span>
               <input
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="sr-only"
                 disabled={busy}
                 onChange={(e) => {
