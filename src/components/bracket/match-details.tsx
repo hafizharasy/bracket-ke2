@@ -158,7 +158,7 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
             ? "Best of 3 (menang 2 game)"
             : match.round === FINAL_ROUND
               ? "Kompetisi penuh — A tuan rumah (jalan pertama)"
-              : "Best of one, gugur langsung · 7 menit + 3 menit injury time"}
+              : "Best of one, gugur langsung"}
         </dd>
         <dt className="text-muted-foreground">Pemenang maju ke</dt>
         <dd>{advance}</dd>
