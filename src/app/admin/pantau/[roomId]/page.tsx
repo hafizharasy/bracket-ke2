@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Laga ruangan" };
 
-const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 const STATUS = { scheduled: "Terjadwal", ongoing: "LIVE", done: "Selesai" } as const;
 
 export default function RoomMatchesPage({ params, searchParams }: PageProps<"/admin/pantau/[roomId]">) {
@@ -56,7 +55,6 @@ async function RoomMatches({ params, searchParams }: Pick<PageProps<"/admin/pant
             <Link href={`/admin/laga/${m.id}`} className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/50">
               <span className="w-40 shrink-0 text-xs text-muted-foreground">
                 {roundLabel(m.round)} #{m.matchNumber}
-                {m.scheduledAt && ` · ${time.format(new Date(m.scheduledAt))}`}
                 <span className="block truncate">{referees[m.id] ? `Pengawas: ${referees[m.id]}` : <span className="text-amber-700 dark:text-amber-400">Pengawas belum diisi</span>}</span>
               </span>
               <span className="min-w-0 flex-1 truncate">

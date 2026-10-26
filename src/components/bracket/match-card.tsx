@@ -1,4 +1,4 @@
-import { CheckIcon, Clock3Icon } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 
 import { hasScore, type SlotLabel, type SlotLabels, WIN_TYPES, type WinType } from "@/lib/bracket";
 import { formatPoints, winPoints } from "@/lib/final-standings";
@@ -20,12 +20,6 @@ type MatchCardProps = {
   /** Lebar mengikuti wadah (grid) alih-alih lebar tetap kolom bagan. */
   fluid?: boolean;
 };
-
-const timeFormat = new Intl.DateTimeFormat("id-ID", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Jakarta",
-});
 
 /** Label & warna status di pojok kartu. */
 export function matchBadge(match: Match) {
@@ -89,12 +83,6 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
           Laga {String(match.matchNumber).padStart(2, "0")}
           {roomName ? ` · ${roomName}` : ""}
         </span>
-        {match.scheduledAt && (
-          <span className="flex shrink-0 items-center gap-0.5">
-            <Clock3Icon className="size-3" aria-hidden />
-            {timeFormat.format(new Date(match.scheduledAt))}
-          </span>
-        )}
         <span
           className={cn(
             "ml-auto flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[8px] font-extrabold tracking-wide uppercase",

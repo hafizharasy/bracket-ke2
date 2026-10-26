@@ -16,11 +16,10 @@ const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
   timeZone: "Asia/Jakarta",
 });
-const fmt = (iso: string | null) => (iso ? `${dateTimeFormat.format(new Date(iso))} WIB` : "–");
+// Hari saja: jam pertandingan bisa bergeser di hari-H.
+const fmt = (iso: string | null) => (iso ? dateTimeFormat.format(new Date(iso)) : "–");
 
 const STATUS = { scheduled: "Terjadwal", ongoing: "Berlangsung", done: "Selesai" } as const;
 

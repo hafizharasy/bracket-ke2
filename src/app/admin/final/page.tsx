@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Semifinal & Final" };
 
-const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 const STATUS = {
   scheduled: { label: "Terjadwal", className: "" },
   ongoing: { label: "LIVE", className: "border-transparent bg-red-600 text-white" },
@@ -102,7 +101,7 @@ function MatchRow({ match, label, people, room }: { match: Match; label: string;
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5 text-sm">
       <span className="w-40 shrink-0 text-xs text-muted-foreground">
         <span className="block font-medium text-foreground">{label}</span>
-        {[room, match.scheduledAt && time.format(new Date(match.scheduledAt))].filter(Boolean).join(" · ")}
+        {room}
       </span>
       <span className="min-w-56 flex-1">
         {[

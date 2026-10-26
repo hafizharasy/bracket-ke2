@@ -7,12 +7,6 @@ import { canInputResult } from "@/lib/room-matches";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const timeFormat = new Intl.DateTimeFormat("id-ID", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Jakarta",
-});
-
 /** Satu baris laga di daftar pengawas; ketuk untuk membuka form input hasil. */
 export function RoomMatchRow({
   match,
@@ -34,7 +28,6 @@ export function RoomMatchRow({
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">{roundLabel(match.round)}</span>
           <span>#{match.matchNumber}</span>
-          {match.scheduledAt && <span>· {timeFormat.format(new Date(match.scheduledAt))}</span>}
           {isLive && (
             <Badge className="ml-auto bg-red-600 text-white">
               <span className="size-1.5 animate-pulse rounded-full bg-white" />

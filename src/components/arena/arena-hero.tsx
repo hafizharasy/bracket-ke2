@@ -1,28 +1,59 @@
-import { ArrowRightIcon, CalendarDaysIcon, Clock3Icon, MapPinIcon, ShieldCheckIcon, SparklesIcon, TrophyIcon, UsersIcon, ZapIcon } from "lucide-react";
+import { ArrowRightIcon, CalendarDaysIcon, MapPinIcon, ShieldCheckIcon, SparklesIcon, TrophyIcon, UsersIcon, ZapIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { SectionBadge } from "@/components/arena/arena-chrome";
 import { CountUp } from "@/components/arena/arena-client";
-import { FINAL_ROUND, hasScore, roundLabel } from "@/lib/bracket";
+import { FINAL_ROUND, hasScore, LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
 import { finalistsOf, finalStandings, formatPoints, winPoints, type StandingRow } from "@/lib/final-standings";
-import type { BracketData, Match, Participant } from "@/lib/types";
+import type { BracketData, Match, Participant, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const timeFormat = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
 /**
- * Laga sorotan: yang sedang berlangsung (babak tertinggi dulu), lalu laga
- * berikutnya yang pesertanya sudah lengkap, lalu hasil terakhir.
+ * Laga yang sedang dimainkan: semua meja bermain serentak, jadi yang tampil
+ * adalah semua laga belum selesai (peserta lengkap) di babak berjalan tiap
+ * ruangan, untuk sesi terawal yang masih punya laga. Setelah babak ruangan
+ * habis: laga semifinal/final yang belum selesai.
  */
-export function featuredMatch(matches: Match[]): { match: Match; kind: "live" | "next" | "last" } | null {
-  const live = matches.filter((m) => m.status === "ongoing").sort((a, b) => b.round - a.round || a.matchNumber - b.matchNumber);
-  if (live[0]) return { match: live[0], kind: "live" };
-  const next = matches
-    .filter((m) => m.status === "scheduled" && m.participantAId && m.participantBId)
-    .sort((a, b) => (a.scheduledAt ?? "").localeCompare(b.scheduledAt ?? "") || a.round - b.round);
-  if (next[0]) return { match: next[0], kind: "next" };
-  const done = matches.filter((m) => m.status === "done").sort((a, b) => b.round - a.round || (b.scheduledAt ?? "").localeCompare(a.scheduledAt ?? ""));
-  return done[0] ? { match: done[0], kind: "last" } : null;
+export function liveMatchGroups(data: BracketData) {
+  const ready = data.matches.filter((m) => m.status !== "done" && m.participantAId && m.participantBId);
+  if (ready.length === 0) return null;
+  const order = new Map(data.sessions.map((s, i) => [s.id, s.orderIndex ?? i]));
+  const roomReady = ready.filter((m) => m.round <= LAST_ROOM_ROUND);
+  let scope = ready;
+  let session: Session | undefined;
+  if (roomReady.length > 0) {
+    const first = roomReady.reduce((a, b) => ((order.get(b.sessionId) ?? 0) < (order.get(a.sessionId) ?? 0) ? b : a));
+    session = data.sessions.find((s) => s.id === first.sessionId);
+    scope = roomReady.filter((m) => m.sessionId === first.sessionId);
+  }
+  const roomName = new Map(data.rooms.map((r) => [r.id, r.name]));
+  // (Tanpa Map.groupBy: belum ada di HP lama.)
+  const byRoom = new Map<string, Match[]>();
+  for (const m of scope) byRoom.set(m.roomId, [...(byRoom.get(m.roomId) ?? []), m]);
+  const groups = [...byRoom.entries()]
+    .map(([roomId, list]) => {
+      const round = Math.min(...list.map((m) => m.round));
+      return {
+        roomId,
+        roomName: roomName.get(roomId) ?? roomId,
+        round,
+        matches: list.filter((m) => m.round === round).sort((a, b) => a.matchNumber - b.matchNumber),
+      };
+    })
+    .sort((a, b) => a.roomName.localeCompare(b.roomName, "id", { numeric: true }));
+  // Sudah ada laga selesai (atau berjalan) di cakupan ini → sedang berlangsung; belum → akan dimulai.
+  const started = data.matches.some(
+    (m) => m.status !== "scheduled" && (session ? m.sessionId === session.id && m.round <= LAST_ROOM_ROUND : m.round > LAST_ROOM_ROUND),
+  );
+  return { session, groups, total: groups.reduce((n, g) => n + g.matches.length, 0), started };
+}
+
+/** Hasil terakhir (bila tidak ada laga yang sedang dimainkan). */
+function lastResult(matches: Match[]) {
+  return matches
+    .filter((m) => m.status === "done")
+    .sort((a, b) => b.round - a.round || (b.scheduledAt ?? "").localeCompare(a.scheduledAt ?? ""))[0];
 }
 
 const initials = (name: string) =>
@@ -63,7 +94,8 @@ function Cloud({ className, style }: { className?: string; style?: React.CSSProp
 }
 
 export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }) {
-  const featured = featuredMatch(data.matches);
+  const liveGroups = liveMatchGroups(data);
+  const last = liveGroups ? undefined : lastResult(data.matches);
   const people = new Map(data.participants.map((p) => [p.id, p]));
   // Semua laga final selesai → tampilkan juara 1–3 & harapan 1–2 dari klasemen poin.
   const finals = data.matches.filter((m) => m.round === FINAL_ROUND);
@@ -125,7 +157,11 @@ export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }
           {podium && podium.length > 0 ? (
             <WinnersCard rows={podium} people={people} />
           ) : (
-            featured && <SpotlightCard {...featured} data={data} people={people} />
+            liveGroups ? (
+              <LiveMatchesCard {...liveGroups} people={people} />
+            ) : (
+              last && <SpotlightCard match={last} kind="last" data={data} people={people} />
+            )
           )}
         </div>
       </div>
@@ -135,11 +171,15 @@ export function ArenaHero({ data, live }: { data: BracketData; live: ReactNode }
 }
 
 /** Bingkai kartu sorotan: tepi emas, garis merah, panji bergerigi dengan lampu. */
-function MarqueeFrame({ href, children }: { href: string; children: ReactNode }) {
+function MarqueeFrame({ href, children }: { href?: string; children: ReactNode }) {
+  const Frame = href ? "a" : "div";
   return (
-    <a
+    <Frame
       href={href}
-      className="group relative block rounded-3xl bg-gold p-2 shadow-[8px_8px_0_0_rgb(26_26_46/0.25)] transition-transform duration-300 hover:-translate-y-1 hover:rotate-[-0.4deg]"
+      className={cn(
+        "group relative block rounded-3xl bg-gold p-2 shadow-[8px_8px_0_0_rgb(26_26_46/0.25)] transition-transform duration-300",
+        href && "hover:-translate-y-1 hover:rotate-[-0.4deg]",
+      )}
     >
       <div className="overflow-hidden rounded-[1.25rem] border-4 border-crimson bg-paper">
         <div aria-hidden className="arena-pennant relative h-9 bg-crimson">
@@ -147,7 +187,7 @@ function MarqueeFrame({ href, children }: { href: string; children: ReactNode })
         </div>
         {children}
       </div>
-    </a>
+    </Frame>
   );
 }
 
@@ -158,7 +198,7 @@ function SpotlightCard({
   people,
 }: {
   match: Match;
-  kind: "live" | "next" | "last";
+  kind: "last";
   data: BracketData;
   people: Map<string, Participant>;
 }) {
@@ -177,7 +217,7 @@ function SpotlightCard({
     { p: match.participantAId ? people.get(match.participantAId) : undefined, score: shown(match.participantAId, match.scoreA), avatar: "bg-navy text-white" },
     { p: match.participantBId ? people.get(match.participantBId) : undefined, score: shown(match.participantBId, match.scoreB), avatar: "bg-gold text-navy" },
   ];
-  const heading = kind === "live" ? "Sedang berlangsung" : kind === "next" ? "Laga berikutnya" : "Hasil terakhir";
+  const heading = kind === "last" ? "Hasil terakhir" : "";
 
   return (
     <MarqueeFrame href={`#${match.id}`}>
@@ -189,21 +229,11 @@ function SpotlightCard({
               </div>
               <div className="mt-2 font-display text-xl text-crimson [.arena[data-theme=night]_&]:text-gold">{roundLabel(match.round)}</div>
             </div>
-            {kind === "live" && (
-              <span className="flex items-center gap-1 rounded bg-crimson px-2 py-1 font-display text-[10px] text-white">
-                <ZapIcon className="size-3 fill-white" aria-hidden /> Live
-              </span>
-            )}
           </div>
           <div className="flex flex-wrap gap-4 border-b border-ink/15 pb-4 text-xs text-ink/60">
             {room && (
               <span className="flex items-center gap-1">
                 <MapPinIcon className="size-3.5" aria-hidden /> {room.name}
-              </span>
-            )}
-            {match.scheduledAt && (
-              <span className="flex items-center gap-1">
-                <Clock3Icon className="size-3.5" aria-hidden /> {timeFormat.format(new Date(match.scheduledAt))} WIB
               </span>
             )}
           </div>
@@ -245,6 +275,71 @@ function SpotlightCard({
             <ShieldCheckIcon className="size-3.5" aria-hidden /> Hasil diverifikasi pengawas ruangan
           </div>
         </div>
+    </MarqueeFrame>
+  );
+}
+
+/** Semua laga yang sedang dimainkan, per ruangan; ketuk satu laga untuk detailnya. */
+function LiveMatchesCard({
+  session,
+  groups,
+  total,
+  started,
+  people,
+}: NonNullable<ReturnType<typeof liveMatchGroups>> & { people: Map<string, Participant> }) {
+  const name = (id: string | null) => (id ? people.get(id)?.name : undefined) ?? "?";
+  return (
+    <MarqueeFrame>
+      <div className="flex flex-col gap-4 p-5 text-ink sm:p-7">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="inline-block border-b-2 border-ink/20 pb-1 text-[10px] font-bold tracking-[0.15em] text-ink/60 uppercase">
+              {started ? "Sedang berlangsung" : "Akan dimulai"}
+            </div>
+            <div className="mt-2 font-display text-xl text-crimson [.arena[data-theme=night]_&]:text-gold">
+              {session?.name ?? roundLabel(groups[0].round)}
+            </div>
+            <div className="mt-1 text-xs text-ink/60">
+              {groups.length} ruangan · {total} laga belum selesai
+            </div>
+          </div>
+          {started && (
+            <span className="flex items-center gap-1 rounded bg-crimson px-2 py-1 font-display text-[10px] text-white">
+              <ZapIcon className="size-3 fill-white" aria-hidden /> Live
+            </span>
+          )}
+        </div>
+        <div className="-mx-1 flex max-h-[22rem] flex-col gap-4 overflow-y-auto px-1 [scrollbar-width:thin]">
+          {groups.map((g) => (
+            <div key={g.roomId} className="flex flex-col gap-1.5">
+              <div className="sticky top-0 z-10 flex items-center gap-1.5 bg-paper py-1 text-[11px] font-bold text-ink/70">
+                <MapPinIcon className="size-3.5 text-crimson" aria-hidden />
+                {g.roomName} · {roundLabel(g.round)}
+                <span className="ml-auto font-normal text-ink/50">{g.matches.length} laga</span>
+              </div>
+              {g.matches.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  data-match-id={m.id}
+                  aria-haspopup="dialog"
+                  className="flex items-center gap-2 rounded-lg border border-ink/10 bg-paper-2 px-2.5 py-2 text-left text-xs transition-colors hover:border-gold hover:bg-gold-soft"
+                >
+                  <span className="w-7 shrink-0 font-display text-[10px] text-crimson tabular-nums">
+                    #{String(m.matchNumber).padStart(2, "0")}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">{name(m.participantAId)}</span>
+                  <span className="shrink-0 font-display text-[9px] text-crimson">vs</span>
+                  <span className="min-w-0 flex-1 truncate text-right font-semibold">{name(m.participantBId)}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-ink/55">
+          <ShieldCheckIcon className="size-3.5" aria-hidden /> Ketuk laga untuk detail · hasil diverifikasi pengawas ruangan
+        </div>
+      </div>
     </MarqueeFrame>
   );
 }

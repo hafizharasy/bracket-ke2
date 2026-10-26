@@ -3,8 +3,6 @@ import { CalendarClockIcon, CheckCircle2Icon, CrownIcon, RadioIcon, ShieldAlertI
 import type { TournamentSummary } from "@/lib/tournament-summary";
 import { cn } from "@/lib/utils";
 
-const time = new Intl.DateTimeFormat("id-ID", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
-
 /** Kartu ringkasan turnamen untuk dashboard admin. */
 export function TournamentSummaryCards({ summary, violations }: { summary: TournamentSummary; violations: number }) {
   const { matches, activeSession } = summary;
@@ -42,7 +40,6 @@ export function TournamentSummaryCards({ summary, violations }: { summary: Tourn
                 <CalendarClockIcon className="size-3.5" />
                 Laga siap berikutnya: {summary.nextMatch.label}
                 {summary.nextMatch.roomName && ` · ${summary.nextMatch.roomName}`}
-                {summary.nextMatch.scheduledAt && ` · ${time.format(new Date(summary.nextMatch.scheduledAt))}`}
               </span>
             )}
           </div>

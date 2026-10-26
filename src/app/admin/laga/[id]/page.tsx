@@ -18,6 +18,9 @@ export const metadata = { title: "Detail laga" };
 
 const dt = new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 const fmt = (iso: string | null) => (iso ? `${dt.format(new Date(iso))} WIB` : "—");
+// Jadwal laga: hari saja (jam pertandingan bisa bergeser di hari-H).
+const day = new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Jakarta" });
+const fmtDay = (iso: string | null) => (iso ? day.format(new Date(iso)) : "—");
 const STATUS = { scheduled: "Terjadwal", ongoing: "Berlangsung", done: "Selesai" } as const;
 const ACTION = { create: "Input hasil", correct: "Koreksi", cancel: "Dibatalkan" } as const;
 
@@ -60,7 +63,7 @@ async function Detail({ params }: Pick<PageProps<"/admin/laga/[id]">, "params">)
       </div>
       <p className="-mt-3 text-sm text-muted-foreground">
         {m.session.name} · {m.room.name}
-        {m.room.location && ` (${m.room.location})`} · {fmt(m.scheduledAt)}
+        {m.room.location && ` (${m.room.location})`} · {fmtDay(m.scheduledAt)}
       </p>
 
       <div className="grid grid-cols-2 gap-3">

@@ -27,8 +27,6 @@ const dateTimeFormat = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
   day: "numeric",
   month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
   timeZone: "Asia/Jakarta",
 });
 
@@ -152,8 +150,8 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
           {room?.name ?? "–"}
           {room?.location && <span className="text-muted-foreground"> · {room.location}</span>}
         </dd>
-        <dt className="text-muted-foreground">Jadwal</dt>
-        <dd>{match.scheduledAt ? `${dateTimeFormat.format(new Date(match.scheduledAt))} WIB` : "–"}</dd>
+        <dt className="text-muted-foreground">Hari</dt>
+        <dd>{match.scheduledAt ? dateTimeFormat.format(new Date(match.scheduledAt)) : "–"}</dd>
         <dt className="text-muted-foreground">Format</dt>
         <dd>
           {match.round === SEMIFINAL_ROUND

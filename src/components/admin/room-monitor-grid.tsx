@@ -4,8 +4,6 @@ import Link from "next/link";
 import type { RoomMonitor, RoomStatus } from "@/lib/room-monitor";
 import { cn } from "@/lib/utils";
 
-const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
-
 const STATUS: Record<RoomStatus, { label: string; className: string }> = {
   berlangsung: { label: "LIVE", className: "bg-red-600 text-white" },
   siap: { label: "Siap", className: "bg-sky-600/15 text-sky-800 dark:text-sky-300" },
@@ -78,7 +76,6 @@ export function RoomMonitorGrid({ rooms, compact = false }: { rooms: RoomMonitor
               room.next && (
                 <Link href={`/admin/laga/${room.next.matchId}`} className="text-xs text-muted-foreground hover:text-foreground">
                   Berikutnya: {room.next.label}
-                  {room.next.scheduledAt && ` · ${time.format(new Date(room.next.scheduledAt))}`}
                 </Link>
               )
             )}

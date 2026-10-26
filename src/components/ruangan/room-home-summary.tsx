@@ -5,8 +5,6 @@ import { roundLabel } from "@/lib/bracket";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
-
 /**
  * Ringkasan beranda pengawas: sapaan, hitungan laga sesi aktif, kartu aksi
  * berikutnya (laga berjalan / siap terdekat), dan pintasan.
@@ -14,14 +12,11 @@ const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digi
 export function RoomHomeSummary({
   pengawasName,
   sessionName,
-  sessionStart = null,
   matches,
   participants,
 }: {
   pengawasName: string;
   sessionName: string | null;
-  /** Jam mulai sesi aktif (ISO), dari jadwal admin. */
-  sessionStart?: string | null;
   matches: Match[];
   participants: Map<string, Participant>;
 }) {
@@ -42,9 +37,6 @@ export function RoomHomeSummary({
       <p className="text-sm">
         Halo, <span className="font-semibold">{pengawasName}</span>
         {sessionName && <span className="text-muted-foreground"> · {sessionName}</span>}
-        {sessionStart && (
-          <span className="text-muted-foreground"> · mulai {time.format(new Date(sessionStart))} WIB</span>
-        )}
       </p>
 
       <div className="grid grid-cols-3 gap-2">
@@ -71,7 +63,6 @@ export function RoomHomeSummary({
           <span className="min-w-0 flex-1">
             <span className="block text-xs text-muted-foreground">
               {next.status === "ongoing" ? "Sedang berlangsung — isi hasil setelah selesai" : "Laga berikutnya"} · {roundLabel(next.round)} #{next.matchNumber}
-              {next.scheduledAt && ` · ${time.format(new Date(next.scheduledAt))}`}
             </span>
             <span className="block truncate font-medium">
               {name(next.participantAId)} vs {name(next.participantBId)}
