@@ -55,7 +55,7 @@ export function autoAssignRooms(mode: AssignMode, sessionId: string): Promise<Ad
 }
 
 /** Urutan peserta babak 1: indeks 2k & 2k+1 = laga ke-(k+1). */
-export type PairingPayload = { sessionId: string; roomId: string; order: string[] };
+export type PairingPayload = { sessionId: string; roomId: string; order: (string | null)[] };
 
 /** Simpan susunan pasangan babak 1 satu ruangan. */
 export function savePairings(payload: PairingPayload): Promise<AdminActionResult> {

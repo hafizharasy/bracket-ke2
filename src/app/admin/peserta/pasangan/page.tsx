@@ -47,10 +47,9 @@ async function Pairings({
   const roundOne = roomMatches
     .filter((m) => m.round === 1)
     .sort((a, b) => a.matchNumber - b.matchNumber);
-  const initial = roundOne
-    .flatMap((m) => [toPlayer(m.participantAId), toPlayer(m.participantBId)])
-    .filter((p): p is PairingPlayer => !!p);
-  const inBracket = new Set(initial.map((p) => p.id));
+  // Slot kosong (mis. pesertanya dihapus) tetap di posisinya sebagai null.
+  const initial = roundOne.flatMap((m) => [toPlayer(m.participantAId), toPlayer(m.participantBId)]);
+  const inBracket = new Set(initial.filter((p): p is PairingPlayer => !!p).map((p) => p.id));
   const bench = participants
     .filter(
       (p) =>

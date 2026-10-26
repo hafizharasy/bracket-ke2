@@ -2,7 +2,7 @@ import { and, asc, count, eq, isNull, like, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { matches, participants, rooms, sessions } from "@/db/schema";
+import { matches, matchResultHistory, participants, rooms, sessions } from "@/db/schema";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
 import { nextParticipantIds, participantFields } from "@/server/participant-import";
@@ -91,17 +91,31 @@ export function updateParticipant(id: string, input: ParticipantUpdate) {
   });
 }
 
-/** Hapus peserta yang belum masuk bagan (yang sudah bertanding tidak boleh dihapus). */
+/**
+ * Hapus peserta. Bila ia sudah ditempatkan di bagan, slotnya di laga babak 1
+ * dikosongkan (diisi manual lewat Pasangan Tanding). Ditolak bila ia sudah
+ * bertanding: laganya berlangsung/selesai, pernah menang, atau punya riwayat
+ * hasil — batalkan hasilnya dulu.
+ */
 export function deleteParticipant(id: string) {
   if (!getParticipant(id)) throw new ApiError(404, "Peserta tidak ditemukan.");
-  const inBracket = db
-    .select({ id: matches.id })
+  const involved = db
+    .select({ id: matches.id, round: matches.round, matchNumber: matches.matchNumber, status: matches.status, winnerId: matches.winnerId })
     .from(matches)
     .where(or(eq(matches.participantAId, id), eq(matches.participantBId, id), eq(matches.winnerId, id)))
-    .get();
-  if (inBracket) throw new ApiError(409, "Peserta sudah ada di bagan; keluarkan dari pasangan tanding dulu.");
-  db.transaction((tx) => {
+    .all();
+  if (involved.some((m) => m.status !== "scheduled" || m.winnerId === id)) {
+    throw new ApiError(409, "Peserta sudah bertanding (laganya berlangsung/selesai). Batalkan hasil laganya dulu sebelum menghapus.");
+  }
+  const history = db.select({ id: matchResultHistory.id }).from(matchResultHistory).where(eq(matchResultHistory.winnerId, id)).get();
+  if (history) throw new ApiError(409, "Peserta tercatat di riwayat hasil laga, jadi tidak bisa dihapus.");
+
+  return db.transaction((tx) => {
+    // Kosongkan slotnya di bagan (laga masih terjadwal), lalu hapus pesertanya.
+    tx.update(matches).set({ participantAId: null }).where(eq(matches.participantAId, id)).run();
+    tx.update(matches).set({ participantBId: null }).where(eq(matches.participantBId, id)).run();
     tx.delete(participants).where(eq(participants.id, id)).run();
     bumpBracketVersion(tx);
+    return { emptiedMatches: involved.map((m) => m.id) };
   });
 }

@@ -50,6 +50,8 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
   const leader =
     isLive && scored && match.scoreA !== match.scoreB ? (match.scoreA! > match.scoreB! ? "a" : "b") : null;
   const badge = matchBadge(match);
+  // Babak 1 tidak diisi pemenang laga lain: slot kosong = pesertanya dihapus/belum diisi panitia.
+  const emptyRoundOne = match.round === 1 ? { text: "Slot kosong", live: false, title: "Belum ada peserta" } : undefined;
   // Final: jenis kemenangan menentukan poin, mis. "Menang telak (4 pion berjajar)".
   const winTypeLabel = points !== null && match.winType ? WIN_TYPES[match.winType as WinType]?.label : null;
 
@@ -107,7 +109,7 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
         participant={a}
         seed={a ? seeds?.get(a.id) : undefined}
         score={display(match.participantAId, match.scoreA)}
-        placeholder={slotLabels?.a}
+        placeholder={emptyRoundOne ?? slotLabels?.a}
         isLeading={leader === "a"}
         isWinner={!!match.winnerId && match.winnerId === match.participantAId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantAId}
@@ -116,7 +118,7 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
         participant={b}
         seed={b ? seeds?.get(b.id) : undefined}
         score={display(match.participantBId, match.scoreB)}
-        placeholder={slotLabels?.b}
+        placeholder={emptyRoundOne ?? slotLabels?.b}
         isLeading={leader === "b"}
         isWinner={!!match.winnerId && match.winnerId === match.participantBId}
         isLoser={!!match.winnerId && match.winnerId !== match.participantBId}
@@ -152,7 +154,7 @@ function ParticipantRow({
   seed?: number;
   /** undefined = laga tanpa skor (babak ruangan, best of one). */
   score: number | string | null | undefined;
-  placeholder?: SlotLabel;
+  placeholder?: SlotLabel & { title?: string };
   isWinner: boolean;
   isLoser: boolean;
   /** Unggul sementara di laga yang sedang berlangsung. */
@@ -167,7 +169,7 @@ function ParticipantRow({
       >
         <span className="flex size-6 shrink-0 items-center justify-center rounded bg-ink/6 text-[10px] font-bold text-ink/40">—</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-bold text-ink/80">Menunggu pemenang</span>
+          <span className="block truncate text-[11px] font-bold text-ink/80">{placeholder.title ?? "Menunggu pemenang"}</span>
           <span className="block truncate text-[9px] text-ink/45">{placeholder.text}</span>
         </span>
         {placeholder.live ? (

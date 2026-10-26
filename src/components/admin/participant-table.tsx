@@ -1,6 +1,7 @@
 import { ChevronLeftIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 
+import { ParticipantDeleteButton } from "@/components/admin/participant-delete-button";
 import { ParticipantEditButton } from "@/components/admin/participant-edit-button";
 import type { Participant, Room, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -120,7 +121,10 @@ export function ParticipantTable({
                   <td className="px-3 py-1.5">{p.sessionId ? sessionName.get(p.sessionId) : <Unset />}</td>
                   <td className="px-3 py-1.5">{p.roomId ? roomName.get(p.roomId) : <Unset />}</td>
                   <td className="px-3 py-1 text-right">
-                    <ParticipantEditButton participant={p} sessions={sessions} rooms={rooms} />
+                    <span className="flex justify-end gap-1">
+                      <ParticipantEditButton participant={p} sessions={sessions} rooms={rooms} />
+                      <ParticipantDeleteButton participant={p} />
+                    </span>
                   </td>
                 </tr>
               ))}

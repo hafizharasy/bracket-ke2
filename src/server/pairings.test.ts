@@ -59,4 +59,20 @@ describe("pasangan babak 1", () => {
     expectApiError(() => savePairings({ ...cell, order: ["p1", "p3", "p2", "p4"] }), 409);
     expectApiError(() => savePairings({ sessionId: "sesi-1", roomId: "ruangan-2", order: ["p5", "p1"] }), 404);
   });
+
+  it("slot kosong (peserta dihapus) boleh disimpan dan diisi peserta cadangan, juga setelah ruangan berjalan", () => {
+    db.insert(participants).values({ id: "p6", name: "p6", ...cell }).run();
+    savePairings({ ...cell, order: [null, "p2", "p3", "p4"] });
+    expect(getPairings("sesi-1", "ruangan-1").order).toEqual([null, "p2", "p3", "p4"]);
+
+    db.update(matches).set({ status: "ongoing" }).where(eq(matches.id, "r1-2")).run();
+    // Terkunci: tidak boleh menukar peserta yang sudah ada…
+    expectApiError(() => savePairings({ ...cell, order: ["p6", "p3", "p2", "p4"] }), 409);
+    // Pemenang yang sudah maju tetap di posisinya; mengisi slot dengan peserta yang sudah di bagan ditolak.
+    db.update(matches).set({ participantAId: "p3" }).where(eq(matches.id, "r2")).run();
+    expectApiError(() => savePairings({ ...cell, order: ["p3", "p2", null, "p4"] }), 409);
+    // …tetapi slot kosong di laga terjadwal boleh diisi peserta cadangan.
+    savePairings({ ...cell, order: ["p6", "p2", "p3", "p4"] });
+    expect(getPairings("sesi-1", "ruangan-1").order).toEqual(["p6", "p2", "p3", "p4"]);
+  });
 });

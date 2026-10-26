@@ -21,8 +21,10 @@ function shuffle<T>(list: T[]) {
 
 /**
  * Susun pasangan babak 1 satu ruangan. `initial` = urutan peserta saat ini
- * (indeks 2k vs 2k+1). Ketuk dua peserta untuk menukar posisinya; peserta
- * cadangan (belum masuk bagan) bisa ditukar dengan yang sudah ada.
+ * (indeks 2k vs 2k+1; null = slot kosong, mis. pesertanya dihapus). Ketuk
+ * dua posisi untuk menukarnya; peserta cadangan (belum masuk bagan) bisa
+ * ditukar dengan yang sudah ada atau mengisi slot kosong. Setelah ruangan
+ * berjalan, yang bisa dilakukan hanya mengisi slot kosong.
  */
 export function PairingEditor({
   sessionId,
@@ -34,7 +36,7 @@ export function PairingEditor({
 }: {
   sessionId: string;
   roomId: string;
-  initial: PairingPlayer[];
+  initial: (PairingPlayer | null)[];
   /** Peserta ruangan & sesi ini yang belum masuk babak 1. */
   bench: PairingPlayer[];
   locked: boolean;
@@ -42,91 +44,101 @@ export function PairingEditor({
   slots: number;
 }) {
   const router = useRouter();
-  const [order, setOrder] = useState<PairingPlayer[]>(initial.length > 0 ? initial : bench.slice(0, slots));
-  const [reserve, setReserve] = useState<PairingPlayer[]>(initial.length > 0 ? bench : bench.slice(slots));
+  const hasBracket = initial.some((p) => p !== null);
+  const startOrder = hasBracket ? initial : bench.slice(0, slots);
+  const [order, setOrder] = useState<(PairingPlayer | null)[]>(startOrder);
+  const [reserve, setReserve] = useState<PairingPlayer[]>(hasBracket ? bench : bench.slice(slots));
   const [picked, setPicked] = useState<{ list: "order" | "reserve"; index: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const dirty = order.map((p) => p.id).join() !== initial.map((p) => p.id).join();
+  const ids = (list: (PairingPlayer | null)[]) => list.map((p) => p?.id ?? "").join();
+  const dirty = ids(order) !== ids(startOrder);
   const pairs = Array.from({ length: Math.ceil(order.length / 2) }, (_, k) => [order[2 * k], order[2 * k + 1]] as const);
   const sameClub = pairs.filter(([a, b]) => a?.club && b?.club && a.club === b.club).length;
-  const incomplete = order.length !== slots;
+  const empty = order.filter((p) => !p).length + Math.max(0, slots - order.length);
+  // Ruangan berjalan: hanya slot yang semula kosong yang boleh diisi.
+  const editable = (list: "order" | "reserve", index: number) => !locked || list === "reserve" || startOrder[index] === null;
+  const canEdit = !locked || (startOrder.some((p) => p === null) && bench.length > 0);
 
   function pick(list: "order" | "reserve", index: number) {
-    if (locked) return;
+    if (!editable(list, index)) return;
     setMessage(null);
     if (!picked) return setPicked({ list, index });
     if (picked.list === list && picked.index === index) return setPicked(null);
     // Tukar dua peserta (antar posisi bagan, atau bagan ↔ cadangan).
     const nextOrder = [...order];
-    const nextReserve = [...reserve];
+    const nextReserve: (PairingPlayer | null)[] = [...reserve];
     const get = (l: typeof list, i: number) => (l === "order" ? nextOrder[i] : nextReserve[i]);
-    const set = (l: typeof list, i: number, v: PairingPlayer) => (l === "order" ? (nextOrder[i] = v) : (nextReserve[i] = v));
+    const set = (l: typeof list, i: number, v: PairingPlayer | null) => (l === "order" ? (nextOrder[i] = v) : (nextReserve[i] = v));
     const first = get(picked.list, picked.index);
     const second = get(list, index);
+    if (!first && !second) return setPicked(null); // dua slot kosong: tidak ada yang ditukar
     set(picked.list, picked.index, second);
     set(list, index, first);
     setOrder(nextOrder);
-    setReserve(nextReserve);
+    setReserve(nextReserve.filter((p): p is PairingPlayer => p !== null));
     setPicked(null);
   }
 
   async function save() {
     setBusy(true);
-    const result = await savePairings({ sessionId, roomId, order: order.map((p) => p.id) });
+    const result = await savePairings({ sessionId, roomId, order: order.map((p) => p?.id ?? null) });
     setBusy(false);
     setMessage(result.ok ? { ok: true, text: `Pasangan tersimpan${result.simulated ? " (mode simulasi)" : ""}.` } : { ok: false, text: result.error });
     if (result.ok) router.refresh();
   }
 
   const isPicked = (list: "order" | "reserve", index: number) => picked?.list === list && picked.index === index;
-  const chip = (p: PairingPlayer | undefined, list: "order" | "reserve", index: number) => (
+  const chip = (p: PairingPlayer | null | undefined, list: "order" | "reserve", index: number) => (
     <button
       type="button"
       onClick={() => pick(list, index)}
-      disabled={locked || !p}
+      disabled={!editable(list, index)}
       aria-pressed={isPicked(list, index)}
       className={cn(
         "flex min-w-0 flex-1 flex-col rounded-lg border bg-background px-2.5 py-1.5 text-left text-sm transition-colors",
-        !locked && "hover:border-primary/60",
+        editable(list, index) && "hover:border-primary/60",
         isPicked(list, index) && "border-primary bg-primary/10 ring-2 ring-primary/30",
-        !p && "border-dashed text-muted-foreground",
+        !p && "border-dashed border-amber-500/70 text-amber-700 dark:text-amber-400",
       )}
     >
-      <span className="truncate font-medium">{p?.name ?? "Kosong"}</span>
+      <span className="truncate font-medium">{p?.name ?? "Slot kosong"}</span>
       {p && <span className="truncate text-xs text-muted-foreground">{p.club ?? "Tanpa sekolah"} · {p.id.toUpperCase()}</span>}
     </button>
   );
 
   return (
     <div className="flex flex-col gap-4">
-      {locked ? (
+      {locked && (
         <p className="flex items-center gap-2 rounded-xl border bg-muted/50 p-3 text-sm">
           <LockIcon className="size-4" />
-          Laga di ruangan ini sudah dimulai, susunan pasangan dikunci.
+          Laga di ruangan ini sudah dimulai, susunan pasangan dikunci
+          {canEdit ? " — slot kosong masih bisa diisi peserta cadangan." : "."}
         </p>
-      ) : (
+      )}
+      {canEdit && (
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setOrder(shuffle(order)); setPicked(null); setMessage(null); }}>
-            <ShuffleIcon /> Acak ulang
-          </Button>
-          <Button variant="ghost" size="sm" disabled={!dirty} onClick={() => { setOrder(initial); setReserve(bench); setPicked(null); }}>
+          {!locked && (
+            <Button variant="outline" size="sm" onClick={() => { setOrder(shuffle(order)); setPicked(null); setMessage(null); }}>
+              <ShuffleIcon /> Acak ulang
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" disabled={!dirty} onClick={() => { setOrder(startOrder); setReserve(hasBracket ? bench : bench.slice(slots)); setPicked(null); }}>
             <RotateCcwIcon /> Kembalikan
           </Button>
           <span className="text-xs text-muted-foreground">
-            {picked ? "Pilih peserta kedua untuk ditukar." : "Ketuk dua peserta untuk menukar posisinya."}
+            {picked ? "Pilih posisi kedua untuk ditukar." : "Ketuk dua posisi untuk menukarnya (cadangan ↔ slot kosong untuk mengisi)."}
           </span>
-          <Button size="sm" className="ml-auto" onClick={save} disabled={busy || !dirty || incomplete}>
+          <Button size="sm" className="ml-auto" onClick={save} disabled={busy || !dirty}>
             {busy && <Loader2Icon className="animate-spin" />} Simpan pasangan
           </Button>
         </div>
       )}
-
-      {(sameClub > 0 || incomplete) && (
+      {(sameClub > 0 || empty > 0) && (
         <p className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
           <TriangleAlertIcon className="size-4" />
-          {incomplete && `Babak 1 butuh ${slots} peserta, saat ini ${order.length}. `}
+          {empty > 0 && `${empty} slot kosong — laganya tidak bisa diinput sampai diisi peserta cadangan. `}
           {sameClub > 0 && `${sameClub} pasangan berasal dari sekolah yang sama.`}
         </p>
       )}
