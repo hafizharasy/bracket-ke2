@@ -49,6 +49,18 @@ export function parseCsv(text: string): string[][] {
   return rows;
 }
 
+/** Cari sesi/ruangan dari ID atau nama, mis. "sesi-2", "Sesi 2", atau angkanya saja ("2"). */
+export function findByIdOrName<T extends { id: string; name: string }>(list: T[], raw: string) {
+  const v = raw.trim().toLowerCase();
+  if (!v) return null;
+  return (
+    list.find((x) => x.id.toLowerCase() === v || x.name.toLowerCase() === v) ??
+    // Angka saja, mis. "2" → "Sesi 2" / "Ruangan 2".
+    list.find((x) => /^\d+$/.test(v) && x.name.toLowerCase().endsWith(` ${v}`)) ??
+    null
+  );
+}
+
 export type ImportRow = { line: number; values: ParticipantFields };
 export type ImportError = { line: number; message: string };
 
@@ -69,13 +81,7 @@ export function parseParticipantCsv(text: string, sessions: Session[], rooms: Ro
   const iRoom = col("ruangan", "room");
   if (iName < 0) return { rows: [] as ImportRow[], errors: [{ line: 1, message: 'Header wajib punya kolom "nama".' }] };
 
-  const findBy = <T extends { id: string; name: string }>(list: T[], raw: string) => {
-    const v = raw.trim().toLowerCase();
-    if (!v) return null;
-    return list.find((x) => x.id.toLowerCase() === v || x.name.toLowerCase() === v)
-      // Angka saja, mis. "2" → "Sesi 2" / "Ruangan 2".
-      ?? list.find((x) => /^\d+$/.test(v) && x.name.toLowerCase().endsWith(` ${v}`));
-  };
+  const findBy = findByIdOrName;
 
   const rows: ImportRow[] = [];
   body.forEach((cells, i) => {
