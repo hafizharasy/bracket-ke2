@@ -77,13 +77,27 @@ describe("tambah/ubah/hapus peserta", () => {
     expectApiError(() => updateParticipant("p-999", { name: "Nama" }), 404);
   });
 
-  it("tidak menghapus peserta yang sudah masuk bagan", () => {
+  it("menghapus peserta di laga yang belum dimulai: slotnya di bagan dikosongkan", () => {
     db.insert(matches).values({
       id: "m1", sessionId: "sesi-1", roomId: "ruangan-1", round: 1, matchNumber: 1,
       participantAId: "p-001", participantBId: "p-003",
     }).run();
+    const before = version();
+    expect(deleteParticipant("p-001")).toEqual({ emptiedMatches: ["m1"] });
+    expect(db.select().from(matches).get()).toMatchObject({ participantAId: null, participantBId: "p-003" });
+    expect(version()).toBe(before + 1);
+    deleteParticipant("p-002"); // belum di bagan
+    expect(searchParticipants({}).total).toBe(1);
+    expectApiError(() => deleteParticipant("p-001"), 404);
+  });
+
+  it("menolak menghapus peserta yang sudah bertanding", () => {
+    db.insert(matches).values([
+      { id: "m1", sessionId: "sesi-1", roomId: "ruangan-1", round: 1, matchNumber: 1, participantAId: "p-001", participantBId: "p-003", status: "ongoing" },
+    ]).run();
     expectApiError(() => deleteParticipant("p-001"), 409);
-    deleteParticipant("p-002");
-    expect(searchParticipants({}).total).toBe(2);
+    db.update(matches).set({ status: "done", winnerId: "p-003" }).run();
+    expectApiError(() => deleteParticipant("p-003"), 409);
+    expect(searchParticipants({}).total).toBe(3);
   });
 });

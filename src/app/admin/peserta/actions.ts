@@ -9,8 +9,11 @@ import { bracketSource, notifyBracketChanged } from "@/server/live";
 import { importParticipantsCsv } from "@/server/participant-import";
 import { pairingInput, savePairings } from "@/server/pairings";
 import { semifinalPairsInput, setSemifinalPairs } from "@/server/semifinal-pairs";
+import { recordAudit } from "@/server/audit";
 import {
   createParticipant,
+  deleteParticipant,
+  getParticipant,
   participantCreateInput,
   updateParticipant,
 } from "@/server/participants";
@@ -35,6 +38,33 @@ export async function saveParticipantAction(
     const row = id ? updateParticipant(id, parsed.data) : createParticipant(parsed.data);
     notifyBracketChanged();
     return { ok: true, simulated: false, id: row.id };
+  } catch (error) {
+    if (error instanceof ApiError) return { ok: false, error: error.message };
+    throw error;
+  }
+}
+
+/**
+ * Hapus peserta. Bila sudah di bagan, slot babak 1-nya dikosongkan (isi lagi
+ * lewat Pasangan Tanding); ditolak bila ia sudah bertanding.
+ */
+export async function deleteParticipantAction(id: string): Promise<AdminActionResult & { emptied?: number }> {
+  const denied = await assertAdminAction();
+  if (denied) return denied;
+  if (bracketSource() === "mock") return { ok: true, simulated: true };
+  try {
+    const before = getParticipant(id);
+    const { emptiedMatches } = deleteParticipant(id);
+    const admin = await getAdminSession();
+    recordAudit({
+      actorId: admin?.userId ?? null,
+      action: "participant.delete",
+      entity: "participant",
+      entityId: id,
+      summary: `Peserta ${before?.name ?? id} (${id.toUpperCase()}) dihapus${emptiedMatches.length ? `; ${emptiedMatches.length} slot bagan dikosongkan` : ""}.`,
+    });
+    notifyBracketChanged();
+    return { ok: true, simulated: false, emptied: emptiedMatches.length };
   } catch (error) {
     if (error instanceof ApiError) return { ok: false, error: error.message };
     throw error;
