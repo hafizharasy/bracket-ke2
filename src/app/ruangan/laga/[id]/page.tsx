@@ -13,13 +13,6 @@ import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 
 export const metadata = { title: "Input hasil · Bracket LRP 2026" };
 
-const timeFormat = new Intl.DateTimeFormat("id-ID", {
-  weekday: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Jakarta",
-});
-
 
 export default function InputHasilPage({ params }: PageProps<"/ruangan/laga/[id]">) {
   return (
@@ -76,7 +69,7 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
           {match.status === "done" && <Badge variant="secondary">Selesai</Badge>}
         </div>
         <p className="text-sm text-muted-foreground">
-          {[session_?.name, room?.name, match.scheduledAt && `${timeFormat.format(new Date(match.scheduledAt))} WIB`]
+          {[session_?.name, room?.name]
             .filter(Boolean)
             .join(" · ")}
         </p>

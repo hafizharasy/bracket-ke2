@@ -22,7 +22,6 @@ import { finalLegs, finalStandings } from "@/lib/final-standings";
 import type { BracketData, Match, MatchStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const timeFormat = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
 const dateFormat = new Intl.DateTimeFormat("id-ID", {
   weekday: "long",
@@ -184,22 +183,15 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
   // Laga final: 2 putaran — tiap pasangan finalis bertemu sekali di putaran 1 dan
   // sekali lagi (tuan rumah/tamu ditukar) di putaran 2.
   const finalRounds = finalLegs(roundRobin)
-    .map((list, i) => {
-      const times = list.map((m) => m.scheduledAt).filter((t): t is string => !!t).sort();
-      return {
-        index: i + 1,
-        time: times.length ? `${timeFormat.format(new Date(times[0]))}–${timeFormat.format(new Date(times.at(-1)!))}` : null,
-        list: list.filter((m) => !filter.roomId || m.roomId === filter.roomId),
-      };
-    })
+    .map((list, i) => ({ index: i + 1, list: list.filter((m) => !filter.roomId || m.roomId === filter.roomId) }))
     .filter((r) => r.list.length > 0);
 
   return (
-    <>
+    <MatchDetails data={data}>
+      {/* Di dalam MatchDetails: laga di kartu "sedang berlangsung" bisa diketuk untuk detail. */}
       <ArenaHero data={data} live={live} />
       <ArenaStats data={data} />
 
-      <MatchDetails data={data}>
         <PathHighlight>
           <section id="bracket" className="arena-lines scroll-mt-20 bg-cream">
             <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 sm:px-6">
@@ -365,13 +357,12 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
                   {finalRounds.length === 0 ? (
                     <p className="text-sm text-[#d9cbbd]">Tidak ada laga final di ruangan ini.</p>
                   ) : (
-                    finalRounds.map(({ index, time, list }) => (
+                    finalRounds.map(({ index, list }) => (
                       <div key={index} data-reveal className="flex flex-col gap-2">
                         <div className="flex items-baseline gap-2">
                           <span className="font-display text-sm text-gold">Putaran {index}</span>
                           <span className="text-xs text-[#d9cbbd]">
                             {index === 1 ? "pertemuan pertama" : "pertemuan kedua (tuan rumah & tamu ditukar)"}
-                            {time && ` · ${time} WIB`}
                           </span>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -387,8 +378,7 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
             </section>
           )}
         </PathHighlight>
-      </MatchDetails>
-    </>
+    </MatchDetails>
   );
 }
 

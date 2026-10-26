@@ -235,11 +235,7 @@ function AdvancePreview({ next, winner }: { next: NextPreview; winner: Participa
             <span className="font-medium">{who}</span>
             <ArrowRightIcon className="size-3.5 text-muted-foreground" />
             <span className="font-medium">{next.label}</span>
-            {(next.roomName || next.time) && (
-              <span className="text-muted-foreground">
-                · {[next.roomName, next.time && `${next.time} WIB`].filter(Boolean).join(" · ")}
-              </span>
-            )}
+            {next.roomName && <span className="text-muted-foreground">· {next.roomName}</span>}
           </p>
           <p className="text-sm text-muted-foreground">
             Lawan: <span className={cn(next.opponentKnown ? "text-foreground" : "italic")}>{next.opponent}</span>
