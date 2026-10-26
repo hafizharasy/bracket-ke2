@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { RefereeImportDialog } from "@/components/admin/referee-import-dialog";
 import { RoomMonitorGrid } from "@/components/admin/room-monitor-grid";
 import { LiveUpdater } from "@/components/bracket/live-updater";
 import { cn } from "@/lib/utils";
@@ -11,9 +12,12 @@ export const metadata = { title: "Pantau Ruangan" };
 export default function PantauPage({ searchParams }: PageProps<"/admin/pantau">) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Pantau Ruangan</h1>
-        <p className="text-sm text-muted-foreground">Status 10 ruangan untuk sesi aktif, diperbarui otomatis.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold">Pantau Ruangan</h1>
+          <p className="text-sm text-muted-foreground">Status ruangan untuk sesi aktif, diperbarui otomatis.</p>
+        </div>
+        <RefereeImportDialog />
       </div>
       <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
         <Monitor searchParams={searchParams} />
