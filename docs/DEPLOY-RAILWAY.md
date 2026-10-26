@@ -90,7 +90,7 @@ cp /app/data/cadangan/bracket-20261010-154702.db /app/data/bracket.db
 rm -f /app/data/bracket.db-wal /app/data/bracket.db-shm
 ```
 
-Peserta bisa juga ditambah langsung dari website: **Peserta & Jadwal → Unggah CSV**
+Peserta bisa juga ditambah langsung dari website: **Peserta & Jadwal → Unggah CSV / Excel** (.csv atau .xlsx)
 (pilih berkas, periksa daftar masalah, lalu Simpan) atau **Tambah peserta** satu per satu.
 
 Untuk membawa CSV ke server lewat shell, buat berkasnya (`cat > peserta.csv`,

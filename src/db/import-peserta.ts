@@ -4,7 +4,7 @@
 //   npm run db:import-peserta -- peserta.csv --replace  → kosongkan peserta & bagan dulu
 //                                                         (di production wajib --yakin; dicadangkan dulu)
 // Format: lihat data-templates/peserta.csv (kolom nama, sekolah, sesi, ruangan).
-// Sama dengan tombol "Unggah CSV" di /admin/peserta.
+// Sama dengan tombol "Unggah CSV / Excel" di /admin/peserta.
 
 import { readFileSync } from "node:fs";
 
