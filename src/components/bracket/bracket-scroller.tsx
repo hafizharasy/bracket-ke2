@@ -15,11 +15,13 @@ import { cn } from "@/lib/utils";
 export function BracketScroller({
   label,
   tone = "card",
+  className,
   children,
 }: {
   label: string;
   /** Warna permukaan di belakang bagan, untuk bayangan tepi. */
   tone?: "card" | "background" | "cream";
+  className?: string;
   children: ReactNode;
 }) {
   const fade = tone === "card" ? "from-card" : tone === "cream" ? "from-cream" : "from-background";
@@ -62,7 +64,7 @@ export function BracketScroller({
   const scrollable = edges.start || edges.end;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className={cn("flex flex-col gap-1", className)}>
       {scrollable && (
         <div className="flex items-center justify-end gap-1">
           <span className="mr-1 text-[11px] text-muted-foreground sm:hidden">Geser untuk babak lain</span>
