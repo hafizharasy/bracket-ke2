@@ -1,4 +1,5 @@
 import { activeCells, PLAYERS_PER_ROOM, roomSessions } from "@/lib/bracket";
+import { isByeMatch, MIN_PLAYERS_PER_ROOM } from "@/lib/bracket-structure";
 import type { BracketData } from "@/lib/types";
 
 export type CompletenessCheck = {
@@ -28,12 +29,16 @@ export function checkScheduleCompleteness(
   const noSession = participants.filter((p) => !p.sessionId).length;
   // Ruangan kosong atau ruangan yang tidak dipakai di sesi peserta itu.
   const noRoom = participants.filter((p) => !p.roomId || (p.sessionId && !activeKeys.has(`${p.sessionId}|${p.roomId}`))).length;
-  const badCells = cells.filter(
-    ({ s, r }) => participants.filter((p) => p.sessionId === s.id && p.roomId === r.id).length !== PLAYERS_PER_ROOM,
-  );
+  // 33–64 peserta per ruangan: kekurangan dari 64 jadi bye (lolos otomatis di babak 1).
+  const badCells = cells.filter(({ s, r }) => {
+    const n = participants.filter((p) => p.sessionId === s.id && p.roomId === r.id).length;
+    return n < MIN_PLAYERS_PER_ROOM || n > PLAYERS_PER_ROOM;
+  });
+  // Laga babak 1 harus lengkap berpasangan, atau bye (satu peserta, otomatis lolos).
+  const pairOk = (m: (typeof roundOne)[number]) => (!!m.participantAId && !!m.participantBId) || isByeMatch(m);
   const cellsWithoutBracket = cells.filter(({ s, r }) => {
     const ms = roundOne.filter((m) => m.sessionId === s.id && m.roomId === r.id);
-    return ms.length !== matchesPerRoom || ms.some((m) => !m.participantAId || !m.participantBId);
+    return ms.length !== matchesPerRoom || ms.some((m) => !pairOk(m));
   });
 
   // Peserta babak 1 harus sesuai sesi & ruangan penempatannya, dan muncul sekali.
@@ -70,9 +75,9 @@ export function checkScheduleCompleteness(
     ),
     check(
       "cells",
-      `Tiap ruangan yang dipakai berisi ${PLAYERS_PER_ROOM} peserta`,
+      `Tiap ruangan yang dipakai berisi ${MIN_PLAYERS_PER_ROOM}–${PLAYERS_PER_ROOM} peserta (kurang dari ${PLAYERS_PER_ROOM} = ada bye)`,
       badCells.length,
-      `${badCells.length} dari ${cells.length} ruangan-sesi belum pas`,
+      `${badCells.length} dari ${cells.length} ruangan-sesi di luar ${MIN_PLAYERS_PER_ROOM}–${PLAYERS_PER_ROOM} peserta`,
       "/admin/peserta/ruangan",
     ),
     check(
@@ -133,7 +138,7 @@ export function summarizePlacement(
   }
   const pairs = new Map<string, number>();
   for (const m of matches) {
-    if (m.round === 1 && m.participantAId && m.participantBId) {
+    if (m.round === 1 && ((m.participantAId && m.participantBId) || isByeMatch(m))) {
       pairs.set(cellKey(m.sessionId, m.roomId), (pairs.get(cellKey(m.sessionId, m.roomId)) ?? 0) + 1);
     }
   }

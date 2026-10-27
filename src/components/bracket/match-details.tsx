@@ -16,6 +16,7 @@ import { buildSlotLabels, FINAL_ROUND, hasScore, roundLabel, SEMIFINAL_ROUND, ty
 import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { BracketData, Match, MatchStatus, Participant, Room, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 const STATUS: Record<MatchStatus, { label: string; variant: "default" | "secondary" | "outline" }> = {
   done: { label: "Selesai", variant: "secondary" },
@@ -126,7 +127,7 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
             {roundLabel(match.round)} · Laga #{match.matchNumber}
           </DialogTitle>
           <Badge variant={status.variant} className={cn(match.status === "ongoing" && "bg-red-600")}>
-            {status.label}
+            {isByeMatch(match) ? "Bye" : status.label}
           </Badge>
         </div>
         <DialogDescription>
@@ -158,7 +159,9 @@ function MatchDetailBody({ match, lookup }: { match: Match; lookup: Lookup }) {
             ? "Best of 3 (menang 2 game)"
             : match.round === FINAL_ROUND
               ? "Kompetisi penuh — A tuan rumah (jalan pertama)"
-              : "Best of one, gugur langsung"}
+              : isByeMatch(match)
+                ? "Bye — tanpa lawan, otomatis lolos ke babak berikutnya"
+                : "Best of one, gugur langsung"}
         </dd>
         <dt className="text-muted-foreground">Pemenang maju ke</dt>
         <dd>{advance}</dd>

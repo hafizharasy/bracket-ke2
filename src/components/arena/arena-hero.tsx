@@ -7,6 +7,7 @@ import { FINAL_ROUND, hasScore, isFinalSession, LAST_ROOM_ROUND, roomSessions, r
 import { finalistsOf, finalStandings, formatPoints, winPoints, type StandingRow } from "@/lib/final-standings";
 import type { BracketData, Match, Participant, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 
 /**
@@ -45,7 +46,7 @@ export function liveMatchGroups(data: BracketData) {
     .sort((a, b) => a.roomName.localeCompare(b.roomName, "id", { numeric: true }));
   // Sudah ada laga selesai (atau berjalan) di cakupan ini → sedang berlangsung; belum → akan dimulai.
   const stageMatch = (m: Match) => (roomReady.length > 0 ? m.sessionId === session?.id && m.round <= LAST_ROOM_ROUND : m.round > LAST_ROOM_ROUND);
-  const started = data.matches.some((m) => m.status !== "scheduled" && stageMatch(m));
+  const started = data.matches.some((m) => m.status !== "scheduled" && !isByeMatch(m) && stageMatch(m));
   return { session, groups, total: groups.reduce((n, g) => n + g.matches.length, 0), started };
 }
 

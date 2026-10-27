@@ -14,6 +14,7 @@ import { recordAudit } from "@/server/audit";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
 import { advanceToFeeds, advanceWinner } from "@/server/propagation";
+import { applyByes, playedMatch } from "@/server/byes";
 
 export const SIMULATION_STAGES = ["ruangan", "semifinal", "final", "semua"] as const;
 export type SimulationStage = (typeof SIMULATION_STAGES)[number];
@@ -119,7 +120,7 @@ export function clearAllResults(options: { violations: boolean }, actorId: strin
     const cleared = tx
       .select({ n: sql<number>`count(*)` })
       .from(matches)
-      .where(ne(matches.status, "scheduled"))
+      .where(playedMatch)
       .get()!.n;
     tx.delete(matchResultHistory).run();
     tx.delete(matchResults).run();
@@ -127,6 +128,7 @@ export function clearAllResults(options: { violations: boolean }, actorId: strin
     const removedViolations = options.violations ? tx.delete(violations).run().changes : 0;
     tx.update(matches).set({ status: "scheduled", scoreA: null, scoreB: null, winnerId: null, winType: null }).run();
     tx.update(matches).set({ participantAId: null, participantBId: null }).where(gt(matches.round, 1)).run();
+    applyByes(tx); // peserta tanpa lawan di babak 1 kembali lolos otomatis
     bumpBracketVersion(tx);
     recordAudit(
       {

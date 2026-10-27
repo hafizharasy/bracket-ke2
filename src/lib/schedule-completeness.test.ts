@@ -24,7 +24,7 @@ describe("checkScheduleCompleteness", () => {
 
   it("mendeteksi duplikat & slot babak 1 kosong", () => {
     const matches = mockBracket.matches.map((m) =>
-      m.id === "m-s1-r1-b1-2" ? { ...m, participantAId: "p-001" } : m.id === "m-s1-r1-b1-3" ? { ...m, participantBId: null } : m,
+      m.id === "m-s1-r1-b1-2" ? { ...m, participantAId: "p-001" } : m.id === "m-s1-r1-b1-3" ? { ...m, participantBId: null, status: "scheduled" as const, winnerId: null } : m,
     );
     const checks = byKey(checkScheduleCompleteness({ ...mockBracket, matches }));
     expect(checks.pairs.ok).toBe(false);
@@ -45,7 +45,7 @@ describe("summarizePlacement", () => {
 
   it("melaporkan peserta belum ditempatkan dan pasangan kosong", () => {
     const participants = mockBracket.participants.map((p, i) => (i === 0 ? { ...p, sessionId: null, roomId: null } : p));
-    const matches = mockBracket.matches.map((m) => (m.id === "m-s1-r1-b1-1" ? { ...m, participantAId: null } : m));
+    const matches = mockBracket.matches.map((m) => (m.id === "m-s1-r1-b1-1" ? { ...m, participantAId: null, status: "scheduled" as const, winnerId: null } : m));
     const summary = summarizePlacement({ ...mockBracket, participants, matches });
     expect(summary).toMatchObject({ withoutSession: 1, withoutRoom: 1, ready: false });
     expect(summary.sessions[0].rooms[0]).toMatchObject({ id: "ruangan-1", count: 63, pairsComplete: false });

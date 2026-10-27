@@ -104,6 +104,9 @@ export function deleteParticipant(id: string) {
     .from(matches)
     .where(or(eq(matches.participantAId, id), eq(matches.participantBId, id), eq(matches.winnerId, id)))
     .all();
+  if (involved.some((m) => m.round === 1 && m.status === "done" && m.winnerId === id) && involved.every((m) => m.status === "scheduled" || m.round === 1)) {
+    throw new ApiError(409, "Peserta ini lolos otomatis (bye) ke babak 2. Tukar posisinya di Pasangan Tanding dulu bila ingin menghapusnya.");
+  }
   if (involved.some((m) => m.status !== "scheduled" || m.winnerId === id)) {
     throw new ApiError(409, "Peserta sudah bertanding (laganya berlangsung/selesai). Batalkan hasil laganya dulu sebelum menghapus.");
   }

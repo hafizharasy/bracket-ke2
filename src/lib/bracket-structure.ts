@@ -37,7 +37,42 @@ export type StructureMatch = {
   feedAId: string | null;
   feedBId: string | null;
   scheduledAt: Date;
+  /** Laga bye (peserta tanpa lawan di babak 1): langsung selesai, pesertanya lolos. */
+  status?: "done";
+  winnerId?: string | null;
 };
+
+/** Ruangan boleh kurang dari 64 peserta; kekurangannya jadi bye di babak 1. */
+export const MIN_PLAYERS_PER_ROOM = PLAYERS_PER_ROOM / 2 + 1;
+
+/** Laga bye: babak 1, selesai, hanya satu peserta (lolos otomatis tanpa lawan). */
+export function isByeMatch(m: { round: number; status?: string; participantAId: string | null; participantBId: string | null }) {
+  return m.round === 1 && m.status === "done" && (!m.participantAId) !== (!m.participantBId);
+}
+
+/**
+ * Susun 32 laga babak 1 dari 33–64 peserta: kekurangan dari 64 menjadi bye —
+ * tiap bye berpasangan dengan satu peserta (tidak ada laga tanpa peserta) dan
+ * tersebar merata di bagan. Sisanya dipasangkan sebisa mungkin beda sekolah.
+ */
+export function roundOneSlots<T extends { id: string; teamOrClub: string | null }>(players: T[]): [T, T | null][] {
+  const matchCount = PLAYERS_PER_ROOM / 2;
+  const byes = PLAYERS_PER_ROOM - players.length;
+  const spread = spreadClubs(players);
+  // Penerima bye diambil berjarak rata dari urutan acak-sekolah, lalu sisanya dipasangkan ulang.
+  const byeIdx = new Set(Array.from({ length: byes }, (_, j) => Math.floor(((j + 0.5) * spread.length) / byes)));
+  const byePlayers = spread.filter((_, i) => byeIdx.has(i));
+  const paired = spreadClubs(spread.filter((_, i) => !byeIdx.has(i)));
+  const byeMatches = new Set(Array.from({ length: byes }, (_, j) => Math.floor(((j + 0.5) * matchCount) / byes)));
+  const slots: [T, T | null][] = [];
+  let b = 0;
+  let p = 0;
+  for (let k = 0; k < matchCount; k++) {
+    if (byeMatches.has(k)) slots.push([byePlayers[b++], null]);
+    else slots.push([paired[p++], paired[p++]]);
+  }
+  return slots;
+}
 
 export type StructureSummary = {
   rooms: number;
@@ -128,7 +163,9 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
     input.participants.filter((p) => p.sessionId === sessionId && p.roomId === roomId);
   for (const { session, room } of cells) {
     const n = playersOf(session.id, room.id).length;
-    if (n !== PLAYERS_PER_ROOM) errors.push(`${session.name} · ${room.name}: ${n} peserta (harus ${PLAYERS_PER_ROOM}).`);
+    if (n < MIN_PLAYERS_PER_ROOM || n > PLAYERS_PER_ROOM) {
+      errors.push(`${session.name} · ${room.name}: ${n} peserta (harus ${MIN_PLAYERS_PER_ROOM}–${PLAYERS_PER_ROOM}; kekurangan dari ${PLAYERS_PER_ROOM} jadi bye).`);
+    }
   }
   const active = new Set(cells.map((c) => `${c.session.id}|${c.room.id}`));
   const outside = input.participants.filter((p) => !p.sessionId || !p.roomId || !active.has(`${p.sessionId}|${p.roomId}`)).length;
@@ -142,10 +179,13 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
   // Babak ruangan; juara ruangan ke-k menuju semifinal ke-ceil(k/2).
   cells.forEach(({ session, room }, k) => {
     const prefix = `m-s${sessionIndex.get(session.id)! + 1}-r${roomIndex.get(room.id)! + 1}`;
-    const order = spreadClubs(playersOf(session.id, room.id));
+    const slots = roundOneSlots(playersOf(session.id, room.id));
     const start = new Date(session.startTime!);
     for (let round = 1; round <= roundsInRoom; round++) {
       for (let n = 1; n <= PLAYERS_PER_ROOM / 2 ** round; n++) {
+        // Babak 2: peserta bye dari laga babak 1 (n*2-1 → slot A, n*2 → slot B) sudah langsung masuk.
+        const byeFrom = (k: number) => (round === 2 && slots[k - 1][1] === null ? slots[k - 1][0].id : null);
+        const bye = round === 1 && slots[n - 1][1] === null;
         matches.push({
           ...base,
           id: `${prefix}-b${round}-${n}`,
@@ -153,8 +193,9 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
           roomId: room.id,
           round,
           matchNumber: n,
-          participantAId: round === 1 ? order[(n - 1) * 2].id : null,
-          participantBId: round === 1 ? order[(n - 1) * 2 + 1].id : null,
+          participantAId: round === 1 ? slots[n - 1][0].id : byeFrom(n * 2 - 1),
+          participantBId: round === 1 ? (slots[n - 1][1]?.id ?? null) : byeFrom(n * 2),
+          ...(bye ? { status: "done" as const, winnerId: slots[n - 1][0].id } : {}),
           nextMatchId: round < LAST_ROOM_ROUND ? `${prefix}-b${round + 1}-${Math.ceil(n / 2)}` : semifinalId(Math.ceil((k + 1) / 2)),
           scheduledAt: addMinutes(start, (round - 1) * (MATCH_MINUTES + ROUND_GAP_MINUTES)),
         });

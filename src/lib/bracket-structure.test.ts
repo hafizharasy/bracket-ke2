@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildAdvanceMap, buildSlotLabels, FINAL_ROUND, LAST_ROOM_ROUND, SEMIFINAL_ROUND } from "@/lib/bracket";
-import { buildBracketStructure, doubleRoundRobin, spreadClubs } from "@/lib/bracket-structure";
+import { buildBracketStructure, doubleRoundRobin, isByeMatch, roundOneSlots, spreadClubs } from "@/lib/bracket-structure";
 import { mockBracket } from "@/lib/mock/bracket-data";
 
 const input = {
@@ -84,12 +84,46 @@ describe("buildBracketStructure", () => {
     expect(result.errors).toEqual(
       expect.arrayContaining([
         "Sesi 2 belum punya jam mulai.",
-        "Sesi 1 · Ruangan 1: 63 peserta (harus 64).",
         "1 peserta belum punya sesi/ruangan yang dipakai.",
       ]),
     );
     const odd = buildBracketStructure({ ...input, sessionRooms: mockBracket.sessionRooms.slice(1) });
     expect(odd.ok === false && odd.errors[0]).toMatch(/genap dan minimal 4/);
+  });
+});
+
+describe("bye (ruangan kurang dari 64 peserta)", () => {
+  it("60 peserta: 4 bye tersebar, tiap bye berpasangan dengan peserta; pesertanya langsung di babak 2", () => {
+    const cut = new Set(mockBracket.participants.filter((p) => p.sessionId === "sesi-1" && p.roomId === "ruangan-1").slice(0, 4).map((p) => p.id));
+    const result = buildBracketStructure({ ...input, participants: mockBracket.participants.filter((p) => !cut.has(p.id)) });
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const cell = result.matches.filter((m) => m.sessionId === "sesi-1" && m.roomId === "ruangan-1");
+    const r1 = cell.filter((m) => m.round === 1);
+    expect(r1).toHaveLength(32);
+    const byes = r1.filter((m) => isByeMatch(m));
+    expect(byes).toHaveLength(4);
+    expect(byes.map((m) => m.matchNumber)).toEqual([5, 13, 21, 29]); // tersebar rata
+    expect(new Set(r1.flatMap((m) => [m.participantAId, m.participantBId]).filter(Boolean)).size).toBe(60);
+    for (const m of byes) {
+      expect(m).toMatchObject({ status: "done", winnerId: m.participantAId, participantBId: null });
+      const next = cell.find((x) => x.id === m.nextMatchId)!;
+      expect(m.matchNumber % 2 === 1 ? next.participantAId : next.participantBId).toBe(m.participantAId);
+    }
+    // Laga lain tetap normal & ruangan lain tanpa bye.
+    expect(result.matches.filter((m) => isByeMatch(m))).toHaveLength(4);
+  });
+
+  it("menolak ruangan dengan 32 peserta atau kurang (akan ada laga tanpa peserta)", () => {
+    const cut = new Set(mockBracket.participants.filter((p) => p.sessionId === "sesi-1" && p.roomId === "ruangan-1").slice(0, 32).map((p) => p.id));
+    const result = buildBracketStructure({ ...input, participants: mockBracket.participants.filter((p) => !cut.has(p.id)) });
+    expect(result.ok === false && result.errors).toEqual(["Sesi 1 · Ruangan 1: 32 peserta (harus 33–64; kekurangan dari 64 jadi bye)."]);
+  });
+
+  it("roundOneSlots: 33 peserta → 31 bye + 1 laga", () => {
+    const players = Array.from({ length: 33 }, (_, i) => ({ id: `p${i + 1}`, teamOrClub: `S${i % 5}` }));
+    const slots = roundOneSlots(players);
+    expect(slots.filter(([, b]) => b === null)).toHaveLength(31);
+    expect(new Set(slots.flatMap(([a, b]) => [a.id, b?.id]).filter(Boolean)).size).toBe(33);
   });
 });
 

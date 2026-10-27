@@ -4,6 +4,7 @@ import { hasScore, type SlotLabel, type SlotLabels, WIN_TYPES, type WinType } fr
 import { formatPoints, winPoints } from "@/lib/final-standings";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 type MatchCardProps = {
   match: Match;
@@ -23,6 +24,7 @@ type MatchCardProps = {
 
 /** Label & warna status di pojok kartu. */
 export function matchBadge(match: Match) {
+  if (isByeMatch(match)) return { label: "Bye", className: "bg-gold text-ink", dot: false };
   if (match.status === "ongoing") return { label: "Berlangsung", className: "bg-crimson text-white", dot: true };
   if (match.status === "done") return { label: "Selesai", className: "bg-gold text-ink", dot: false };
   if (match.participantAId && match.participantBId) return { label: "Berikutnya", className: "bg-navy text-gold", dot: false };
@@ -45,7 +47,12 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
     isLive && scored && match.scoreA !== match.scoreB ? (match.scoreA! > match.scoreB! ? "a" : "b") : null;
   const badge = matchBadge(match);
   // Babak 1 tidak diisi pemenang laga lain: slot kosong = pesertanya dihapus/belum diisi panitia.
-  const emptyRoundOne = match.round === 1 ? { text: "Slot kosong", live: false, title: "Belum ada peserta" } : undefined;
+  const emptyRoundOne =
+    match.round !== 1
+      ? undefined
+      : isByeMatch(match)
+        ? { text: "Lawannya lolos otomatis", live: false, title: "Bye — tanpa lawan" }
+        : { text: "Slot kosong", live: false, title: "Belum ada peserta" };
   // Final: jenis kemenangan menentukan poin, mis. "Menang telak (4 pion berjajar)".
   const winTypeLabel = points !== null && match.winType ? WIN_TYPES[match.winType as WinType]?.label : null;
 

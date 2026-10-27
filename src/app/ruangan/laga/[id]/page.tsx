@@ -10,6 +10,7 @@ import { roundLabel } from "@/lib/bracket";
 import { nextPreview } from "@/lib/next-preview";
 import { getBracket } from "@/lib/get-bracket";
 import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 export const metadata = { title: "Input hasil · Bracket LRP 2026" };
 
@@ -66,7 +67,7 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
             {roundLabel(match.round)} · Laga #{match.matchNumber}
           </h1>
           {match.status === "ongoing" && <Badge className="bg-red-600 text-white">LIVE</Badge>}
-          {match.status === "done" && <Badge variant="secondary">Selesai</Badge>}
+          {match.status === "done" && <Badge variant="secondary">{isByeMatch(match) ? "Bye" : "Selesai"}</Badge>}
         </div>
         <p className="text-sm text-muted-foreground">
           {[session_?.name, room?.name]
@@ -75,7 +76,12 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
         </p>
       </div>
 
-      {a && b ? (
+      {isByeMatch(match) ? (
+        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{(a ?? b)?.name}</span> tidak punya lawan di babak ini, jadi
+          otomatis lolos ke babak berikutnya (bye). Tidak perlu input hasil.
+        </p>
+      ) : a && b ? (
         <>
           <ResultForm key={match.id} match={match} participantA={a} participantB={b} next={next} />
           <Link

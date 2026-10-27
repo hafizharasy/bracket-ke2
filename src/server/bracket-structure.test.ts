@@ -6,6 +6,9 @@ import { db } from "@/db";
 import { auditLogs, matches, matchOfficials, matchResultHistory, matchResults, participants, rooms, sessionRooms, sessions, violations } from "@/db/schema";
 import { mockBracket } from "@/lib/mock/bracket-data";
 import { generateBracketStructure } from "@/server/bracket-structure";
+import { cancelMatchResult } from "@/server/match-results";
+import { getPairings, savePairings } from "@/server/pairings";
+import { clearAllResults, simulateResults } from "@/server/simulation";
 import { ApiError } from "@/server/errors";
 import { clearUsers } from "@/test/db";
 
@@ -56,6 +59,64 @@ describe("sesi Semifinal & Final", () => {
     generateBracketStructure({}, null);
     const sf = db.select().from(matches).where(eq(matches.round, 7)).all();
     expect(sf.every((m) => m.scheduledAt!.toISOString() === "2026-11-01T02:00:00.000Z")).toBe(true);
+  });
+});
+
+describe("bye (ruangan kurang dari 64 peserta)", () => {
+  const admin = { id: "u-admin", name: "Admin", role: "admin" as const, roomId: null };
+  const cell = { sessionId: "sesi-1", roomId: "ruangan-1" };
+  const byes = () => db.select().from(matches).all().filter((m) => m.round === 1 && m.status === "done" && (!m.participantAId) !== (!m.participantBId));
+
+  beforeEach(() => {
+    // Ruangan 1 sesi 1 hanya 61 peserta → 3 bye.
+    const ids = db.select().from(participants).all().filter((p) => p.sessionId === "sesi-1" && p.roomId === "ruangan-1").slice(0, 3).map((p) => p.id);
+    for (const id of ids) db.delete(participants).where(eq(participants.id, id)).run();
+    generateBracketStructure({}, null);
+  });
+
+  it("bagan tetap dibuat; bye langsung selesai dan pesertanya di babak 2; tidak dianggap turnamen dimulai", () => {
+    expect(byes()).toHaveLength(3);
+    for (const m of byes()) {
+      const next = db.select().from(matches).where(eq(matches.id, m.nextMatchId!)).get()!;
+      expect([next.participantAId, next.participantBId]).toContain(m.winnerId);
+    }
+    expect(getPairings("sesi-1", "ruangan-1").locked).toBe(false);
+    expect(generateBracketStructure({ replace: true })).toMatchObject({ saved: true }); // masih boleh disusun ulang
+    expect(byes()).toHaveLength(3);
+    const bye = byes()[0];
+    expectApiError(() => cancelMatchResult(bye.id, admin), 409);
+  });
+
+  it("Hapus semua hasil menerapkan bye lagi", () => {
+    simulateResults({ stage: "semua" }, null);
+    clearAllResults({ violations: false }, null);
+    expect(byes()).toHaveLength(3);
+    const r2 = db.select().from(matches).all().filter((m) => m.round === 2 && m.sessionId === "sesi-1" && m.roomId === "ruangan-1");
+    expect(r2.filter((m) => m.participantAId || m.participantBId)).toHaveLength(3);
+  });
+
+  it("menyimpan pasangan menghitung ulang bye; slot bye bisa diisi setelah ruangan berjalan", () => {
+    const { order } = getPairings("sesi-1", "ruangan-1");
+    // Tukar posisi: peserta bye pertama ditukar dengan peserta laga biasa → bye pindah.
+    const byeIndex = order.findIndex((id, i) => i % 2 === 0 && id && order[i + 1] === null);
+    const normalIndex = order.findIndex((id, i) => i % 2 === 0 && id && order[i + 1] !== null);
+    const swapped = [...order];
+    [swapped[byeIndex], swapped[normalIndex]] = [swapped[normalIndex], swapped[byeIndex]];
+    savePairings({ ...cell, order: swapped });
+    expect(byes()).toHaveLength(3);
+    expect(byes().map((m) => m.winnerId)).toContain(order[normalIndex]);
+
+    // Ruangan berjalan (laga biasa selesai) → slot kosong laga bye diisi peserta cadangan baru.
+    const normal = db.select().from(matches).all().find((m) => m.round === 1 && m.sessionId === "sesi-1" && m.roomId === "ruangan-1" && m.participantAId && m.participantBId)!;
+    db.update(matches).set({ status: "ongoing" }).where(eq(matches.id, normal.id)).run();
+    db.insert(participants).values({ id: "p-new", name: "Cadangan", ...cell }).run();
+    const now = getPairings("sesi-1", "ruangan-1");
+    expect(now.locked).toBe(true);
+    const empty = now.order.findIndex((id) => id === null);
+    const filled = [...now.order];
+    filled[empty] = "p-new";
+    savePairings({ ...cell, order: filled });
+    expect(byes()).toHaveLength(2);
   });
 });
 

@@ -1,4 +1,4 @@
-import { asc, count, ne } from "drizzle-orm";
+import { asc, count } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -19,6 +19,7 @@ import { buildBracketStructure } from "@/lib/bracket-structure";
 import { recordAudit } from "@/server/audit";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
+import { playedMatch } from "@/server/byes";
 
 export const FINAL_SESSION_NAME = "Semifinal & Final";
 
@@ -34,7 +35,7 @@ export type GenerateOptions = {
 /** Jumlah laga yang ada & apakah sudah ada yang dimulai/punya hasil. */
 export function bracketStatus() {
   const total = db.select({ n: count() }).from(matches).get()!.n;
-  const started = db.select({ n: count() }).from(matches).where(ne(matches.status, "scheduled")).get()!.n;
+  const started = db.select({ n: count() }).from(matches).where(playedMatch).get()!.n;
   const results = db.select({ n: count() }).from(matchResults).get()!.n;
   return { total, started: started + results > 0 };
 }
