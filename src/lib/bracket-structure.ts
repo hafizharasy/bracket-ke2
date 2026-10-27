@@ -15,12 +15,13 @@ export const ROUND_GAP_MINUTES = 15; // jeda antarbabak
 const SEMIFINAL_MINUTES = 3 * MATCH_MINUTES + ROUND_GAP_MINUTES;
 
 export type StructureInput = {
-  sessions: { id: string; name: string; startTime: string | null }[];
+  /** Sesi berurutan; sesi `stage: "final"` (bila ada) menampung semifinal & final. */
+  sessions: { id: string; name: string; startTime: string | null; stage?: "room" | "final" }[];
   rooms: { id: string; name: string }[];
   /** Ruangan yang dipakai di tiap sesi. */
   sessionRooms: { sessionId: string; roomId: string }[];
   participants: { id: string; teamOrClub: string | null; sessionId: string | null; roomId: string | null }[];
-  /** Jam mulai semifinal (ISO); default 150 menit setelah sesi terakhir dimulai. */
+  /** Jam mulai semifinal (ISO); default jam mulai sesi Semifinal & Final, atau 150 menit setelah sesi terakhir. */
   finalStart?: string;
 };
 
@@ -104,7 +105,9 @@ export function doubleRoundRobin(count: number): [number, number][][] {
 /** Susun seluruh laga (babak ruangan, semifinal, final) dengan tautan & jadwal. */
 export function buildBracketStructure(input: StructureInput): StructureResult {
   const errors: string[] = [];
-  const sessions = input.sessions;
+  // Sesi Semifinal & Final tidak punya ruangan/peserta sendiri.
+  const finalSession = input.sessions.find((s) => s.stage === "final");
+  const sessions = input.sessions.filter((s) => s.stage !== "final");
   const rooms = [...input.rooms].sort(byNumber);
   const sessionIndex = new Map(sessions.map((s, i) => [s.id, i]));
   const roomIndex = new Map(rooms.map((r, i) => [r.id, i]));
@@ -162,13 +165,19 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
   const lastSession = sessions.reduce((last, s) => (cells.some((c) => c.session.id === s.id) ? s : last), cells[0].session);
   const venues = cells.filter((c) => c.session.id === lastSession.id).map((c) => c.room);
   const venue = (i: number) => (venues.length ? venues : rooms)[i % (venues.length || rooms.length)].id;
-  const semifinalStart = input.finalStart ? new Date(input.finalStart) : addMinutes(new Date(lastSession.startTime!), 150);
+  const semifinalStart = input.finalStart
+    ? new Date(input.finalStart)
+    : finalSession?.startTime
+      ? new Date(finalSession.startTime)
+      : addMinutes(new Date(lastSession.startTime!), 150);
+  // Semifinal & final masuk sesi tersendiri bila ada; tanpa itu (data lama) di sesi terakhir.
+  const finalStageSessionId = (finalSession ?? lastSession).id;
   const semifinals = cells.length / 2;
   for (let k = 1; k <= semifinals; k++) {
     matches.push({
       ...base,
       id: semifinalId(k),
-      sessionId: lastSession.id,
+      sessionId: finalStageSessionId,
       roomId: venue(k - 1),
       round: SEMIFINAL_ROUND,
       matchNumber: k,
@@ -186,7 +195,7 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
     pairs.forEach(([home, away], i) => {
       matches.push({
         id: `m-final-${home + 1}-${away + 1}`,
-        sessionId: lastSession.id,
+        sessionId: finalStageSessionId,
         roomId: venue(i),
         round: FINAL_ROUND,
         matchNumber: ++matchNumber,

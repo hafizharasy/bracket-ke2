@@ -5,7 +5,7 @@ import { BracketStructureCard } from "@/components/admin/bracket-structure-card"
 import { CsvImportDialog } from "@/components/admin/csv-import-dialog";
 import { CompletenessPanel } from "@/components/admin/completeness-panel";
 import { ParticipantTable } from "@/components/admin/participant-table";
-import { PLAYERS_PER_ROOM } from "@/lib/bracket";
+import { PLAYERS_PER_ROOM, roomSessions } from "@/lib/bracket";
 import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
 import { getBracket } from "@/lib/get-bracket";
 
@@ -22,7 +22,9 @@ export default function PesertaPage({ searchParams }: PageProps<"/admin/peserta"
 /** Ringkasan pembagian peserta: matriks sesi × ruangan (target 64 per sel aktif). */
 async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "searchParams">) {
   const [data, params] = await Promise.all([getBracket(), searchParams]);
-  const { participants, sessions, rooms } = data;
+  const { participants, rooms } = data;
+  // Sesi Semifinal & Final tidak menampung peserta.
+  const sessions = roomSessions(data.sessions);
   const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
   const query = {
     q: str(params.q),

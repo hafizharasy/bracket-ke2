@@ -48,6 +48,16 @@ export function scoreText(m: { round: number; scoreA: number | null; scoreB: num
   return hasScore(m.round) && m.scoreA !== null && m.scoreB !== null ? `${m.scoreA}–${m.scoreB}` : null;
 }
 
+/** Sesi khusus Semifinal & Final (bukan sesi babak ruangan). */
+export function isFinalSession(session: { stage?: string }) {
+  return session.stage === "final";
+}
+
+/** Sesi babak ruangan saja (untuk penempatan peserta, ruangan per sesi, filter bagan). */
+export function roomSessions<T extends { stage?: string }>(sessions: T[]) {
+  return sessions.filter((s) => !isFinalSession(s));
+}
+
 /** Laga semifinal atau final (setelah babak ruangan). */
 export function isFinalStage(match: Pick<Match, "round">) {
   return match.round > LAST_ROOM_ROUND;

@@ -140,6 +140,7 @@ export function listSessions() {
       id: s.id,
       name: s.name,
       orderIndex: s.orderIndex,
+      stage: s.stage,
       startTime: iso(s.startTime),
       updatedAt: iso(s.updatedAt),
       participants: people.get(s.id) ?? 0,
@@ -184,7 +185,8 @@ export function createSession(input: z.infer<typeof sessionScheduleInput>) {
   const all = db.select().from(sessions).orderBy(asc(sessions.orderIndex)).all();
   if (all.some((s) => s.name.toLowerCase() === input.name.toLowerCase())) throw new ApiError(409, "Nama sesi sudah dipakai.");
   const start = new Date(input.startTime);
-  const last = all.at(-1);
+  // Sesi babak ruangan baru masuk sebelum sesi Semifinal & Final.
+  const last = all.filter((s) => s.stage !== "final").at(-1);
   if (last?.startTime && start <= last.startTime) throw new ApiError(422, "Jam mulai harus setelah sesi terakhir.");
   const id = nextId("sesi", all.map((s) => s.id));
   db.transaction((tx) => {
@@ -241,8 +243,10 @@ export const sessionRoomsInput = z.object({ roomIds: z.array(z.string().min(1)).
  * menyusun ulang bagan setelah perubahan (dilaporkan lewat `structureStale`).
  */
 export function setSessionRooms(sessionId: string, roomIds: string[]) {
-  if (!db.select({ id: sessions.id }).from(sessions).where(eq(sessions.id, sessionId)).get()) {
-    throw new ApiError(404, "Sesi tidak ditemukan.");
+  const session = db.select({ stage: sessions.stage }).from(sessions).where(eq(sessions.id, sessionId)).get();
+  if (!session) throw new ApiError(404, "Sesi tidak ditemukan.");
+  if (session.stage === "final") {
+    throw new ApiError(422, "Sesi Semifinal & Final tidak memakai ruangan per sesi; ruangan laganya diatur otomatis.");
   }
   const wanted = [...new Set(roomIds)];
   const known = new Set(db.select({ id: rooms.id }).from(rooms).all().map((r) => r.id));

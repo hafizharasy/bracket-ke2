@@ -1,4 +1,4 @@
-import { LAST_ROOM_ROUND, roomsInSession, roundLabel, scoreText, sortMatches } from "@/lib/bracket";
+import { LAST_ROOM_ROUND, roomSessions, roomsInSession, roundLabel, scoreText, sortMatches } from "@/lib/bracket";
 import type { BracketData, Match } from "@/lib/types";
 
 export type RoomStatus = "berlangsung" | "siap" | "menunggu" | "selesai" | "kosong";
@@ -27,7 +27,9 @@ export function monitorRooms(
   violationsByRoom: Map<string, number> = new Map(),
   sessionId?: string,
 ): { sessionId: string | null; rooms: RoomMonitor[] } {
-  const { participants, sessions, rooms, matches } = data;
+  const { participants, rooms, matches } = data;
+  // Hanya sesi babak ruangan; Semifinal & Final dipantau di halamannya sendiri.
+  const sessions = roomSessions(data.sessions);
   const name = (id: string | null) => (id ? participants.find((p) => p.id === id)?.name ?? "?" : "—");
   const roomRound = (m: Match) => m.round <= LAST_ROOM_ROUND;
 

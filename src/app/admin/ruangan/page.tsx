@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { EntityEditButton } from "@/components/admin/entity-edit-dialog";
 import { AddRoomForm, AddSessionForm, DeleteRoomButton, SessionRoomsEditor } from "@/components/admin/session-rooms-manager";
-import { LAST_ROOM_ROUND, PLAYERS_PER_ROOM } from "@/lib/bracket";
+import { isFinalSession, LAST_ROOM_ROUND, PLAYERS_PER_ROOM, roomSessions, SEMIFINAL_ROUND } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { getPengawasAccounts } from "@/lib/pengawas-accounts";
 
@@ -35,7 +35,7 @@ async function Lists() {
   return (
     <>
       <section className="flex flex-col gap-2">
-        <h2 className="font-semibold">Sesi ({sessions.length})</h2>
+        <h2 className="font-semibold">Sesi ({roomSessions(sessions).length}{sessions.some(isFinalSession) ? " + Semifinal & Final" : ""})</h2>
         <p className="text-xs text-muted-foreground">
           {cells} ruangan-sesi aktif → {cells} juara ruangan masuk semifinal
           {cells >= 4 && cells % 2 === 0 ? ` (${cells / 2} finalis)` : " — jumlahnya harus genap dan minimal 4"}.
@@ -43,6 +43,28 @@ async function Lists() {
         </p>
         <ul className="divide-y rounded-xl border bg-card">
           {sessions.map((s) => {
+            if (isFinalSession(s)) {
+              const list = matches.filter((m) => m.sessionId === s.id);
+              const semis = list.filter((m) => m.round === SEMIFINAL_ROUND).length;
+              return (
+                <li key={s.id} className="flex flex-col gap-1.5 bg-amber-500/5 px-3 py-2.5 text-sm">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <span className="font-medium">{s.name}</span>
+                    <span className="min-w-56 flex-1 text-muted-foreground">
+                      {s.startTime ? `${dt.format(new Date(s.startTime))} WIB` : <span className="text-amber-700">Jam mulai belum diatur</span>}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {semis} semifinal · {list.length - semis} laga final · {list.filter((m) => m.status === "done").length}/{list.length} selesai
+                    </span>
+                    <EntityEditButton kind="session" item={s} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Sesi tersendiri untuk juara ruangan: tanpa peserta & ruangan per sesi. Ruangan laganya diatur otomatis; pasangan
+                    semifinal di Peserta &amp; Jadwal → Semifinal.
+                  </p>
+                </li>
+              );
+            }
             const list = matches.filter((m) => m.sessionId === s.id && m.round <= LAST_ROOM_ROUND);
             const done = list.filter((m) => m.status === "done").length;
             const counts: Record<string, number> = {};

@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { AutoAssignButton } from "@/components/admin/auto-assign-button";
 import { BulkAssign } from "@/components/admin/bulk-assign";
-import { PLAYERS_PER_ROOM, roomsInSession } from "@/lib/bracket";
+import { PLAYERS_PER_ROOM, roomSessions, roomsInSession } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,8 @@ export default function PenempatanRuanganPage({ searchParams }: PageProps<"/admi
 
 async function RoomAssignment({ searchParams }: Pick<PageProps<"/admin/peserta/ruangan">, "searchParams">) {
   const [data, params] = await Promise.all([getBracket(), searchParams]);
-  const { participants, sessions } = data;
+  const { participants } = data;
+  const sessions = roomSessions(data.sessions);
   const session = sessions.find((s) => s.id === params.sesi) ?? sessions[0];
   if (!session) return <p className="text-sm text-muted-foreground">Belum ada sesi.</p>;
   // Hanya ruangan yang dipakai di sesi ini (diatur di /admin/ruangan).

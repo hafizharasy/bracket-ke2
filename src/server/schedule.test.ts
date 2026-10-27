@@ -13,6 +13,7 @@ import {
   getSchedule,
   listRooms,
   listSessions,
+  setSessionRooms,
   updateRoom,
   updateSessionSchedule,
 } from "@/server/schedule";
@@ -101,5 +102,15 @@ describe("CRUD sesi & ruangan", () => {
     expect(listSessions().map((s) => s.id)).toEqual(["sesi-1"]);
     expect(listRooms().map((r) => r.id)).toEqual(["ruangan-1"]);
     expectApiError(() => deleteRoom("ruangan-9"), 404);
+  });
+});
+
+describe("sesi Semifinal & Final", () => {
+  it("tidak bisa diberi ruangan per sesi, dan sesi baru masuk sebelum sesi Semifinal & Final", () => {
+    db.insert(sessions).values({ id: "sesi-final", name: "Semifinal & Final", orderIndex: 1000, startTime: at("16:00"), stage: "final" }).run();
+    expectApiError(() => setSessionRooms("sesi-final", ["ruangan-1"]), 422);
+    const created = createSession({ name: "Sesi 3", startTime: at("12:00").toISOString() });
+    expect(created).toMatchObject({ orderIndex: 3, stage: "room" });
+    expect(listSessions().map((x) => x.id)).toEqual(["sesi-1", "sesi-2", "sesi-3", "sesi-final"]);
   });
 });

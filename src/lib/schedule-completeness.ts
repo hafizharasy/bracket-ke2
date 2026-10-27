@@ -1,4 +1,4 @@
-import { activeCells, PLAYERS_PER_ROOM } from "@/lib/bracket";
+import { activeCells, PLAYERS_PER_ROOM, roomSessions } from "@/lib/bracket";
 import type { BracketData } from "@/lib/types";
 
 export type CompletenessCheck = {
@@ -49,7 +49,7 @@ export function checkScheduleCompleteness(
   }
   const duplicates = [...seen.values()].filter((n) => n > 1).length;
   const unscheduled = matches.filter((m) => !m.scheduledAt).length;
-  const sessionsWithoutTime = sessions.filter((s) => !s.startTime).length;
+  const sessionsWithoutTime = roomSessions(sessions).filter((s) => !s.startTime).length;
 
   const check = (key: string, label: string, problems: number, detail: string, href: string): CompletenessCheck => ({
     key,
@@ -142,7 +142,8 @@ export function summarizePlacement(
     total: participants.length,
     withoutSession: participants.filter((p) => !p.sessionId).length,
     withoutRoom: participants.filter((p) => !p.roomId).length,
-    sessions: sessions.map((s) => ({
+    // Sesi Semifinal & Final tidak menampung peserta.
+    sessions: roomSessions(sessions).map((s) => ({
       id: s.id,
       name: s.name,
       count: counts.get(s.id) ?? 0,
