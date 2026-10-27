@@ -14,10 +14,12 @@ type MatchCardProps = {
   slotLabels?: SlotLabels;
   /** Nomor undian peserta di ruangannya (urutan babak 1). */
   seeds?: Map<string, number>;
-  /** Garis keluar ke laga babak berikutnya (emas setelah pemenang ditentukan). */
-  connectOut?: boolean;
-  /** Garis masuk dari pasangan laga babak sebelumnya. */
-  connectIn?: boolean;
+  /**
+   * Garis penghubung di sisi kiri/kanan kartu: "out" = ke laga babak berikutnya
+   * (emas setelah pemenang ditentukan), "in" = dari pasangan laga sebelumnya.
+   */
+  lineLeft?: "in" | "out";
+  lineRight?: "in" | "out";
   /** Lebar mengikuti wadah (grid) alih-alih lebar tetap kolom bagan. */
   fluid?: boolean;
 };
@@ -31,7 +33,7 @@ export function matchBadge(match: Match) {
   return { label: "Menunggu", className: "bg-ink/8 text-ink/45", dot: false };
 }
 
-export function MatchCard({ match, participants, roomName, slotLabels, seeds, connectOut, connectIn, fluid }: MatchCardProps) {
+export function MatchCard({ match, participants, roomName, slotLabels, seeds, lineLeft, lineRight, fluid }: MatchCardProps) {
   const isLive = match.status === "ongoing";
   const a = match.participantAId ? participants.get(match.participantAId) : undefined;
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
@@ -79,10 +81,10 @@ export function MatchCard({ match, participants, roomName, slotLabels, seeds, co
         "relative cursor-pointer rounded-lg border-2 bg-surface text-xs transition-transform outline-none hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-gold",
         fluid ? "w-full min-w-0" : "w-52 shrink-0 sm:w-60",
         isLive ? "border-crimson shadow-[4px_4px_0_0_var(--color-gold)]" : "border-line shadow-[3px_3px_0_0_var(--a-card-shadow)]",
-        connectOut && "after:absolute after:top-1/2 after:-right-[calc(var(--half-gap)+2px)] after:h-0.5 after:w-(--half-gap)",
-        connectOut && (winner ? "after:bg-gold" : "after:bg-ink/20"),
-        connectIn &&
-          "before:absolute before:top-1/2 before:-left-[calc(var(--half-gap)+2px)] before:h-0.5 before:w-(--half-gap) before:bg-ink/20",
+        lineLeft && "before:absolute before:top-1/2 before:-left-[calc(var(--half-gap)+2px)] before:h-0.5 before:w-(--half-gap)",
+        lineLeft && (lineLeft === "out" && winner ? "before:bg-gold" : "before:bg-ink/20"),
+        lineRight && "after:absolute after:top-1/2 after:-right-[calc(var(--half-gap)+2px)] after:h-0.5 after:w-(--half-gap)",
+        lineRight && (lineRight === "out" && winner ? "after:bg-gold" : "after:bg-ink/20"),
       )}
     >
       <div className="flex items-center gap-2 rounded-t-md border-b border-ink/15 bg-parchment px-2.5 py-1.5 text-[10px] font-bold text-ink/50">

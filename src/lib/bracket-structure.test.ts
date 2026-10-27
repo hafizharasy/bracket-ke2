@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildAdvanceMap, buildSlotLabels, FINAL_ROUND, LAST_ROOM_ROUND, SEMIFINAL_ROUND } from "@/lib/bracket";
-import { buildBracketStructure, doubleRoundRobin, isByeMatch, roundOneSlots, spreadClubs } from "@/lib/bracket-structure";
+import { buildBracketStructure, doubleRoundRobin, isByeMatch, roundOneSlots, sideMatchNumber, spreadClubs } from "@/lib/bracket-structure";
 import { mockBracket } from "@/lib/mock/bracket-data";
 
 const input = {
@@ -92,6 +92,28 @@ describe("buildBracketStructure", () => {
   });
 });
 
+describe("bagan dua sisi", () => {
+  it("laga ganjil di sisi kiri, genap di sisi kanan; laga sesama sisi bertemu, kedua sisi bertemu di final ruangan", () => {
+    const result = buildBracketStructure(input);
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const cell = result.matches.filter((m) => m.sessionId === "sesi-1" && m.roomId === "ruangan-1");
+    const byId = new Map(cell.map((m) => [m.id, m]));
+    const next = (round: number, n: number) => byId.get(cell.find((m) => m.round === round && m.matchNumber === n)!.nextMatchId!)!;
+    // Babak 1 → 2: Laga 1 & 3 → #1, Laga 5 & 7 → #3, Laga 2 & 4 → #2, Laga 30 & 32 → #16.
+    expect([1, 3, 5, 7, 2, 4, 30, 32].map((n) => next(1, n).matchNumber)).toEqual([1, 1, 3, 3, 2, 2, 16, 16]);
+    // Tiap laga hanya menerima pemenang dari sisi yang sama (paritas nomor sama), kecuali final ruangan.
+    for (const m of cell.filter((x) => x.round < LAST_ROOM_ROUND - 1)) {
+      expect(next(m.round, m.matchNumber).matchNumber % 2).toBe(m.matchNumber % 2);
+    }
+    const final = cell.find((m) => m.round === LAST_ROOM_ROUND)!;
+    expect(cell.filter((m) => m.nextMatchId === final.id).map((m) => m.matchNumber).sort()).toEqual([1, 2]);
+    expect(sideMatchNumber(0, 32)).toBe(1);
+    expect(sideMatchNumber(15, 32)).toBe(31);
+    expect(sideMatchNumber(16, 32)).toBe(2);
+    expect(sideMatchNumber(31, 32)).toBe(32);
+  });
+});
+
 describe("bye (ruangan kurang dari 64 peserta)", () => {
   it("60 peserta: 4 bye tersebar, tiap bye berpasangan dengan peserta; pesertanya langsung di babak 2", () => {
     const cut = new Set(mockBracket.participants.filter((p) => p.sessionId === "sesi-1" && p.roomId === "ruangan-1").slice(0, 4).map((p) => p.id));
@@ -102,12 +124,15 @@ describe("bye (ruangan kurang dari 64 peserta)", () => {
     expect(r1).toHaveLength(32);
     const byes = r1.filter((m) => isByeMatch(m));
     expect(byes).toHaveLength(4);
-    expect(byes.map((m) => m.matchNumber)).toEqual([5, 13, 21, 29]); // tersebar rata
+    // Tersebar rata: dua di sisi kiri (ganjil), dua di sisi kanan (genap).
+    expect(byes.map((m) => m.matchNumber).sort((a, b) => a - b)).toEqual([9, 10, 25, 26]);
     expect(new Set(r1.flatMap((m) => [m.participantAId, m.participantBId]).filter(Boolean)).size).toBe(60);
     for (const m of byes) {
       expect(m).toMatchObject({ status: "done", winnerId: m.participantAId, participantBId: null });
       const next = cell.find((x) => x.id === m.nextMatchId)!;
-      expect(m.matchNumber % 2 === 1 ? next.participantAId : next.participantBId).toBe(m.participantAId);
+      // Laga asal bernomor lebih kecil mengisi slot A.
+      const feeders = cell.filter((x) => x.nextMatchId === next.id).map((x) => x.matchNumber);
+      expect(m.matchNumber === Math.min(...feeders) ? next.participantAId : next.participantBId).toBe(m.participantAId);
     }
     // Laga lain tetap normal & ruangan lain tanpa bye.
     expect(result.matches.filter((m) => isByeMatch(m))).toHaveLength(4);
