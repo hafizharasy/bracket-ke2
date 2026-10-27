@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { AutoAssignButton } from "@/components/admin/auto-assign-button";
 import { BulkAssign } from "@/components/admin/bulk-assign";
+import { roomSessions } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,8 @@ export default function PembagianSesiPage() {
 }
 
 async function SessionAssignment() {
-  const { participants, sessions } = await getBracket();
+  const { participants, sessions: allSessions } = await getBracket();
+  const sessions = roomSessions(allSessions);
   const target = Math.ceil(participants.length / Math.max(1, sessions.length));
   const unassigned = participants.filter((p) => !p.sessionId).length;
 

@@ -5,6 +5,8 @@ export type Session = {
   name: string;
   orderIndex: number;
   startTime: string | null;
+  /** "final" = sesi khusus Semifinal & Final (tanpa ruangan/peserta sendiri). */
+  stage?: "room" | "final";
 };
 
 export type Room = {

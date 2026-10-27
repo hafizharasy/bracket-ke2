@@ -126,7 +126,8 @@ export type ImportOptions = {
  * Tidak menyimpan apa pun bila ada baris bermasalah.
  */
 export function importParticipantsCsv(text: string, options: ImportOptions = {}, actorId: string | null = null) {
-  const sessionRows = db.select().from(schema.sessions).orderBy(asc(schema.sessions.orderIndex)).all();
+  // Sesi Semifinal & Final tidak menampung peserta, jadi tidak dikenali di CSV.
+  const sessionRows = db.select().from(schema.sessions).orderBy(asc(schema.sessions.orderIndex)).all().filter((s) => s.stage !== "final");
   const roomRows = db.select().from(schema.rooms).all();
   const { rows, errors } = parseParticipantCsv(
     text,

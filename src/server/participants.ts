@@ -55,9 +55,9 @@ export function getParticipant(id: string) {
 /** Pastikan sesi/ruangan ada dan ruangan selalu disertai sesi. */
 function assertPlacement(sessionId: string | null, roomId: string | null) {
   if (roomId && !sessionId) throw new ApiError(422, "Ruangan diisi tetapi sesi kosong.");
-  if (sessionId && !db.select({ id: sessions.id }).from(sessions).where(eq(sessions.id, sessionId)).get()) {
-    throw new ApiError(422, "Sesi tidak ditemukan.");
-  }
+  const session = sessionId ? db.select({ stage: sessions.stage }).from(sessions).where(eq(sessions.id, sessionId)).get() : null;
+  if (sessionId && !session) throw new ApiError(422, "Sesi tidak ditemukan.");
+  if (session?.stage === "final") throw new ApiError(422, "Peserta tidak bisa ditempatkan di sesi Semifinal & Final.");
   if (roomId && !db.select({ id: rooms.id }).from(rooms).where(eq(rooms.id, roomId)).get()) {
     throw new ApiError(422, "Ruangan tidak ditemukan.");
   }

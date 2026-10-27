@@ -25,7 +25,8 @@ export type AutoAssignInput = z.infer<typeof autoAssignInput>;
 const byNumber = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id, "id", { numeric: true });
 
 function orderedSessions() {
-  return db.select().from(sessions).all().sort((a, b) => a.orderIndex - b.orderIndex);
+  // Sesi Semifinal & Final tidak menampung peserta.
+  return db.select().from(sessions).all().filter((s) => s.stage !== "final").sort((a, b) => a.orderIndex - b.orderIndex);
 }
 /** Ruangan yang dipakai di satu sesi, urut nomor. */
 function roomsOfSession(sessionId: string) {
@@ -68,8 +69,10 @@ export function assignParticipants(input: AssignInput) {
   const ids = [...new Set(input.ids)];
   const rows = db.select().from(participants).where(inArray(participants.id, ids)).all();
   if (rows.length !== ids.length) throw new ApiError(404, "Sebagian peserta tidak ditemukan.");
-  if (input.sessionId && !db.select().from(sessions).where(eq(sessions.id, input.sessionId)).get()) {
-    throw new ApiError(422, "Sesi tidak ditemukan.");
+  if (input.sessionId) {
+    const session = db.select().from(sessions).where(eq(sessions.id, input.sessionId)).get();
+    if (!session) throw new ApiError(422, "Sesi tidak ditemukan.");
+    if (session.stage === "final") throw new ApiError(422, "Peserta tidak bisa ditempatkan di sesi Semifinal & Final.");
   }
   if (input.roomId && !db.select().from(rooms).where(eq(rooms.id, input.roomId)).get()) {
     throw new ApiError(422, "Ruangan tidak ditemukan.");

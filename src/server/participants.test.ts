@@ -77,6 +77,12 @@ describe("tambah/ubah/hapus peserta", () => {
     expectApiError(() => updateParticipant("p-999", { name: "Nama" }), 404);
   });
 
+  it("menolak menempatkan peserta di sesi Semifinal & Final", () => {
+    db.insert(sessions).values({ id: "sesi-final", name: "Semifinal & Final", orderIndex: 1000, stage: "final" }).run();
+    expectApiError(() => createParticipant({ name: "Nama Baru", teamOrClub: null, sessionId: "sesi-final", roomId: null }), 422);
+    expectApiError(() => updateParticipant("p-002", { sessionId: "sesi-final" }), 422);
+  });
+
   it("menghapus peserta di laga yang belum dimulai: slotnya di bagan dikosongkan", () => {
     db.insert(matches).values({
       id: "m1", sessionId: "sesi-1", roomId: "ruangan-1", round: 1, matchNumber: 1,

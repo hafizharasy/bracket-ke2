@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { count, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { roomSessions } from "@/lib/bracket";
 import { users } from "@/db/schema";
 import { getRecentActivity } from "@/lib/admin-activity";
 import { getBracket } from "@/lib/get-bracket";
@@ -88,7 +89,8 @@ export async function getRoomsMonitor(sessionId?: string) {
     version: data.version,
     updatedAt: data.updatedAt,
     sessionId: monitor.sessionId,
-    sessions: data.sessions.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime })),
+    // Pantau Ruangan hanya untuk sesi babak ruangan (Semifinal & Final punya halaman sendiri).
+    sessions: roomSessions(data.sessions).map((s) => ({ id: s.id, name: s.name, startTime: s.startTime })),
     counts: {
       live: rooms.filter((r) => r.status === "berlangsung").length,
       done: rooms.filter((r) => r.status === "selesai").length,

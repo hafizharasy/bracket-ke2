@@ -1,12 +1,26 @@
 import { asc, count, ne } from "drizzle-orm";
 
 import { db } from "@/db";
-import { matches, matchOfficials, matchResultHistory, matchResults, participants, rooms, sessionRooms, sessions, violations } from "@/db/schema";
+import {
+  FINAL_SESSION_ID,
+  FINAL_SESSION_ORDER,
+  matches,
+  matchOfficials,
+  matchResultHistory,
+  matchResults,
+  participants,
+  rooms,
+  sessionRooms,
+  sessions,
+  violations,
+} from "@/db/schema";
 import { FINAL_ROUND, SEMIFINAL_ROUND } from "@/lib/bracket";
 import { buildBracketStructure } from "@/lib/bracket-structure";
 import { recordAudit } from "@/server/audit";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
+
+export const FINAL_SESSION_NAME = "Semifinal & Final";
 
 export type GenerateOptions = {
   /** Jam mulai semifinal (ISO); default 150 menit setelah sesi terakhir. */
@@ -37,13 +51,18 @@ export function generateBracketStructure(options: GenerateOptions = {}, actorId:
   }
   if (status.started) throw new ApiError(409, "Sudah ada laga yang dimulai atau punya hasil; struktur bagan tidak bisa disusun ulang.");
 
+  const sessionList = db
+    .select()
+    .from(sessions)
+    .orderBy(asc(sessions.orderIndex))
+    .all()
+    .map((s) => ({ id: s.id, name: s.name, startTime: s.startTime?.toISOString() ?? null, stage: s.stage }));
+  // Semifinal & final selalu di sesi tersendiri; dibuat otomatis bila belum ada.
+  const finalSession = sessionList.find((s) => s.stage === "final");
+  if (!finalSession) sessionList.push({ id: FINAL_SESSION_ID, name: FINAL_SESSION_NAME, startTime: null, stage: "final" });
+
   const result = buildBracketStructure({
-    sessions: db
-      .select()
-      .from(sessions)
-      .orderBy(asc(sessions.orderIndex))
-      .all()
-      .map((s) => ({ id: s.id, name: s.name, startTime: s.startTime?.toISOString() ?? null })),
+    sessions: sessionList,
     rooms: db
       .select({ id: rooms.id, name: rooms.name })
       .from(rooms)
@@ -60,6 +79,11 @@ export function generateBracketStructure(options: GenerateOptions = {}, actorId:
   if (options.dryRun) return { ...result.summary, replaced: status.total, saved: false };
 
   db.transaction((tx) => {
+    if (!finalSession) {
+      tx.insert(sessions)
+        .values({ id: FINAL_SESSION_ID, name: FINAL_SESSION_NAME, orderIndex: FINAL_SESSION_ORDER, startTime: new Date(result.summary.finalStart), stage: "final" })
+        .run();
+    }
     if (status.total > 0) {
       // Belum ada hasil (dicek di atas): jejak pembatalan & tautan pelanggaran ke laga lama dibersihkan.
       tx.delete(matchResultHistory).run();

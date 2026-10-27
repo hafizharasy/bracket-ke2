@@ -5,7 +5,7 @@ import {
   PairingEditor,
   type PairingPlayer,
 } from "@/components/admin/pairing-editor";
-import { PLAYERS_PER_ROOM, roomsInSession } from "@/lib/bracket";
+import { PLAYERS_PER_ROOM, roomSessions, roomsInSession } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,8 @@ async function Pairings({
   searchParams,
 }: Pick<PageProps<"/admin/peserta/pasangan">, "searchParams">) {
   const [data, params] = await Promise.all([getBracket(), searchParams]);
-  const { participants, sessions, matches } = data;
+  const { participants, matches } = data;
+  const sessions = roomSessions(data.sessions);
   const session = sessions.find((s) => s.id === params.sesi) ?? sessions[0];
   // Hanya ruangan yang dipakai di sesi terpilih.
   const rooms = session ? roomsInSession(data, session.id) : [];

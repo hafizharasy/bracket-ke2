@@ -16,6 +16,10 @@ npm run dev        # http://localhost:3000
   yang dipakai tiap sesi di `/admin/ruangan` (tabel `session_rooms`). Tiap
   ruangan-sesi berisi **64 peserta → 63 laga** (babak 1–6, gugur langsung,
   **best of one**: hanya menang/kalah, tanpa skor/poin), juaranya satu orang.
+- **Sesi Semifinal & Final** — semifinal dan final berada di sesi tersendiri
+  (`sessions.stage = "final"`, dibuat otomatis saat bagan disusun), terpisah dari
+  sesi babak ruangan terakhir. Sesi ini tanpa peserta & ruangan per sesi; hari/jam
+  mulainya bisa diubah admin di `/admin/ruangan`.
 - **Semifinal** (babak 7) — juara ruangan-sesi dipasangkan (bisa diatur admin di
   `/admin/peserta/semifinal`), **best of 3**: skor = game dimenangkan, yang
   lebih dulu 2 menang. Jumlah ruangan-sesi harus genap dan minimal 4.

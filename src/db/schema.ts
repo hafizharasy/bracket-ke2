@@ -24,6 +24,11 @@ const createdAt = () =>
     .default(sql`(unixepoch())`);
 
 /** 4 sesi pertandingan. */
+export const SESSION_STAGES = ["room", "final"] as const;
+/** ID & urutan tetap sesi Semifinal & Final (urutan besar → selalu di akhir). */
+export const FINAL_SESSION_ID = "sesi-final";
+export const FINAL_SESSION_ORDER = 1000;
+
 export const sessions = sqliteTable(
   "sessions",
   {
@@ -31,6 +36,11 @@ export const sessions = sqliteTable(
     name: text("name").notNull(),
     orderIndex: integer("order_index").notNull(),
     startTime: integer("start_time", { mode: "timestamp" }),
+    /**
+     * "room" = sesi babak ruangan (punya ruangan & peserta); "final" = sesi
+     * khusus Semifinal & Final (tanpa peserta/ruangan sendiri), selalu terakhir.
+     */
+    stage: text("stage", { enum: SESSION_STAGES }).notNull().default("room"),
     /** Terakhir diubah admin (nama / jam mulai); null bila belum pernah. */
     updatedAt: integer("updated_at", { mode: "timestamp" }),
   },

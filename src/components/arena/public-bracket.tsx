@@ -17,7 +17,7 @@ import { LiveUpdater } from "@/components/bracket/live-updater";
 import { MatchCard } from "@/components/bracket/match-card";
 import { MatchDetails } from "@/components/bracket/match-details";
 import { PathHighlight } from "@/components/bracket/path-highlight";
-import { activeCells, buildSlotLabels, FINAL_ROUND, isFinalStage, roomsInSession, SEMIFINAL_ROUND } from "@/lib/bracket";
+import { activeCells, buildSlotLabels, FINAL_ROUND, isFinalSession, isFinalStage, roomSessions, roomsInSession, SEMIFINAL_ROUND } from "@/lib/bracket";
 import { finalLegs, finalStandings } from "@/lib/final-standings";
 import type { BracketData, Match, MatchStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -139,7 +139,7 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
 
   // Filter dari URL; nilai yang tidak dikenal diabaikan.
   const filter = {
-    sessionId: sessions.some((s) => s.id === sesi) ? sesi : null,
+    sessionId: roomSessions(sessions).some((s) => s.id === sesi) ? sesi : null,
     roomId: rooms.some((r) => r.id === ruangan) ? ruangan : null,
   };
   const isFiltered = !!(filter.sessionId || filter.roomId);
@@ -178,6 +178,9 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
   // Babak final tampil bila tidak difilter sesi; filter ruangan hanya menyaring kartu laga
   // (klasemen poin selalu utuh).
   const showFinal = finalMatches.length > 0 && !filter.sessionId;
+  // Semifinal & final di sesi tersendiri: tampilkan harinya (tanpa jam).
+  const finalSession = sessions.find(isFinalSession);
+  const finalDay = finalSession?.startTime ? dateFormat.format(new Date(finalSession.startTime)) : null;
   const shortRoom = (roomId: string) => roomMap.get(roomId)?.name.replace(/^Ruangan /, "R");
   const shownSemifinals = semifinals.filter((m) => !filter.roomId || m.roomId === filter.roomId);
   // Laga final: 2 putaran — tiap pasangan finalis bertemu sekali di putaran 1 dan
@@ -203,7 +206,7 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
                   jalurnya; klik kartu untuk detail laga.
                 </p>
               </div>
-              <BracketFilter sessions={sessions} rooms={selectableRooms} value={filter} onSearch={openMatching} />
+              <BracketFilter sessions={roomSessions(sessions)} rooms={selectableRooms} value={filter} onSearch={openMatching} />
 
               {matches.length === 0 ? (
                 <p className="rounded-xl border-2 border-dashed border-ink/20 bg-surface/70 p-8 text-center text-sm text-ink/60">
@@ -300,7 +303,7 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
             <section id="semifinal" className="arena-lines scroll-mt-20 border-t-4 border-gold bg-page-2">
               <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-16 sm:px-6">
                 <div data-reveal className="flex flex-col items-start gap-3">
-                  <SectionBadge>Puncak kompetisi · tahap 1</SectionBadge>
+                  <SectionBadge>Puncak kompetisi · tahap 1{finalDay && ` · ${finalDay}`}</SectionBadge>
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="font-display text-3xl text-ink sm:text-4xl">Semifinal</h2>
                     <StatusPill status={overallStatus(semifinals)} />
@@ -331,7 +334,7 @@ function BracketContent({ data, sesi, ruangan, live }: { data: BracketData; sesi
             <section id="final" className="scroll-mt-20 border-t-4 border-crimson bg-navy text-white">
               <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6">
                 <div data-reveal className="flex flex-col items-start gap-3">
-                  <SectionBadge>Puncak kompetisi · tahap 2</SectionBadge>
+                  <SectionBadge>Puncak kompetisi · tahap 2{finalDay && ` · ${finalDay}`}</SectionBadge>
                   <div className="flex flex-wrap items-center gap-3">
                     <h2 className="font-display text-3xl text-gold sm:text-4xl">Final — kompetisi penuh</h2>
                     <StatusPill status={overallStatus(roundRobin)} />

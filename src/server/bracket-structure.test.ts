@@ -36,6 +36,29 @@ beforeEach(() => {
   }
 });
 
+describe("sesi Semifinal & Final", () => {
+  it("dibuat otomatis bila belum ada; semifinal & final masuk ke sana, sesi terakhir hanya babak ruangan", () => {
+    db.delete(sessions).where(eq(sessions.stage, "final")).run();
+    const dry = generateBracketStructure({ dryRun: true });
+    expect(db.select().from(sessions).where(eq(sessions.stage, "final")).all()).toHaveLength(0); // dryRun tidak menulis
+    generateBracketStructure({}, null);
+    const final = db.select().from(sessions).where(eq(sessions.stage, "final")).get()!;
+    expect(final).toMatchObject({ id: "sesi-final", name: "Semifinal & Final", orderIndex: 1000 });
+    expect(final.startTime!.toISOString()).toBe(dry.finalStart);
+    const all = db.select().from(matches).all();
+    expect(all.filter((m) => m.round > 6).every((m) => m.sessionId === "sesi-final")).toBe(true);
+    expect(all.filter((m) => m.sessionId === "sesi-4").every((m) => m.round <= 6)).toBe(true);
+    expect(all.filter((m) => m.sessionId === "sesi-4")).toHaveLength(126);
+  });
+
+  it("memakai jam mulai sesi Semifinal & Final yang sudah diatur admin", () => {
+    db.update(sessions).set({ startTime: new Date("2026-11-01T02:00:00Z") }).where(eq(sessions.stage, "final")).run();
+    generateBracketStructure({}, null);
+    const sf = db.select().from(matches).where(eq(matches.round, 7)).all();
+    expect(sf.every((m) => m.scheduledAt!.toISOString() === "2026-11-01T02:00:00.000Z")).toBe(true);
+  });
+});
+
 describe("generateBracketStructure", () => {
   it("menyimpan 655 laga, menolak bila sudah ada, dan bisa menyusun ulang selama belum ada hasil", () => {
     const dry = generateBracketStructure({ dryRun: true });

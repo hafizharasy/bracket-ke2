@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { SectionBadge } from "@/components/arena/arena-chrome";
 import { CountUp } from "@/components/arena/arena-client";
-import { FINAL_ROUND, hasScore, LAST_ROOM_ROUND, roundLabel } from "@/lib/bracket";
+import { FINAL_ROUND, hasScore, isFinalSession, LAST_ROOM_ROUND, roomSessions, roundLabel } from "@/lib/bracket";
 import { finalistsOf, finalStandings, formatPoints, winPoints, type StandingRow } from "@/lib/final-standings";
 import type { BracketData, Match, Participant, Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,8 @@ export function liveMatchGroups(data: BracketData) {
   const order = new Map(data.sessions.map((s, i) => [s.id, s.orderIndex ?? i]));
   const roomReady = ready.filter((m) => m.round <= LAST_ROOM_ROUND);
   let scope = ready;
-  let session: Session | undefined;
+  // Babak ruangan sudah habis → sesi Semifinal & Final (bila ada).
+  let session: Session | undefined = data.sessions.find(isFinalSession);
   if (roomReady.length > 0) {
     const first = roomReady.reduce((a, b) => ((order.get(b.sessionId) ?? 0) < (order.get(a.sessionId) ?? 0) ? b : a));
     session = data.sessions.find((s) => s.id === first.sessionId);
@@ -43,9 +44,8 @@ export function liveMatchGroups(data: BracketData) {
     })
     .sort((a, b) => a.roomName.localeCompare(b.roomName, "id", { numeric: true }));
   // Sudah ada laga selesai (atau berjalan) di cakupan ini → sedang berlangsung; belum → akan dimulai.
-  const started = data.matches.some(
-    (m) => m.status !== "scheduled" && (session ? m.sessionId === session.id && m.round <= LAST_ROOM_ROUND : m.round > LAST_ROOM_ROUND),
-  );
+  const stageMatch = (m: Match) => (roomReady.length > 0 ? m.sessionId === session?.id && m.round <= LAST_ROOM_ROUND : m.round > LAST_ROOM_ROUND);
+  const started = data.matches.some((m) => m.status !== "scheduled" && stageMatch(m));
   return { session, groups, total: groups.reduce((n, g) => n + g.matches.length, 0), started };
 }
 
@@ -414,7 +414,7 @@ export function ArenaStats({ data }: { data: BracketData }) {
   const tiles = [
     { icon: UsersIcon, value: data.participants.length, label: "Peserta terdaftar" },
     { icon: MapPinIcon, value: data.sessionRooms.length, label: "Ruangan aktif" },
-    { icon: CalendarDaysIcon, value: data.sessions.length, label: "Sesi pertandingan" },
+    { icon: CalendarDaysIcon, value: roomSessions(data.sessions).length, label: "Sesi babak ruangan" },
     { icon: TrophyIcon, value: done, extra: `/ ${data.matches.length}`, label: "Laga selesai" },
   ];
   return (

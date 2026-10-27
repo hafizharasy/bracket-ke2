@@ -49,12 +49,18 @@ const ROOMS_PER_SESSION = [3, 3, 2, 2];
 const ROOM_COUNT = 3;
 const PLAYERS_PER_ROOM = 64;
 
-const sessions: Session[] = SESSION_STARTS.map((startTime, i) => ({
+const roomSessionList: Session[] = SESSION_STARTS.map((startTime, i) => ({
   id: `sesi-${i + 1}`,
   name: `Sesi ${i + 1}`,
   orderIndex: i + 1,
   startTime: new Date(startTime).toISOString(),
+  stage: "room",
 }));
+// Semifinal & Final: sesi tersendiri setelah sesi terakhir (150 menit kemudian).
+const sessions: Session[] = [
+  ...roomSessionList,
+  { id: "sesi-final", name: "Semifinal & Final", orderIndex: 1000, startTime: new Date("2026-10-17T18:00:00+07:00").toISOString(), stage: "final" },
+];
 
 const rooms: Room[] = Array.from({ length: ROOM_COUNT }, (_, i) => ({
   id: `ruangan-${i + 1}`,
@@ -62,7 +68,7 @@ const rooms: Room[] = Array.from({ length: ROOM_COUNT }, (_, i) => ({
   location: `Gedung A · Lantai ${i + 1}`,
 }));
 
-const sessionRooms: SessionRoom[] = sessions.flatMap((s, i) =>
+const sessionRooms: SessionRoom[] = roomSessionList.flatMap((s, i) =>
   rooms.slice(0, ROOMS_PER_SESSION[i]).map((r) => ({ sessionId: s.id, roomId: r.id })),
 );
 
