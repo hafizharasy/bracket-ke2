@@ -54,6 +54,7 @@ export function isByeMatch(m: { round: number; status?: string; participantAId: 
  * Susun 32 laga babak 1 dari 33–64 peserta: kekurangan dari 64 menjadi bye —
  * tiap bye berpasangan dengan satu peserta (tidak ada laga tanpa peserta) dan
  * tersebar merata di bagan. Sisanya dipasangkan sebisa mungkin beda sekolah.
+ * Urutannya posisi di bagan dari atas (lihat `sideMatchNumber`), bukan nomor laga.
  */
 export function roundOneSlots<T extends { id: string; teamOrClub: string | null }>(players: T[]): [T, T | null][] {
   const matchCount = PLAYERS_PER_ROOM / 2;
@@ -72,6 +73,18 @@ export function roundOneSlots<T extends { id: string; teamOrClub: string | null 
     else slots.push([paired[p++], paired[p++]]);
   }
   return slots;
+}
+
+/**
+ * Nomor laga untuk posisi ke-`p` (0 = paling atas) dari `count` laga satu babak.
+ * Bagan dibelah dua: separuh atas di sisi kiri bernomor ganjil (1, 3, 5, …),
+ * separuh bawah di sisi kanan bernomor genap (2, 4, 6, …); keduanya bertemu di
+ * final ruangan. Laga sesama sisi yang bersebelahan bertemu di babak berikutnya.
+ */
+export function sideMatchNumber(p: number, count: number) {
+  if (count === 1) return 1;
+  const half = count / 2;
+  return p < half ? 2 * p + 1 : 2 * (p - half) + 2;
 }
 
 export type StructureSummary = {
@@ -182,10 +195,13 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
     const slots = roundOneSlots(playersOf(session.id, room.id));
     const start = new Date(session.startTime!);
     for (let round = 1; round <= roundsInRoom; round++) {
-      for (let n = 1; n <= PLAYERS_PER_ROOM / 2 ** round; n++) {
-        // Babak 2: peserta bye dari laga babak 1 (n*2-1 → slot A, n*2 → slot B) sudah langsung masuk.
-        const byeFrom = (k: number) => (round === 2 && slots[k - 1][1] === null ? slots[k - 1][0].id : null);
-        const bye = round === 1 && slots[n - 1][1] === null;
+      const count = PLAYERS_PER_ROOM / 2 ** round;
+      // p = posisi laga dari atas bagan; laga di posisi 2q & 2q+1 bertemu di posisi q babak berikutnya.
+      for (let p = 0; p < count; p++) {
+        const n = sideMatchNumber(p, count);
+        // Babak 2: peserta bye dari dua laga asal (posisi 2p → slot A, 2p+1 → slot B) sudah langsung masuk.
+        const byeFrom = (q: number) => (round === 2 && slots[q][1] === null ? slots[q][0].id : null);
+        const bye = round === 1 && slots[p][1] === null;
         matches.push({
           ...base,
           id: `${prefix}-b${round}-${n}`,
@@ -193,10 +209,13 @@ export function buildBracketStructure(input: StructureInput): StructureResult {
           roomId: room.id,
           round,
           matchNumber: n,
-          participantAId: round === 1 ? slots[n - 1][0].id : byeFrom(n * 2 - 1),
-          participantBId: round === 1 ? (slots[n - 1][1]?.id ?? null) : byeFrom(n * 2),
-          ...(bye ? { status: "done" as const, winnerId: slots[n - 1][0].id } : {}),
-          nextMatchId: round < LAST_ROOM_ROUND ? `${prefix}-b${round + 1}-${Math.ceil(n / 2)}` : semifinalId(Math.ceil((k + 1) / 2)),
+          participantAId: round === 1 ? slots[p][0].id : byeFrom(2 * p),
+          participantBId: round === 1 ? (slots[p][1]?.id ?? null) : byeFrom(2 * p + 1),
+          ...(bye ? { status: "done" as const, winnerId: slots[p][0].id } : {}),
+          nextMatchId:
+            round < LAST_ROOM_ROUND
+              ? `${prefix}-b${round + 1}-${sideMatchNumber(Math.floor(p / 2), count / 2)}`
+              : semifinalId(Math.ceil((k + 1) / 2)),
           scheduledAt: addMinutes(start, (round - 1) * (MATCH_MINUTES + ROUND_GAP_MINUTES)),
         });
       }
