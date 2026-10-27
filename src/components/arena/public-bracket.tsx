@@ -21,6 +21,7 @@ import { activeCells, buildSlotLabels, FINAL_ROUND, isFinalSession, isFinalStage
 import { finalLegs, finalStandings } from "@/lib/final-standings";
 import type { BracketData, Match, MatchStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 
 const dateFormat = new Intl.DateTimeFormat("id-ID", {
@@ -33,7 +34,7 @@ const dateFormat = new Intl.DateTimeFormat("id-ID", {
 
 function overallStatus(matches: Match[]): MatchStatus {
   if (matches.length > 0 && matches.every((m) => m.status === "done")) return "done";
-  if (matches.some((m) => m.status !== "scheduled")) return "ongoing";
+  if (matches.some((m) => m.status !== "scheduled" && !isByeMatch(m))) return "ongoing";
   return "scheduled";
 }
 

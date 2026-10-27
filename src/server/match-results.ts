@@ -10,6 +10,7 @@ import { queueProofForDrive } from "@/server/drive-sync";
 import { isProofUrlForMatch } from "@/server/storage";
 import { bumpBracketVersion } from "@/server/live";
 import { advanceToFeeds, advanceWinner, retractFromFeeds, retractWinner } from "@/server/propagation";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 export const matchResultInput = z.object({
   /** Semifinal: jumlah game dimenangkan (best of 3). Babak ruangan & final: tidak dipakai. */
@@ -140,6 +141,7 @@ export function cancelMatchResult(matchId: string, user: SessionUser) {
     if (match.status !== "done" || !match.winnerId) {
       throw new ApiError(409, "Laga ini belum punya hasil untuk dibatalkan.");
     }
+    if (isByeMatch(match)) throw new ApiError(409, "Laga bye (lolos tanpa lawan) tidak punya hasil untuk dibatalkan.");
 
     const next = retractWinner(tx, match);
     retractFromFeeds(tx, match);

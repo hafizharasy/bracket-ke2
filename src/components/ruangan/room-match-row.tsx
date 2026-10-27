@@ -6,6 +6,7 @@ import { hasScore, roundLabel, type SlotLabels } from "@/lib/bracket";
 import { canInputResult } from "@/lib/room-matches";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 /** Satu baris laga di daftar pengawas; ketuk untuk membuka form input hasil. */
 export function RoomMatchRow({
@@ -36,7 +37,7 @@ export function RoomMatchRow({
           )}
           {match.status === "done" && (
             <Badge variant="secondary" className="ml-auto">
-              Selesai
+              {isByeMatch(match) ? "Bye" : "Selesai"}
             </Badge>
           )}
         </div>

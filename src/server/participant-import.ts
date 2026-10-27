@@ -1,4 +1,4 @@
-import { asc, count, ne } from "drizzle-orm";
+import { asc, count } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -8,6 +8,7 @@ import type { Room, Session } from "@/lib/types";
 import { recordAudit } from "@/server/audit";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
+import { playedMatch } from "@/server/byes";
 
 export const participantFields = z.object({
   name: z.string().trim().min(1, "Nama wajib diisi.").max(100, "Nama maksimal 100 karakter."),
@@ -190,7 +191,7 @@ export function importParticipantsCsv(text: string, options: ImportOptions = {},
 
   if (options.replace) {
     const started =
-      db.select({ n: count() }).from(schema.matches).where(ne(schema.matches.status, "scheduled")).get()!.n +
+      db.select({ n: count() }).from(schema.matches).where(playedMatch).get()!.n +
       db.select({ n: count() }).from(schema.matchResults).get()!.n;
     if (started > 0) throw new ApiError(409, "Turnamen sudah berjalan; peserta lama tidak bisa diganti semua.");
   }

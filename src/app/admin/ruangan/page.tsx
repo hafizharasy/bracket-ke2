@@ -5,6 +5,7 @@ import { AddRoomForm, AddSessionForm, DeleteRoomButton, SessionRoomsEditor } fro
 import { isFinalSession, LAST_ROOM_ROUND, PLAYERS_PER_ROOM, roomSessions, SEMIFINAL_ROUND } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { getPengawasAccounts } from "@/lib/pengawas-accounts";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 export const metadata = { title: "Ruangan & Sesi" };
 
@@ -30,7 +31,7 @@ export default function RuanganSesiPage() {
 async function Lists() {
   const [{ sessions, rooms, participants, matches, sessionRooms }, accounts] = await Promise.all([getBracket(), getPengawasAccounts()]);
   const sortedRooms = [...rooms].sort((a, b) => a.name.localeCompare(b.name, "id", { numeric: true }));
-  const started = matches.some((m) => m.status !== "scheduled");
+  const started = matches.some((m) => m.status !== "scheduled" && !isByeMatch(m));
   const cells = sessionRooms.length;
   return (
     <>

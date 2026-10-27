@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { matches, participants, rooms, sessionRooms, sessions, users } from "@/db/schema";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
+import { playedMatch } from "@/server/byes";
 
 const name = z.string().trim().min(2).max(50);
 export const sessionScheduleInput = z.object({ name, startTime: z.iso.datetime() });
@@ -261,7 +262,7 @@ export function setSessionRooms(sessionId: string, roomIds: string[]) {
   const started = db
     .select({ n: sql<number>`count(*)` })
     .from(matches)
-    .where(ne(matches.status, "scheduled"))
+    .where(playedMatch)
     .get()!.n;
   if (started > 0) throw new ApiError(409, "Turnamen sudah berjalan; ruangan per sesi tidak bisa diubah lagi.");
 

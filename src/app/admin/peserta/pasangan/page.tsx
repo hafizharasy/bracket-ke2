@@ -8,6 +8,7 @@ import {
 import { PLAYERS_PER_ROOM, roomSessions, roomsInSession } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
 import { cn } from "@/lib/utils";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 export const metadata = { title: "Pasangan Tanding" };
 
@@ -59,7 +60,8 @@ async function Pairings({
         !inBracket.has(p.id),
     )
     .map((p) => ({ id: p.id, name: p.name, club: p.teamOrClub }));
-  const locked = roomMatches.some((m) => m.status !== "scheduled");
+  // Bye (lolos tanpa lawan) tidak dihitung sebagai laga yang sudah dimainkan.
+  const locked = roomMatches.some((m) => m.status !== "scheduled" && !isByeMatch(m));
   const href = (s: string, r: string) =>
     `/admin/peserta/pasangan?sesi=${s}&ruangan=${r}`;
 

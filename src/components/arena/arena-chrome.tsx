@@ -94,7 +94,7 @@ export function SectionBadge({ children, className, tone = "gold" }: { children:
 }
 
 const FORMAT = [
-  { title: "Babak ruangan", text: "64 peserta per ruangan bertanding 1 vs 1, best of one dengan sistem gugur — yang menang maju, tanpa poin, hingga tersisa satu juara ruangan." },
+  { title: "Babak ruangan", text: "Hingga 64 peserta per ruangan bertanding 1 vs 1, best of one dengan sistem gugur — yang menang maju, tanpa poin, hingga tersisa satu juara ruangan. Peserta tanpa lawan di babak pertama lolos otomatis (bye)." },
   { title: "Semifinal", text: "Para juara ruangan saling berhadapan dalam format best of three — yang lebih dulu menang 2 game lolos." },
   {
     title: "Final",

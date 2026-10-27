@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -6,6 +6,7 @@ import { matches, participants, rooms, sessionRooms, sessions } from "@/db/schem
 import { PLAYERS_PER_ROOM } from "@/lib/bracket";
 import { ApiError } from "@/server/errors";
 import { bumpBracketVersion } from "@/server/live";
+import { playedMatch } from "@/server/byes";
 
 export const assignInput = z
   .object({
@@ -41,7 +42,7 @@ function roomsOfSession(sessionId: string) {
 
 /** Peserta yang sudah bertanding (laga berlangsung/selesai) tidak boleh dipindah. */
 function assertNotPlayed(ids: string[] | "all", sessionId?: string) {
-  const conditions = [ne(matches.status, "scheduled")];
+  const conditions = [playedMatch];
   if (sessionId) conditions.push(eq(matches.sessionId, sessionId));
   if (ids !== "all") {
     conditions.push(or(inArray(matches.participantAId, ids), inArray(matches.participantBId, ids))!);

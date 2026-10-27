@@ -8,6 +8,7 @@ import { ParticipantTable } from "@/components/admin/participant-table";
 import { PLAYERS_PER_ROOM, roomSessions } from "@/lib/bracket";
 import { checkScheduleCompleteness } from "@/lib/schedule-completeness";
 import { getBracket } from "@/lib/get-bracket";
+import { isByeMatch } from "@/lib/bracket-structure";
 
 export const metadata = { title: "Peserta & Jadwal" };
 
@@ -52,7 +53,7 @@ async function Overview({ searchParams }: Pick<PageProps<"/admin/peserta">, "sea
       <CompletenessPanel checks={checks} />
       <BracketStructureCard
         total={data.matches.length}
-        started={data.matches.some((m) => m.status !== "scheduled")}
+        started={data.matches.some((m) => m.status !== "scheduled" && !isByeMatch(m))}
         placementReady={checks.filter((c) => ["session", "room", "cells"].includes(c.key)).every((c) => c.ok)}
       />
       <div className="flex flex-wrap justify-end gap-2">
