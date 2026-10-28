@@ -16,7 +16,7 @@ export async function saveMatchResult(matchId: string, payload: ResultPayload): 
   if (!user) return SESSION_EXPIRED;
 
   const parsed = matchResultInput.safeParse(payload);
-  if (!parsed.success) return { ok: false, error: "Data hasil tidak valid. Periksa skor dan foto bukti." };
+  if (!parsed.success) return { ok: false, error: "Data hasil tidak valid. Periksa pemenang dan skor." };
 
   try {
     recordMatchResult(matchId, parsed.data, user);

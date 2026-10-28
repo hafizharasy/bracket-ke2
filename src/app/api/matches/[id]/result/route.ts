@@ -7,7 +7,7 @@ import { roomOfMatchParam, withRoomAccess } from "@/server/room-guard";
 
 /**
  * PUT /api/matches/:id/result — pengawas menyimpan (atau mengoreksi) hasil laga.
- * Body: { scoreA, scoreB, winnerId?, proofPhotoUrl }
+ * Body: { scoreA, scoreB, winnerId?, proofPhotoUrl? }
  * 200 → { match, nextMatch } · 401 belum login · 403 bukan ruangannya ·
  * 404 laga tidak ada · 409 bentrok status · 422 data tidak valid.
  */

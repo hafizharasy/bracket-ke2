@@ -120,6 +120,31 @@ describe("advanceWinner (lewat recordMatchResult)", () => {
   });
 });
 
+describe("foto bukti opsional", () => {
+  const result = (id: string) => db.select().from(matchResults).where(eq(matchResults.matchId, id)).get();
+
+  it("hasil bisa disimpan tanpa foto; pemenang tetap maju", () => {
+    recordMatchResult("r1-1", { winnerId: "p1" }, admin);
+    expect(get("r1-1")).toMatchObject({ status: "done", winnerId: "p1" });
+    expect(get("r2-1").participantAId).toBe("p1");
+    expect(result("r1-1")?.proofPhotoUrl).toBe("");
+  });
+
+  it("koreksi tanpa foto baru mempertahankan foto sebelumnya; foto baru menggantinya", () => {
+    const first = proof("r1-1");
+    recordMatchResult("r1-1", { winnerId: "p1", proofPhotoUrl: first }, admin);
+    recordMatchResult("r1-1", { winnerId: "p2" }, admin);
+    expect(result("r1-1")?.proofPhotoUrl).toBe(first);
+    const second = proof("r1-1");
+    recordMatchResult("r1-1", { winnerId: "p2", proofPhotoUrl: second }, admin);
+    expect(result("r1-1")?.proofPhotoUrl).toBe(second);
+  });
+
+  it("tetap menolak foto milik laga lain", () => {
+    expectApiError(() => recordMatchResult("r1-1", { winnerId: "p1", proofPhotoUrl: proof("r1-2") }, admin), 422);
+  });
+});
+
 describe("cancelMatchResult / retractWinner", () => {
   it("mengembalikan laga ke terjadwal dan menarik pemenang dari laga berikutnya", () => {
     save("r1-1", "A");

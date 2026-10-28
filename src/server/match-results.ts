@@ -20,8 +20,8 @@ export const matchResultInput = z.object({
   winnerId: z.string().min(1).optional(),
   /** Final round-robin: jenis kemenangan (menentukan poin). */
   winType: z.enum(WIN_TYPE_VALUES).optional(),
-  /** URL foto bukti dari POST /api/matches/:id/proof untuk laga yang sama. */
-  proofPhotoUrl: z.string().trim().min(1).max(2048),
+  /** URL foto bukti dari POST /api/matches/:id/proof untuk laga yang sama (opsional). */
+  proofPhotoUrl: z.string().trim().min(1).max(2048).optional(),
 });
 export type MatchResultInput = z.infer<typeof matchResultInput>;
 
@@ -62,7 +62,7 @@ export function resolveResult(round: number, a: string, b: string, input: MatchR
 export function recordMatchResult(matchId: string, input: MatchResultInput, user: SessionUser) {
   const saved = saveResult(matchId, input, user);
   // Salinan foto ke Google Drive (bila terhubung) berjalan di latar belakang.
-  queueProofForDrive(matchId, input.proofPhotoUrl);
+  if (input.proofPhotoUrl) queueProofForDrive(matchId, input.proofPhotoUrl);
   return saved;
 }
 
@@ -71,9 +71,12 @@ function saveResult(matchId: string, input: MatchResultInput, user: SessionUser)
     const match = tx.select().from(matches).where(eq(matches.id, matchId)).get();
     if (!match) throw new ApiError(404, "Pertandingan tidak ditemukan.");
     authorize(user, "result:write", match);
-    if (!isProofUrlForMatch(input.proofPhotoUrl, match.id)) {
+    if (input.proofPhotoUrl && !isProofUrlForMatch(input.proofPhotoUrl, match.id)) {
       throw new ApiError(422, "Foto bukti harus diunggah untuk laga ini terlebih dahulu.");
     }
+    // Foto opsional: tanpa foto baru, koreksi mempertahankan foto sebelumnya ("" = tanpa foto).
+    const previous = tx.select().from(matchResults).where(eq(matchResults.matchId, match.id)).get();
+    const proofPhotoUrl = input.proofPhotoUrl ?? previous?.proofPhotoUrl ?? "";
 
     const { participantAId: a, participantBId: b } = match;
     if (!a || !b) throw new ApiError(409, "Kedua peserta laga ini belum lengkap.");
@@ -96,13 +99,13 @@ function saveResult(matchId: string, input: MatchResultInput, user: SessionUser)
       .values({
         id: crypto.randomUUID(),
         matchId: match.id,
-        proofPhotoUrl: input.proofPhotoUrl,
+        proofPhotoUrl,
         recordedBy: user.id,
         recordedAt: now,
       })
       .onConflictDoUpdate({
         target: matchResults.matchId,
-        set: { proofPhotoUrl: input.proofPhotoUrl, recordedBy: user.id, recordedAt: now },
+        set: { proofPhotoUrl, recordedBy: user.id, recordedAt: now },
       })
       .run();
 
@@ -116,7 +119,7 @@ function saveResult(matchId: string, input: MatchResultInput, user: SessionUser)
         scoreA: scoreA ?? 0,
         scoreB: scoreB ?? 0,
         winnerId,
-        proofPhotoUrl: input.proofPhotoUrl,
+        proofPhotoUrl,
         recordedBy: user.id,
         recordedAt: now,
       })
