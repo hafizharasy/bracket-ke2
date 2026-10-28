@@ -20,15 +20,18 @@ const formatKb = (bytes: number) => `${Math.round(bytes / 1024)} KB`;
 /**
  * Unggah foto bukti hasil laga. Di ponsel langsung membuka kamera belakang;
  * foto diperkecil di browser lalu diunggah. Memanggil `onChange` dengan foto
- * yang sudah terunggah (atau null saat dihapus / gagal).
+ * yang sudah terunggah (atau null saat dihapus / gagal). Foto bersifat opsional;
+ * `onUploadingChange` memberi tahu selama unggahan berjalan.
  */
 export function ProofPhotoInput({
   matchId,
   onChange,
+  onUploadingChange,
   disabled,
 }: {
   matchId: string;
   onChange: (photo: ProofPhoto | null) => void;
+  onUploadingChange?: (uploading: boolean) => void;
   disabled?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +56,7 @@ export function ProofPhotoInput({
     const preview = URL.createObjectURL(file);
     setState({ kind: "uploading", previewUrl: preview });
     onChange(null);
+    onUploadingChange?.(true);
     try {
       const compressed = await compressPhoto(file);
       const { url } = await uploadProofPhoto(matchId, compressed);
@@ -62,6 +66,8 @@ export function ProofPhotoInput({
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal mengunggah foto. Coba lagi.";
       setState({ kind: "error", message, previewUrl: preview });
+    } finally {
+      onUploadingChange?.(false);
     }
   }
 
@@ -75,7 +81,9 @@ export function ProofPhotoInput({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-semibold">Foto bukti</span>
+      <span className="text-sm font-semibold">
+        Foto bukti <span className="font-normal text-muted-foreground">(opsional)</span>
+      </span>
       <input
         ref={inputRef}
         type="file"

@@ -92,6 +92,16 @@ describe("buildBracketStructure", () => {
   });
 });
 
+describe("tempat semifinal & final", () => {
+  it("semua laga semifinal dan final digelar di Ruangan 1", () => {
+    const result = buildBracketStructure(input);
+    if (!result.ok) throw new Error(result.errors.join("\n"));
+    const finals = result.matches.filter((m) => m.round >= SEMIFINAL_ROUND);
+    expect(finals.length).toBeGreaterThan(0);
+    expect(new Set(finals.map((m) => m.roomId))).toEqual(new Set(["ruangan-1"]));
+  });
+});
+
 describe("bagan dua sisi", () => {
   it("laga ganjil di sisi kiri, genap di sisi kanan; laga sesama sisi bertemu, kedua sisi bertemu di final ruangan", () => {
     const result = buildBracketStructure(input);

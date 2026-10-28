@@ -43,7 +43,7 @@ type Status =
  * - Babak ruangan (best of one): cukup pilih pemenang, tanpa skor.
  * - Semifinal: game dimenangkan, best of 3 (2-0 atau 2-1).
  * - Final round-robin: pemenang + jenis kemenangan (poin).
- * Semua disertai foto bukti.
+ * Foto bukti opsional.
  */
 export function ResultForm({
   match,
@@ -59,6 +59,7 @@ export function ResultForm({
   const [scoreA, setScoreA] = useState(match.scoreA ?? 0);
   const [scoreB, setScoreB] = useState(match.scoreB ?? 0);
   const [photo, setPhoto] = useState<ProofPhoto | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const saving = status.kind === "saving";
   const router = useRouter();
@@ -89,15 +90,15 @@ export function ResultForm({
       return setStatus({ kind: "error", message: "Pilih pemenang dan jenis kemenangannya." });
     }
     if (!winnerId) return setStatus({ kind: "error", message: "Pilih pemenang laga ini." });
-    if (!photo) return setStatus({ kind: "error", message: "Unggah foto bukti terlebih dahulu." });
     setStatus({ kind: "saving" });
+    const proof = photo ? { proofPhotoUrl: photo.url } : {};
     const result = await submitMatchResult(
       match.id,
       mode === "final"
-        ? { winnerId, winType: winType!, proofPhotoUrl: photo.url }
+        ? { winnerId, winType: winType!, ...proof }
         : mode === "room"
-          ? { winnerId, proofPhotoUrl: photo.url }
-          : { scoreA, scoreB, proofPhotoUrl: photo.url },
+          ? { winnerId, ...proof }
+          : { scoreA, scoreB, ...proof },
     );
     setStatus(
       result.ok
@@ -188,13 +189,14 @@ export function ResultForm({
         </p>
       )}
 
-      <ProofPhotoInput matchId={match.id} onChange={setPhoto} disabled={saving} />
+      <ProofPhotoInput matchId={match.id} onChange={setPhoto} onUploadingChange={setPhotoUploading} disabled={saving} />
 
       <Button
         type="submit"
         size="lg"
         className="h-12 text-base"
-        disabled={saving || !photo || !winnerId || (mode === "final" && !winType) || winnerChangeBlocked}
+        // Tunggu unggahan foto yang sedang berjalan selesai, supaya fotonya ikut tersimpan.
+        disabled={saving || photoUploading || !winnerId || (mode === "final" && !winType) || winnerChangeBlocked}
       >
         {saving && <Loader2Icon className="animate-spin" />}
         {match.status === "done" ? "Simpan koreksi hasil" : "Simpan hasil"}

@@ -48,6 +48,7 @@ export function queueExistingProofs() {
   const rows = db.select({ matchId: matchResults.matchId, url: matchResults.proofPhotoUrl }).from(matchResults).all();
   let added = 0;
   for (const r of rows) {
+    if (!r.url) continue; // hasil tanpa foto bukti
     added += db.insert(driveUploads).values({ fileName: fileNameOf(r.url), matchId: r.matchId }).onConflictDoNothing().run().changes;
   }
   kickDriveQueue();
@@ -92,7 +93,9 @@ export function driveQueueStatus() {
   const notQueued = db
     .select({ n: sql<number>`count(*)` })
     .from(matchResults)
-    .where(sql`not exists (select 1 from drive_uploads d where d.match_id = ${matchResults.matchId} and d.file_name = substr(${matchResults.proofPhotoUrl}, 12))`)
+    .where(
+      sql`${matchResults.proofPhotoUrl} <> '' and not exists (select 1 from drive_uploads d where d.match_id = ${matchResults.matchId} and d.file_name = substr(${matchResults.proofPhotoUrl}, 12))`,
+    )
     .get()!.n;
   return { done: by("done"), pending: by("pending"), failed: by("failed"), notQueued, failures };
 }
