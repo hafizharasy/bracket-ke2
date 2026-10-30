@@ -1,7 +1,7 @@
-// Nama pengawas (wasit) per laga — data PRIVAT admin. Disimpan di tabel
-// terpisah (match_officials) supaya tidak pernah ikut terbaca oleh query
-// bagan publik maupun data pengawas ruangan. Hanya dipanggil dari halaman
-// & action admin.
+// Nama pengawas (wasit) per laga — data PRIVAT. Disimpan di tabel terpisah
+// (match_officials) supaya tidak pernah ikut terbaca oleh query bagan publik.
+// Dibaca halaman admin (semua laga) dan halaman pengawas ruangan (hanya laga
+// di ruangannya, lewat lib/pengawas-referees); diubah hanya oleh admin.
 
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";

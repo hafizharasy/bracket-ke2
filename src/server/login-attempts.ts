@@ -22,6 +22,13 @@ export function recordLoginAttempt(attempt: { email: string; role: Role; success
     .run();
 }
 
+/** Hapus catatan gagal sebuah email (mis. setelah admin mengatur ulang sandinya): kuncinya langsung terbuka. */
+export function clearFailedAttempts(tx: Pick<typeof db, "delete">, email: string) {
+  tx.delete(loginAttempts)
+    .where(and(eq(loginAttempts.email, email.toLowerCase()), eq(loginAttempts.success, false)))
+    .run();
+}
+
 /**
  * Status penguncian email: dikunci bila ada ≥ MAX_FAILED_ATTEMPTS gagal
  * berturut-turut (sejak login berhasil terakhir) dalam LOCKOUT_MINUTES

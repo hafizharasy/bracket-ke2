@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ShieldAlertIcon } from "lucide-react";
+import { ArrowLeftIcon, ShieldAlertIcon, UserCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { roundLabel } from "@/lib/bracket";
 import { nextPreview } from "@/lib/next-preview";
 import { getBracket } from "@/lib/get-bracket";
+import { loadRoomReferees } from "@/lib/pengawas-referees";
 import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 import { isByeMatch } from "@/lib/bracket-structure";
 
@@ -57,6 +58,7 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
 
   // Pratinjau babak lanjut: laga tujuan, slot, dan calon lawan pemenang.
   const next = nextPreview(data, match);
+  const refereeName = (await loadRoomReferees(session, [match]))[match.id];
 
   return (
     <>
@@ -75,6 +77,15 @@ async function MatchInput({ params }: Pick<PageProps<"/ruangan/laga/[id]">, "par
             .join(" · ")}
         </p>
       </div>
+
+      {refereeName && (
+        <p className="flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/5 p-3 text-sm">
+          <UserCheckIcon className="size-4 shrink-0 text-sky-700 dark:text-sky-400" aria-hidden />
+          <span>
+            Pengawas laga ini: <span className="font-semibold">{refereeName}</span>
+          </span>
+        </p>
+      )}
 
       {isByeMatch(match) ? (
         <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">

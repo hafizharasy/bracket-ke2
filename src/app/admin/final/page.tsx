@@ -6,6 +6,7 @@ import { FinalStandingsTable } from "@/components/bracket/final-standings-table"
 import { Badge } from "@/components/ui/badge";
 import { FINAL_ROUND, SEMIFINAL_ROUND, WIN_TYPES, type WinType } from "@/lib/bracket";
 import { finalLegs, finalistsOf, finalStandings, formatPoints, winPoints } from "@/lib/final-standings";
+import { loadReferees } from "@/lib/admin-referees";
 import { getBracket } from "@/lib/get-bracket";
 import type { Match, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ async function Lists() {
   const pending = semifinals.filter((_, i) => !finalists[i]).map((m) => m.matchNumber);
   // Laga final per putaran: putaran 1 = pertemuan pertama tiap pasangan, putaran 2 = pertemuan kedua.
   const rounds = finalLegs(finals);
+  const referees = await loadReferees([...semifinals, ...finals].map((m) => m.id), "/admin/final");
 
   return (
     <>
@@ -58,7 +60,7 @@ async function Lists() {
         </h2>
         <ul className="divide-y rounded-xl border bg-card">
           {semifinals.map((m) => (
-            <MatchRow key={m.id} match={m} label={`Semifinal #${m.matchNumber}`} people={people} room={rooms.get(m.roomId)} />
+            <MatchRow key={m.id} match={m} label={`Semifinal #${m.matchNumber}`} people={people} room={rooms.get(m.roomId)} referee={referees[m.id]} />
           ))}
         </ul>
       </section>
@@ -77,7 +79,7 @@ async function Lists() {
               </h3>
               <ul className="divide-y rounded-xl border bg-card">
                 {list.map((m) => (
-                  <MatchRow key={m.id} match={m} label={`Final #${m.matchNumber}`} people={people} room={rooms.get(m.roomId)} />
+                  <MatchRow key={m.id} match={m} label={`Final #${m.matchNumber}`} people={people} room={rooms.get(m.roomId)} referee={referees[m.id]} />
                 ))}
               </ul>
             </div>
@@ -88,7 +90,19 @@ async function Lists() {
   );
 }
 
-function MatchRow({ match, label, people, room }: { match: Match; label: string; people: Map<string, Participant>; room?: string }) {
+function MatchRow({
+  match,
+  label,
+  people,
+  room,
+  referee,
+}: {
+  match: Match;
+  label: string;
+  people: Map<string, Participant>;
+  room?: string;
+  referee?: string;
+}) {
   const a = match.participantAId ? people.get(match.participantAId) : undefined;
   const b = match.participantBId ? people.get(match.participantBId) : undefined;
   const ready = !!(a && b);
@@ -102,6 +116,9 @@ function MatchRow({ match, label, people, room }: { match: Match; label: string;
       <span className="w-40 shrink-0 text-xs text-muted-foreground">
         <span className="block font-medium text-foreground">{label}</span>
         {room}
+        <span className="block truncate">
+          {referee ? `Pengawas: ${referee}` : <span className="text-amber-700 dark:text-amber-400">Pengawas belum diisi</span>}
+        </span>
       </span>
       <span className="min-w-56 flex-1">
         {[

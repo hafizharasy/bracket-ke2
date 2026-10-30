@@ -6,6 +6,7 @@ import { RoomHomeSummary } from "@/components/ruangan/room-home-summary";
 import { RoomMatchRow } from "@/components/ruangan/room-match-row";
 import { buildSlotLabels, sortMatches } from "@/lib/bracket";
 import { getBracket } from "@/lib/get-bracket";
+import { loadRoomReferees } from "@/lib/pengawas-referees";
 import { canAccessRoom, requirePengawas } from "@/lib/pengawas-session";
 import { ROOM_MATCH_GROUPS, roomMatchGroup } from "@/lib/room-matches";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "search
   const matches = roomMatches.filter((m) => m.sessionId === activeSession?.id);
 
   const doneCount = matches.filter((m) => m.status === "done").length;
+  const referees = await loadRoomReferees(session, matches);
 
   return (
     <>
@@ -63,6 +65,7 @@ async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "search
         sessionName={activeSession?.name ?? null}
         matches={matches}
         participants={participants}
+        referees={referees}
       />
 
       <nav aria-label="Pilih sesi" className="flex gap-1.5 overflow-x-auto pb-1">
@@ -107,6 +110,7 @@ async function RoomMatches({ searchParams }: Pick<PageProps<"/ruangan">, "search
                   match={match}
                   participants={participants}
                   slotLabels={slotLabels.get(match.id)}
+                  refereeName={referees[match.id]}
                 />
               ))
             )}

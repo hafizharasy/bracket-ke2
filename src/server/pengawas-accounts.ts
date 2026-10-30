@@ -12,6 +12,7 @@ import {
 } from "@/server/credentials";
 import { recordAudit } from "@/server/audit";
 import { ApiError } from "@/server/errors";
+import { clearFailedAttempts } from "@/server/login-attempts";
 
 const password = z.string().min(MIN_PASSWORD_LENGTH, `Sandi minimal ${MIN_PASSWORD_LENGTH} karakter.`).max(200);
 export const pengawasCreateInput = z.object({
@@ -119,7 +120,12 @@ export async function updatePengawas(id: string, input: PengawasUpdate, actorId:
       })
       .where(eq(users.id, id))
       .run();
-    if (hash) storePasswordHash(tx, id, hash);
+    if (hash) {
+      storePasswordHash(tx, id, hash);
+      // Sandi baru dari admin membuka kunci "terlalu banyak percobaan gagal".
+      clearFailedAttempts(tx, current.email);
+      if (input.email) clearFailedAttempts(tx, input.email);
+    }
     if (endSessions) revokeSessions(tx, id);
     const changes = [
       input.name !== undefined && input.name !== current.name && `nama → ${input.name}`,

@@ -14,11 +14,14 @@ export function RoomHomeSummary({
   sessionName,
   matches,
   participants,
+  referees = {},
 }: {
   pengawasName: string;
   sessionName: string | null;
   matches: Match[];
   participants: Map<string, Participant>;
+  /** Nama pengawas per laga (matchId → nama). */
+  referees?: Record<string, string>;
 }) {
   const live = matches.filter((m) => m.status === "ongoing");
   const ready = matches.filter((m) => m.status === "scheduled" && m.participantAId && m.participantBId);
@@ -67,6 +70,9 @@ export function RoomHomeSummary({
             <span className="block truncate font-medium">
               {name(next.participantAId)} vs {name(next.participantBId)}
             </span>
+            {referees[next.id] && (
+              <span className="block truncate text-xs font-medium text-sky-700 dark:text-sky-400">Pengawas: {referees[next.id]}</span>
+            )}
           </span>
         </Link>
       ) : (

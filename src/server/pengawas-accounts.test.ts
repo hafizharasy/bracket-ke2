@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/db";
 import { authAccounts, authSessions, rooms, sessions, users, violations, participants } from "@/db/schema";
 import { ApiError } from "@/server/errors";
+import { getLockout, MAX_FAILED_ATTEMPTS, recordLoginAttempt } from "@/server/login-attempts";
 import { createPengawas, deletePengawas, listPengawas, updatePengawas } from "@/server/pengawas-accounts";
 import { clearUsers } from "@/test/db";
 
@@ -63,6 +64,16 @@ describe("akun pengawas", () => {
     await updatePengawas(id, { active: false });
     expect(sessionCount(id)).toBe(0);
     expect(listPengawas()[0]).toMatchObject({ name: "Nama Baru", roomId: "ruangan-2", active: false });
+  });
+
+  it("atur ulang sandi oleh admin membuka kunci terlalu banyak percobaan gagal", async () => {
+    const { id } = await createPengawas({ ...base, email: "satu@lrp.id" });
+    for (let i = 0; i < MAX_FAILED_ATTEMPTS; i++) recordLoginAttempt({ email: "satu@lrp.id", role: "pengawas", success: false });
+    expect(getLockout("satu@lrp.id").locked).toBe(true);
+    await updatePengawas(id, { name: "Tanpa ganti sandi" });
+    expect(getLockout("satu@lrp.id").locked).toBe(true);
+    await updatePengawas(id, { password: "sandi-baru-123" });
+    expect(getLockout("satu@lrp.id")).toEqual({ locked: false, remaining: MAX_FAILED_ATTEMPTS });
   });
 
   it("menghapus akun tanpa jejak, menolak akun yang sudah mencatat pelanggaran", async () => {
