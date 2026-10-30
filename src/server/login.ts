@@ -76,7 +76,7 @@ export async function loginWithPassword(
     return {
       ok: false,
       code: "locked",
-      error: `Terlalu banyak percobaan gagal. Coba lagi pukul ${timeFormat.format(lockout.retryAt)} WIB atau hubungi admin.`,
+      error: `Terlalu banyak percobaan gagal. Coba lagi pukul ${timeFormat.format(lockout.retryAt)} WIB, atau minta admin mengatur ulang sandi akun ini.`,
       retryAt: lockout.retryAt.toISOString(),
     };
   }
