@@ -1,4 +1,4 @@
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, UserCheckIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +13,13 @@ export function RoomMatchRow({
   match,
   participants,
   slotLabels,
+  refereeName,
 }: {
   match: Match;
   participants: Map<string, Participant>;
   slotLabels?: SlotLabels;
+  /** Nama pengawas yang bertugas di laga ini (diisi admin). */
+  refereeName?: string;
 }) {
   const a = match.participantAId ? participants.get(match.participantAId) : undefined;
   const b = match.participantBId ? participants.get(match.participantBId) : undefined;
@@ -41,6 +44,12 @@ export function RoomMatchRow({
             </Badge>
           )}
         </div>
+        {refereeName && (
+          <div className="flex items-center gap-1 text-xs font-medium text-sky-700 dark:text-sky-400">
+            <UserCheckIcon className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate">Pengawas: {refereeName}</span>
+          </div>
+        )}
         <Side
           name={a?.name ?? slotLabels?.a.text}
           empty={!a}

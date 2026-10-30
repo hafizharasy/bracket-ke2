@@ -160,7 +160,7 @@ describe("ruangan per sesi", () => {
 });
 
 describe("nama pengawas laga (privat)", () => {
-  it("disimpan admin dan tidak pernah ikut di data publik maupun data pengawas ruangan", async () => {
+  it("disimpan admin, tidak pernah ikut di data publik; pengawas hanya melihat laga ruangannya", async () => {
     generateBracketStructure({}, null);
     const SECRET = "Pengawas Rahasia Zyx";
     expect(setMatchReferees([{ matchId: "m-s1-r1-b1-1", refereeName: SECRET }, { matchId: "m-sf-1", refereeName: SECRET }], "u-admin")).toEqual({ saved: 2, cleared: 0 });
@@ -174,6 +174,13 @@ describe("nama pengawas laga (privat)", () => {
       db.select().from(auditLogs).all(),
     ]);
     expect(exposed).not.toContain(SECRET);
+
+    // Pengawas ruangan hanya melihat nama pengawas laga di ruangannya sendiri.
+    const { loadRoomReferees } = await import("@/lib/pengawas-referees");
+    const list = [match("m-s1-r1-b1-1"), match("m-sf-1"), match("m-s1-r2-b1-1")];
+    const own = { userId: "u-p1", name: "P1", roomId: "ruangan-1" };
+    expect(await loadRoomReferees(own, list)).toEqual({ "m-s1-r1-b1-1": SECRET, "m-sf-1": SECRET });
+    expect(await loadRoomReferees({ ...own, roomId: "ruangan-2" }, list)).toEqual({});
 
     expect(setMatchReferees([{ matchId: "m-sf-1", refereeName: "" }], "u-admin")).toEqual({ saved: 0, cleared: 1 });
     expectApiError(() => setMatchReferees([{ matchId: "m-404", refereeName: "X" }], "u-admin"), 404);
