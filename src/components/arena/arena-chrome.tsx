@@ -98,7 +98,7 @@ const FORMAT = [
   { title: "Semifinal", text: "Para juara ruangan saling berhadapan dalam format best of three — yang lebih dulu menang 2 game lolos." },
   {
     title: "Final",
-    text: "Finalis bertemu dua kali (tuan rumah & tamu) dalam kompetisi penuh. Poin: +3 menang 4 pion, +2 menang 3 pion, +1 3 pion tercepat, +½ 2 pion terbanyak.",
+    text: "Finalis bertemu dua kali (tuan rumah & tamu) dalam kompetisi penuh. Poin: +3 menang 4 pion, +2 menang 3 pion, +1 3 pion tercepat. Poin sama: menang head-to-head, lalu 4 pion, lalu 3 pion terbanyak.",
   },
 ];
 

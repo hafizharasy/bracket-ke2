@@ -16,7 +16,8 @@ import {
 export const USER_ROLES = ["admin", "pengawas"] as const;
 export const MATCH_STATUSES = ["scheduled", "ongoing", "done"] as const;
 /** Jenis kemenangan final round-robin (poin: lihat WIN_TYPES di lib/bracket). */
-export const WIN_TYPE_VALUES = ["empat", "tiga", "tiga_tercepat", "dua_terbanyak"] as const;
+// "dua_terbanyak" (2 pion berjajar) tidak dipakai lagi; constraint DB masih mengizinkannya untuk data lama.
+export const WIN_TYPE_VALUES = ["empat", "tiga", "tiga_tercepat"] as const;
 
 const createdAt = () =>
   integer("created_at", { mode: "timestamp" })

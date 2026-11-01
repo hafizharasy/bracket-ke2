@@ -36,7 +36,7 @@ export function randomResult(round: number, a: string, b: string, rand: Rand = M
   const winnerId = aWins ? a : b;
   if (round === FINAL_ROUND) {
     // Kemenangan telak lebih jarang daripada kemenangan biasa.
-    const winType = pick(["empat", "tiga", "tiga", "tiga_tercepat", "tiga_tercepat", "dua_terbanyak"] as const, rand);
+    const winType = pick(["empat", "tiga", "tiga", "tiga_tercepat", "tiga_tercepat"] as const, rand);
     return { winnerId, scoreA: null, scoreB: null, winType };
   }
   // Babak ruangan: best of one, hanya menang/kalah.

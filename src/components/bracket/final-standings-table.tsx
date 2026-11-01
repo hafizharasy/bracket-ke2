@@ -1,12 +1,20 @@
 import { TrophyIcon } from "lucide-react";
 
-import { WIN_TYPES } from "@/lib/bracket";
-import { formatPoints, type StandingRow } from "@/lib/final-standings";
+import { WIN_TYPE_KEYS, WIN_TYPES, type WinType } from "@/lib/bracket";
+import { formatPoints, type StandingRow, TIEBREAKERS } from "@/lib/final-standings";
 import type { Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+/** Judul kolom singkat per jenis kemenangan. */
+const TYPE_COLUMNS: Record<WinType, string> = {
+  empat: "4 pion",
+  tiga: "3 pion",
+  tiga_tercepat: "3 tercepat",
+};
+
 /**
- * Klasemen final round-robin. `slots` = jumlah finalis; finalis yang belum
+ * Klasemen final round-robin. Tiap jenis kemenangan punya kolom jumlahnya
+ * sendiri (poinnya di bawah judul kolom). `slots` = jumlah finalis; finalis yang belum
  * diketahui (semifinal belum selesai) tampil sebagai "Pemenang Semifinal #k".
  */
 export function FinalStandingsTable({
@@ -25,7 +33,7 @@ export function FinalStandingsTable({
   return (
     <div className="flex flex-col gap-2">
       <div className="overflow-x-auto rounded-xl border-2 border-line bg-surface shadow-[4px_4px_0_0_var(--color-gold)]">
-        <table className="w-full min-w-[34rem] text-sm">
+        <table className="w-full min-w-[40rem] text-sm">
           <caption className="sr-only">Klasemen final</caption>
           <thead className="bg-navy text-left font-display text-[10px] tracking-wide text-gold uppercase">
             <tr>
@@ -34,7 +42,14 @@ export function FinalStandingsTable({
               <th className="px-3 py-2 text-center font-medium">Main</th>
               <th className="px-3 py-2 text-center font-medium">Menang</th>
               <th className="px-3 py-2 text-center font-medium">Kalah</th>
-              <th className="px-3 py-2 text-center font-medium" title="Menang telak 4 pion berjajar">4 pion</th>
+              {WIN_TYPE_KEYS.map((type) => (
+                <th key={type} className="px-2 py-2 text-center font-medium" title={WIN_TYPES[type].label}>
+                  {TYPE_COLUMNS[type]}
+                  <span className="block font-sans text-[9px] font-normal tracking-normal text-gold/70 normal-case">
+                    +{formatPoints(WIN_TYPES[type].points)}
+                  </span>
+                </th>
+              ))}
               <th className="px-3 py-2 text-center font-medium">Poin</th>
             </tr>
           </thead>
@@ -55,7 +70,11 @@ export function FinalStandingsTable({
                   <td className="px-3 py-2 text-center tabular-nums">{row.played}</td>
                   <td className="px-3 py-2 text-center tabular-nums">{row.wins}</td>
                   <td className="px-3 py-2 text-center tabular-nums">{row.losses}</td>
-                  <td className="px-3 py-2 text-center tabular-nums">{row.fourInRow}</td>
+                  {WIN_TYPE_KEYS.map((type) => (
+                    <td key={type} className={cn("px-2 py-2 text-center tabular-nums", !row.byType[type] && "text-ink/30")}>
+                      {row.byType[type]}
+                    </td>
+                  ))}
                   <td className="px-3 py-2 text-center font-display text-base text-crimson tabular-nums">{formatPoints(row.points)}</td>
                 </tr>
               );
@@ -63,7 +82,7 @@ export function FinalStandingsTable({
             {pending.map((k) => (
               <tr key={`sf-${k}`} className="text-ink/45">
                 <td className="px-3 py-2">–</td>
-                <td className="px-3 py-2 italic" colSpan={6}>Pemenang Semifinal #{k}</td>
+                <td className="px-3 py-2 italic" colSpan={6 + WIN_TYPE_KEYS.length}>Pemenang Semifinal #{k}</td>
               </tr>
             ))}
           </tbody>
@@ -74,7 +93,7 @@ export function FinalStandingsTable({
         {Object.values(WIN_TYPES)
           .map((w) => `${w.label.replace(/^Menang (telak )?/, "").replace(/[()]/g, "")} +${formatPoints(w.points)}`)
           .join(" · ")}
-        ; kalah 0. Urutan poin sama: head-to-head, lalu jumlah menang.
+        ; kalah 0. Bila poin sama: {TIEBREAKERS.join(" → ")} (terbanyak di atas).
         {rows.some((r) => r.tied) && " * masih seri — ditentukan panitia."}
       </p>
     </div>
