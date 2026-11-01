@@ -1,6 +1,6 @@
 // Klasemen final round-robin (fungsi murni).
 
-import { FINAL_ROUND, SEMIFINAL_ROUND, WIN_TYPES, type WinType } from "@/lib/bracket";
+import { FINAL_ROUND, SEMIFINAL_ROUND, WIN_TYPE_KEYS, WIN_TYPES, type WinType } from "@/lib/bracket";
 import type { Match } from "@/lib/types";
 
 export type StandingRow = {
@@ -8,12 +8,12 @@ export type StandingRow = {
   played: number;
   wins: number;
   losses: number;
-  /** Kemenangan telak 4 pion (pembanding terakhir). */
-  fourInRow: number;
+  /** Jumlah kemenangan per jenis (4 pion, 3 pion, 3 pion tercepat). */
+  byType: Record<WinType, number>;
   points: number;
   /** Posisi 1, 2, …; sama untuk finalis yang masih seri setelah semua pembanding. */
   rank: number;
-  /** Masih seri dengan finalis lain setelah head-to-head & jumlah menang → admin menentukan. */
+  /** Masih seri dengan finalis lain setelah semua pembanding → panitia menentukan. */
   tied: boolean;
 };
 
@@ -31,14 +31,21 @@ export function winPoints(winType: string | null | undefined) {
 type FinalMatch = Pick<Match, "round" | "status" | "participantAId" | "participantBId" | "winnerId" | "winType">;
 
 /**
- * Klasemen dari laga final yang sudah selesai. Urutan: poin, lalu poin
- * head-to-head di antara finalis yang seri, lalu jumlah kemenangan, lalu
- * kemenangan 4 pion. Finalis yang masih sama setelah itu ditandai `tied`.
+ * Pembanding bila poin sama, berurutan: jumlah kemenangan head-to-head (di
+ * antara finalis yang seri), lalu kemenangan 4 pion berjajar, lalu 3 pion berjajar.
+ */
+export const TIEBREAKERS = ["Menang head-to-head", "4 pion berjajar", "3 pion berjajar"] as const;
+
+const emptyByType = () => Object.fromEntries(WIN_TYPE_KEYS.map((k) => [k, 0])) as Record<WinType, number>;
+
+/**
+ * Klasemen dari laga final yang sudah selesai: urut poin, lalu `TIEBREAKERS`.
+ * Finalis yang masih sama setelah semua pembanding ditandai `tied`.
  */
 export function finalStandings(matches: FinalMatch[], finalists: string[]): StandingRow[] {
   const finals = matches.filter((m) => m.round === FINAL_ROUND && m.status === "done" && m.winnerId && m.participantAId && m.participantBId);
   const rows = new Map<string, StandingRow>(
-    finalists.map((id) => [id, { participantId: id, played: 0, wins: 0, losses: 0, fourInRow: 0, points: 0, rank: 0, tied: false }]),
+    finalists.map((id) => [id, { participantId: id, played: 0, wins: 0, losses: 0, byType: emptyByType(), points: 0, rank: 0, tied: false }]),
   );
   for (const m of finals) {
     for (const id of [m.participantAId!, m.participantBId!]) {
@@ -48,16 +55,14 @@ export function finalStandings(matches: FinalMatch[], finalists: string[]): Stan
       if (id === m.winnerId) {
         row.wins++;
         row.points += winPoints(m.winType);
-        if (m.winType === "empat") row.fourInRow++;
+        if (m.winType && m.winType in WIN_TYPES) row.byType[m.winType as WinType]++;
       } else row.losses++;
     }
   }
 
-  /** Poin yang diperoleh `id` dari laga melawan finalis dalam `group`. */
+  /** Jumlah kemenangan `id` di laga melawan finalis dalam `group`. */
   const headToHead = (id: string, group: Set<string>) =>
-    finals
-      .filter((m) => m.winnerId === id && group.has(m.participantAId === id ? m.participantBId! : m.participantAId!))
-      .reduce((sum, m) => sum + winPoints(m.winType), 0);
+    finals.filter((m) => m.winnerId === id && group.has(m.participantAId === id ? m.participantBId! : m.participantAId!)).length;
 
   const byPoints = [...rows.values()].sort((a, b) => b.points - a.points);
   const ordered: StandingRow[] = [];
@@ -66,10 +71,14 @@ export function finalStandings(matches: FinalMatch[], finalists: string[]): Stan
     while (j < byPoints.length && byPoints[j].points === byPoints[i].points) j++;
     const group = byPoints.slice(i, j);
     const ids = new Set(group.map((r) => r.participantId));
-    const key = (r: StandingRow) => [ids.size > 1 ? headToHead(r.participantId, ids) : 0, r.wins, r.fourInRow];
+    const key = (r: StandingRow) => [
+      ids.size > 1 ? headToHead(r.participantId, ids) : 0,
+      r.byType.empat,
+      r.byType.tiga,
+    ];
     group.sort((a, b) => {
       const [ka, kb] = [key(a), key(b)];
-      return kb[0] - ka[0] || kb[1] - ka[1] || kb[2] - ka[2];
+      return ka.reduce((diff, _, n) => diff || kb[n] - ka[n], 0);
     });
     // Peringkat sama bila semua pembanding sama.
     group.forEach((row, g) => {

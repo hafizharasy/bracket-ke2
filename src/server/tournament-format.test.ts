@@ -117,21 +117,21 @@ describe("alur juara ruangan → semifinal → final round-robin", () => {
     for (const f of fed) expect(f.feedAId === "m-sf-1" ? f.participantAId : f.participantBId).toBe(ready.participantAId);
   });
 
-  it("klasemen final: poin, head-to-head, lalu jumlah menang; juara setelah semua laga selesai", () => {
+  it("klasemen final: poin lalu pembanding seri; juara setelah semua laga selesai", () => {
     const done = (a: string, b: string, winnerId: string, winType: string) =>
       ({ round: FINAL_ROUND, status: "done", participantAId: a, participantBId: b, winnerId, winType, matchNumber: 1 }) as const;
     const list = [
       done("x", "y", "x", "empat"), // x +3
       done("y", "x", "y", "empat"), // y +3
-      done("x", "z", "x", "dua_terbanyak"), // x +½
-      done("z", "y", "y", "dua_terbanyak"), // y +½
+      done("x", "z", "x", "tiga_tercepat"), // x +1
+      done("z", "y", "y", "tiga_tercepat"), // y +1
       done("z", "x", "z", "tiga"), // z +2
       done("y", "z", "z", "tiga_tercepat"), // z +1
     ];
     const rows = finalStandings(list, ["x", "y", "z"]);
     expect(rows.map((r) => [r.participantId, r.points, r.rank])).toEqual([
-      ["x", 3.5, 1],
-      ["y", 3.5, 1],
+      ["x", 4, 1],
+      ["y", 4, 1],
       ["z", 3, 3],
     ]);
     expect(rows[0].tied).toBe(true);
@@ -140,6 +140,29 @@ describe("alur juara ruangan → semifinal → final round-robin", () => {
     expect(tournamentChampion([...sf, ...list])).toBeNull();
     const decisive = list.map((m, i) => (i === 3 ? { ...m, winType: "empat" } : m)); // y +3 → 6
     expect(tournamentChampion([...sf, ...decisive])).toBe("y");
+  });
+
+  it("poin sama: menang head-to-head → 4 pion → 3 pion berjajar", () => {
+    const done = (a: string, b: string, winnerId: string, winType: string) =>
+      ({ round: FINAL_ROUND, status: "done", participantAId: a, participantBId: b, winnerId, winType, matchNumber: 1 }) as const;
+    const order = (list: ReturnType<typeof done>[], ids: string[]) =>
+      finalStandings(list, ids).map((r) => [r.participantId, r.points, r.rank, r.tied]);
+
+    // Head-to-head: a & b sama-sama 2 poin; a menang dua kali atas b (1 + 1), b menang sekali atas c (2).
+    expect(order([done("a", "b", "a", "tiga_tercepat"), done("b", "a", "a", "tiga_tercepat"), done("b", "c", "b", "tiga")], ["a", "b", "c"]).slice(0, 2))
+      .toEqual([["a", 2, 1, false], ["b", 2, 2, false]]);
+
+    // 4 pion: poin sama (3), head-to-head sama (0 laga antar keduanya) → yang punya menang 4 pion di atas.
+    expect(order([done("a", "c", "a", "tiga"), done("a", "c", "a", "tiga_tercepat"), done("b", "c", "b", "empat")], ["a", "b", "c"]).slice(0, 2))
+      .toEqual([["b", 3, 1, false], ["a", 3, 2, false]]);
+
+    // 3 pion: poin sama (3), tanpa 4 pion → menang 3 pion (2 poin) mengalahkan 3 pion tercepat ×3.
+    expect(order([done("a", "c", "a", "tiga"), done("c", "a", "a", "tiga_tercepat"), ...[1, 2, 3].map(() => done("b", "c", "b", "tiga_tercepat"))], ["a", "b", "c"]).slice(0, 2))
+      .toEqual([["a", 3, 1, false], ["b", 3, 2, false]]);
+
+    // Semua sama → seri, ditentukan panitia.
+    expect(order([done("a", "c", "a", "tiga"), done("b", "c", "b", "tiga")], ["a", "b", "c"]).slice(0, 2))
+      .toEqual([["a", 2, 1, true], ["b", 2, 1, true]]);
   });
 });
 

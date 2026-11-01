@@ -68,7 +68,6 @@ export const WIN_TYPES = {
   empat: { label: "Menang telak (4 pion berjajar)", points: 3 },
   tiga: { label: "Menang (3 pion berjajar)", points: 2 },
   tiga_tercepat: { label: "Menang (3 pion berjajar pertama, tercepat)", points: 1 },
-  dua_terbanyak: { label: "Menang (2 pion berjajar terbanyak)", points: 0.5 },
 } as const;
 export type WinType = keyof typeof WIN_TYPES;
 export const WIN_TYPE_KEYS = Object.keys(WIN_TYPES) as WinType[];
